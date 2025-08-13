@@ -28,7 +28,7 @@
   /* ← グリッドの行高も auto に変更（以前は var(--ui) で固定だった） */
   #app { display: grid; grid-template-rows: auto 1fr auto; height: 100dvh; }
 
-  #stage { position: relative; background: #f6f6f6; overflow: hidden; }
+  #stage { position: relative; background: #f6f6f6; overflow: auto; }
   canvas { position: absolute; inset: 0; image-rendering: pixelated; z-index: 0; }
   #overlay { pointer-events: none; z-index: 1; }
 
@@ -47,13 +47,16 @@
     display: flex;
     align-items: center;
     gap: var(--gap);
-    overflow-x: auto;
+    overflow: auto;
     white-space: nowrap;
     flex: 1 1 auto;
     padding-bottom: 2px; /* スクロールバー余白 */
   }
   #tools::-webkit-scrollbar { height: 8px; }
   #tools::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+  #stage::-webkit-scrollbar { width: 8px; height: 8px; }
+  #stage::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 
   button, select, input[type="color"], input[type="number"] { height: 28px; }
   .tool { padding: 4px 8px; flex: none; }
