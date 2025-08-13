@@ -128,6 +128,7 @@
       <button class="tool" data-tool="rect" title="R">矩形</button>
       <button class="tool" data-tool="ellipse" title="O">楕円</button>
       <label class="row badge">塗り <input id="fillOn" type="checkbox" checked></label>
+      <label class="row badge">AA <input id="antialias" type="checkbox"></label>
       <div class="sep"></div>
       <button class="tool" data-tool="text" title="T">テキスト</button>
       <select id="fontFamily">
@@ -296,13 +297,17 @@ class Engine{
   requestRepaint(){
     const css=stage.getBoundingClientRect(); resizeCanvasToDisplaySize(base,css.width,css.height); resizeCanvasToDisplaySize(overlay,css.width,css.height);
     const ratio=dpr(); const ctx=base.getContext('2d');
+    const aa=this.store.getState().antialias;
     ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,base.width,base.height);
     ctx.setTransform(ratio*this.vp.zoom,0,0,ratio*this.vp.zoom,ratio*this.vp.panX,ratio*this.vp.panY);
-    ctx.imageSmoothingEnabled=false; ctx.drawImage(bmp,0,0);
+    ctx.imageSmoothingEnabled=aa; ctx.drawImage(bmp,0,0);
 
     const octx=overlay.getContext('2d'); octx.setTransform(1,0,0,1,0,0); octx.clearRect(0,0,overlay.width,overlay.height);
     octx.setTransform(ratio*this.vp.zoom,0,0,ratio*this.vp.zoom,ratio*this.vp.panX,ratio*this.vp.panY);
-    octx.imageSmoothingEnabled=false;
+    octx.imageSmoothingEnabled=aa;
+    const rendering=aa?'auto':'pixelated';
+    base.style.imageRendering=rendering;
+    overlay.style.imageRendering=rendering;
 
     // 調整プレビュー
     if(this.filterPreview){
@@ -429,7 +434,7 @@ function makeShape(kind,store){ let drawing=false,start=null,lastPreview=null; r
   onPointerUp(ctx,ev,eng){ if(!drawing) return; drawing=false; if(!lastPreview){ this.previewRect=null; return; }
     const {start:s,cur,state}=lastPreview; 
     const strokeColor=state.primaryColor, fillColor=state.secondaryColor; const lineWidth=state.brushSize, fillOn=state.fillOn;
-    ctx.save(); ctx.imageSmoothingEnabled=false; ctx.lineWidth=lineWidth; ctx.strokeStyle=strokeColor; ctx.fillStyle=fillColor;
+    ctx.save(); ctx.imageSmoothingEnabled=store.getState().antialias; ctx.lineWidth=lineWidth; ctx.strokeStyle=strokeColor; ctx.fillStyle=fillColor;
     if(kind==='line'){ ctx.beginPath(); ctx.moveTo(s.x+0.5, s.y+0.5); ctx.lineTo(cur.x+0.5, cur.y+0.5); ctx.stroke();
       eng.expandPendingRectByRect(Math.min(s.x,cur.x)-lineWidth, Math.min(s.y,cur.y)-lineWidth, Math.abs(cur.x-s.x)+lineWidth*2, Math.abs(cur.y-s.y)+lineWidth*2); }
     else if(kind==='rect'){ const x=Math.min(s.x,cur.x), y=Math.min(s.y,cur.y), w=Math.abs(cur.x-s.x), h=Math.abs(cur.y-s.y); if(fillOn) ctx.fillRect(x,y,w,h); ctx.strokeRect(x+0.5,y+0.5,w,h); eng.expandPendingRectByRect(x-lineWidth,y-lineWidth,w+lineWidth*2,h+lineWidth*2); }
@@ -564,7 +569,7 @@ function makeTextTool(store){
 /* ===== init ===== */
 const store=createStore({
   toolId:'pencil', primaryColor:'#000000', secondaryColor:'#ffffff', brushSize:4,
-  fillOn:true
+  fillOn:true, antialias:false
 });
 const vp=new Viewport();
 const engine=new Engine(store,vp);
@@ -575,6 +580,10 @@ document.getElementById('color').addEventListener('input', e=>store.set({primary
 document.getElementById('color2').addEventListener('input', e=>store.set({secondaryColor:e.target.value}));
 document.getElementById('fillOn').addEventListener('change', e=>{
   store.set({ fillOn: e.target.checked });
+});
+document.getElementById('antialias').addEventListener('change', e=>{
+  store.set({ antialias: e.target.checked });
+  engine.requestRepaint();
 });
 document.getElementById('fontFamily').addEventListener('change', ()=>{ if(activeEditor) activeEditor.style.fontFamily=document.getElementById('fontFamily').value; });
 
@@ -627,7 +636,7 @@ function openImageFile(file){
         const before=bctx.getImageData(0,0,bmp.width||1,bmp.height||1);
         bmp.width=img.naturalWidth;
         bmp.height=img.naturalHeight; 
-        bctx.imageSmoothingEnabled=false;
+        bctx.imageSmoothingEnabled=store.getState().antialias;
         bctx.clearRect(0,0,bmp.width,bmp.height);
         bctx.drawImage(img,0,0);
         const after=bctx.getImageData(0,0,bmp.width,bmp.height);
