@@ -28,7 +28,7 @@
   /* ← グリッドの行高も auto に変更（以前は var(--ui) で固定だった） */
   #app { display: grid; grid-template-rows: auto 1fr auto; height: 100dvh; }
 
-  #stage { position: relative; background: #f6f6f6; overflow: auto; }
+  #stage { position: relative; background: #f6f6f6; overflow: scroll; }
   canvas { position: absolute; inset: 0; image-rendering: pixelated; z-index: 0; }
   #overlay { pointer-events: none; z-index: 1; }
 
@@ -47,12 +47,14 @@
     display: flex;
     align-items: center;
     gap: var(--gap);
-    overflow: auto;
+    
+    overflow: scroll;
+
     white-space: nowrap;
     flex: 1 1 auto;
     padding-bottom: 2px; /* スクロールバー余白 */
   }
-  #tools::-webkit-scrollbar { height: 8px; }
+  #tools::-webkit-scrollbar { width: 8px; height: 8px; }
   #tools::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 
   #stage::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -210,9 +212,16 @@ function syncHeaderHeight(){
   const h = Math.ceil(headerEl.getBoundingClientRect().height);
   document.documentElement.style.setProperty('--headerH', h + 'px');
 }
+
+function centerStageScroll(){
+  stage.scrollLeft = (stage.scrollWidth - stage.clientWidth) / 2;
+  stage.scrollTop = (stage.scrollHeight - stage.clientHeight) / 2;
+}
 new ResizeObserver(() => syncHeaderHeight()).observe(headerEl);
 window.addEventListener('load', syncHeaderHeight);
 window.addEventListener('resize', syncHeaderHeight);
+window.addEventListener('load', centerStageScroll);
+window.addEventListener('resize', centerStageScroll);
 
 // 追加：エディタ外クリックでテキスト確定（先に走らせるため capture:true）
 document.addEventListener('pointerdown', (e) => {
