@@ -127,6 +127,15 @@
       <button class="tool" data-tool="line" title="L">直線</button>
       <button class="tool" data-tool="rect" title="R">矩形</button>
       <button class="tool" data-tool="ellipse" title="O">楕円</button>
+      <button class="tool" data-tool="quad" title="Q">2次ベジェ</button>
+      <button class="tool" data-tool="cubic" title="C">3次ベジェ</button>
+      <button class="tool" data-tool="arc" title="A">円弧</button>
+      <button class="tool" data-tool="sector" title="S">扇形</button>
+      <button class="tool" data-tool="catmull" title="U">Catmull</button>
+      <button class="tool" data-tool="bspline" title="B">Bスプライン</button>
+      <button class="tool" data-tool="nurbs" title="N">NURBS</button>
+      <button class="tool" data-tool="ellipse2" title="E">楕円(回転)</button>
+      <button class="tool" data-tool="freehand" title="H">補間描画</button>
       <label class="row badge">塗り <input id="fillOn" type="checkbox" checked></label>
       <label class="row badge">AA <input id="antialias" type="checkbox"></label>
       <div class="sep"></div>
@@ -315,6 +324,10 @@ class Engine{
       octx.drawImage(canvas, x||0, y||0);
     }
 
+    if(this.current && this.current.drawPreview){
+      this.current.drawPreview(octx);
+    }
+
     // 選択の蟻枠／フロート
     if(this.selection){
       const sel=this.selection;
@@ -442,6 +455,113 @@ function makeShape(kind,store){ let drawing=false,start=null,lastPreview=null; r
     ctx.restore(); this.previewRect=null; }
 }; }
 function drawEllipsePath(ctx,cx,cy,rx,ry){ const k=0.5522847498307936, ox=rx*k, oy=ry*k; ctx.moveTo(cx+rx,cy); ctx.bezierCurveTo(cx+rx,cy-oy, cx+ox,cy-ry, cx,cy-ry); ctx.bezierCurveTo(cx-ox,cy-ry, cx-rx,cy-oy, cx-rx,cy); ctx.bezierCurveTo(cx-rx,cy+oy, cx-ox,cy+ry, cx,cy+ry); ctx.bezierCurveTo(cx+ox,cy+ry, cx+rx,cy+oy, cx+rx,cy); }
+
+function makeQuadratic(store){
+  let stage=0,p0=null,p1=null,p2=null; return {
+    id:'quad',cursor:'crosshair',previewRect:null,
+    onPointerDown(ctx,ev,eng){
+      if(stage===0){ p0={...ev.img}; stage=1; }
+      else if(stage===1){ p2={...ev.img}; p1={x:(p0.x+p2.x)/2,y:(p0.y+p2.y)/2}; stage=2; }
+      else if(stage===2){ const s=store.getState(); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(p0.x+0.5,p0.y+0.5); ctx.quadraticCurveTo(p1.x+0.5,p1.y+0.5,p2.x+0.5,p2.y+0.5); ctx.stroke(); ctx.restore(); const minX=Math.min(p0.x,p1.x,p2.x), minY=Math.min(p0.y,p1.y,p2.y), maxX=Math.max(p0.x,p1.x,p2.x), maxY=Math.max(p0.y,p1.y,p2.y); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); stage=0; this.previewRect=null; }
+    },
+    onPointerMove(ctx,ev){ if(stage===2){ p1={...ev.img}; } },
+    onPointerUp(){},
+    drawPreview(octx){ if(stage===2){ const s=store.getState(); octx.save(); octx.lineWidth=s.brushSize; octx.strokeStyle=s.primaryColor; octx.beginPath(); octx.moveTo(p0.x+0.5,p0.y+0.5); octx.quadraticCurveTo(p1.x+0.5,p1.y+0.5,p2.x+0.5,p2.y+0.5); octx.stroke(); octx.restore(); } }
+  }; }
+
+function makeCubic(store){
+  let stage=0,p0=null,p1=null,p2=null,p3=null; return {
+    id:'cubic',cursor:'crosshair',previewRect:null,
+    onPointerDown(ctx,ev,eng){
+      if(stage===0){ p0={...ev.img}; stage=1; }
+      else if(stage===1){ p3={...ev.img}; const mx=(p0.x+p3.x)/2,my=(p0.y+p3.y)/2; p1={x:mx,y:my}; p2={x:mx,y:my}; stage=2; }
+      else if(stage===2){ const s=store.getState(); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(p0.x+0.5,p0.y+0.5); ctx.bezierCurveTo(p1.x+0.5,p1.y+0.5,p2.x+0.5,p2.y+0.5,p3.x+0.5,p3.y+0.5); ctx.stroke(); ctx.restore(); const minX=Math.min(p0.x,p1.x,p2.x,p3.x), minY=Math.min(p0.y,p1.y,p2.y,p3.y), maxX=Math.max(p0.x,p1.x,p2.x,p3.x), maxY=Math.max(p0.y,p1.y,p2.y,p3.y); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); stage=0; this.previewRect=null; }
+    },
+    onPointerMove(ctx,ev){
+      if(stage===2){
+        if(ev.shift){
+          p2={...ev.img};
+        } else {
+          p1={...ev.img};
+          p2={x:p0.x+p3.x-p1.x,y:p0.y+p3.y-p1.y};
+        }
+      }
+    },
+    onPointerUp(){},
+    drawPreview(octx){ if(stage===2){ const s=store.getState(); octx.save(); octx.lineWidth=s.brushSize; octx.strokeStyle=s.primaryColor; octx.beginPath(); octx.moveTo(p0.x+0.5,p0.y+0.5); octx.bezierCurveTo(p1.x+0.5,p1.y+0.5,p2.x+0.5,p2.y+0.5,p3.x+0.5,p3.y+0.5); octx.stroke(); octx.restore(); } }
+  }; }
+
+function makeArc(store){
+  let stage=0,cx=0,cy=0,r=0,start=0,end=0; return {
+    id:'arc',cursor:'crosshair',previewRect:null,
+    onPointerDown(ctx,ev,eng){
+      if(stage===0){ cx=ev.img.x; cy=ev.img.y; stage=1; }
+      else if(stage===1){ r=Math.hypot(ev.img.x-cx, ev.img.y-cy); start=Math.atan2(ev.img.y-cy, ev.img.x-cx); end=start; stage=2; }
+      else if(stage===2){ const s=store.getState(); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.arc(cx,cy,r,start,end); ctx.stroke(); ctx.restore(); const minX=cx-r, minY=cy-r; eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,r*2+s.brushSize*2,r*2+s.brushSize*2); stage=0; }
+    },
+    onPointerMove(ctx,ev){ if(stage===2){ end=Math.atan2(ev.img.y-cy, ev.img.x-cx); } },
+    onPointerUp(){},
+    drawPreview(octx){ if(stage===2){ const s=store.getState(); octx.save(); octx.lineWidth=s.brushSize; octx.strokeStyle=s.primaryColor; octx.beginPath(); octx.arc(cx,cy,r,start,end); octx.stroke(); octx.restore(); } }
+  }; }
+
+function makeSector(store){
+  let stage=0,cx=0,cy=0,r=0,start=0,end=0; return {
+    id:'sector',cursor:'crosshair',previewRect:null,
+    onPointerDown(ctx,ev,eng){
+      if(stage===0){ cx=ev.img.x; cy=ev.img.y; stage=1; }
+      else if(stage===1){ r=Math.hypot(ev.img.x-cx, ev.img.y-cy); start=Math.atan2(ev.img.y-cy, ev.img.x-cx); end=start; stage=2; }
+      else if(stage===2){ const s=store.getState(); ctx.save(); ctx.lineWidth=s.brushSize; ctx.fillStyle=store.getState().fillOn?s.secondaryColor:'transparent'; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,end); ctx.closePath(); if(store.getState().fillOn) ctx.fill(); ctx.stroke(); ctx.restore(); eng.expandPendingRectByRect(cx-r-s.brushSize,cy-r-s.brushSize,r*2+s.brushSize*2,r*2+s.brushSize*2); stage=0; }
+    },
+    onPointerMove(ctx,ev){ if(stage===2){ end=Math.atan2(ev.img.y-cy, ev.img.x-cx); } },
+    onPointerUp(){},
+    drawPreview(octx){ if(stage===2){ const s=store.getState(); octx.save(); octx.lineWidth=s.brushSize; octx.strokeStyle=s.primaryColor; octx.beginPath(); octx.moveTo(cx,cy); octx.arc(cx,cy,r,start,end); octx.closePath(); octx.stroke(); octx.restore(); } }
+  }; }
+
+function catmullRom(p0,p1,p2,p3,t){ const t2=t*t,t3=t2*t; return { x:0.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3), y:0.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3) }; }
+function catmullRomSpline(pts,seg=16){ const out=[]; if(pts.length<2) return pts; for(let i=0;i<pts.length-1;i++){ const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2; for(let j=0;j<=seg;j++){ const t=j/seg; out.push(catmullRom(p0,p1,p2,p3,t)); } } return out; }
+
+function makeCatmull(store){ let pts=[]; function finalize(ctx,eng){ if(pts.length<4) return; const s=store.getState(); const cr=catmullRomSpline(pts); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) ctx.lineTo(cr[i].x+0.5,cr[i].y+0.5); ctx.stroke(); ctx.restore(); let minX=cr[0].x,maxX=cr[0].x,minY=cr[0].y,maxY=cr[0].y; cr.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); eng.finishStrokeToHistory(); eng.requestRepaint(); pts=[]; }
+  window.addEventListener('keydown',e=>{ if(e.key==='Enter') finalize(bctx,engine); });
+  return { id:'catmull',cursor:'crosshair',previewRect:null,
+    onPointerDown(ctx,ev){ pts.push({...ev.img}); },
+    onPointerMove(){}, onPointerUp(){}, drawPreview(octx){ if(pts.length>1){ const cr=catmullRomSpline(pts); octx.save(); octx.lineWidth=store.getState().brushSize; octx.strokeStyle=store.getState().primaryColor; octx.beginPath(); octx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) octx.lineTo(cr[i].x+0.5,cr[i].y+0.5); octx.stroke(); octx.restore(); } } };
+}
+
+function bspline(points,deg=3,seg=32){ const n=points.length-1; const knots=[]; for(let i=0;i<=n+deg+1;i++) knots.push(i); const domain=[deg, knots.length-deg-1]; const out=[]; const step=(knots[domain[1]]-knots[domain[0]])/seg; for(let u=knots[domain[0]]; u<=knots[domain[1]]; u+=step){ out.push(deBoor(deg,u,knots,points)); } return out; }
+function deBoor(k,x,t,c){ const d=c.map(p=>({...p})); for(let r=1;r<=k;r++){ for(let i=c.length-1;i>=r;i--){ const alpha=(x-t[i])/(t[i+k+1-r]-t[i]); d[i]={x:(1-alpha)*d[i-1].x+alpha*d[i].x,y:(1-alpha)*d[i-1].y+alpha*d[i].y}; } } return d[c.length-1]; }
+
+function makeBSpline(store){ let pts=[]; function finalize(ctx,eng){ if(pts.length<4) return; const s=store.getState(); const cr=bspline(pts); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) ctx.lineTo(cr[i].x+0.5,cr[i].y+0.5); ctx.stroke(); ctx.restore(); let minX=cr[0].x,maxX=cr[0].x,minY=cr[0].y,maxY=cr[0].y; cr.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); eng.finishStrokeToHistory(); eng.requestRepaint(); pts=[]; }
+  window.addEventListener('keydown',e=>{ if(e.key==='Enter') finalize(bctx,engine); });
+  return { id:'bspline',cursor:'crosshair',previewRect:null,
+    onPointerDown(ctx,ev){ pts.push({...ev.img}); },
+    onPointerMove(){}, onPointerUp(){}, drawPreview(octx){ if(pts.length>1){ const cr=bspline(pts); octx.save(); octx.lineWidth=store.getState().brushSize; octx.strokeStyle=store.getState().primaryColor; octx.beginPath(); octx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) octx.lineTo(cr[i].x+0.5,cr[i].y+0.5); octx.stroke(); octx.restore(); } } };
+}
+
+function nurbs(points,weights,deg=3,seg=32){ const n=points.length-1; const knots=[]; for(let i=0;i<=n+deg+1;i++) knots.push(i); function N(i,k,u){ if(k===0) return (u>=knots[i]&&u<knots[i+1])?1:0; const a=(u-knots[i])/(knots[i+k]-knots[i])||0; const b=(knots[i+k+1]-u)/(knots[i+k+1]-knots[i+1])||0; return a*N(i,k-1,u)+b*N(i+1,k-1,u); } const domain=[deg, knots.length-deg-1]; const out=[]; const step=(knots[domain[1]]-knots[domain[0]])/seg; for(let u=knots[domain[0]]; u<=knots[domain[1]]; u+=step){ let x=0,y=0,w=0; for(let i=0;i<=n;i++){ const b=N(i,deg,u)*weights[i]; x+=points[i].x*b; y+=points[i].y*b; w+=b; } out.push({x:x/w,y:y/w}); } return out; }
+
+function makeNURBS(store){ let pts=[],ws=[]; function finalize(ctx,eng){ if(pts.length<4) return; const s=store.getState(); const cr=nurbs(pts,ws); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) ctx.lineTo(cr[i].x+0.5,cr[i].y+0.5); ctx.stroke(); ctx.restore(); let minX=cr[0].x,maxX=cr[0].x,minY=cr[0].y,maxY=cr[0].y; cr.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); eng.finishStrokeToHistory(); eng.requestRepaint(); pts=[]; ws=[]; }
+  window.addEventListener('keydown',e=>{ if(e.key==='Enter') finalize(bctx,engine); });
+  return { id:'nurbs',cursor:'crosshair',previewRect:null,
+    onPointerDown(ctx,ev){ pts.push({...ev.img}); const w=parseFloat(prompt('weight','1'))||1; ws.push(w); },
+    onPointerMove(){}, onPointerUp(){}, drawPreview(octx){ if(pts.length>1){ const cr=nurbs(pts,ws); octx.save(); octx.lineWidth=store.getState().brushSize; octx.strokeStyle=store.getState().primaryColor; octx.beginPath(); octx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) octx.lineTo(cr[i].x+0.5,cr[i].y+0.5); octx.stroke(); octx.restore(); } } };
+}
+
+function makeEllipse2(store){ let stage=0,cx=0,cy=0,rx=0,ry=0,rot=0; return { id:'ellipse2',cursor:'crosshair',previewRect:null,
+  onPointerDown(ctx,ev,eng){ if(stage===0){ cx=ev.img.x; cy=ev.img.y; stage=1; }
+    else if(stage===1){ rx=Math.abs(ev.img.x-cx); ry=Math.abs(ev.img.y-cy); rot=0; stage=2; }
+    else if(stage===2){ const s=store.getState(); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; if(store.getState().fillOn) ctx.fillStyle=s.secondaryColor; ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,rot,0,Math.PI*2); if(store.getState().fillOn) ctx.fill(); ctx.stroke(); ctx.restore(); eng.expandPendingRectByRect(cx-rx-s.brushSize,cy-ry-s.brushSize,rx*2+s.brushSize*2,ry*2+s.brushSize*2); stage=0; }
+  },
+  onPointerMove(ctx,ev){ if(stage===1){ rx=Math.abs(ev.img.x-cx); ry=Math.abs(ev.img.y-cy); } else if(stage===2){ rot=Math.atan2(ev.img.y-cy, ev.img.x-cx); } },
+  onPointerUp(){},
+  drawPreview(octx){ if(stage>0){ const s=store.getState(); octx.save(); octx.lineWidth=s.brushSize; octx.strokeStyle=s.primaryColor; octx.beginPath(); octx.ellipse(cx,cy,rx,ry,rot,0,Math.PI*2); octx.stroke(); octx.restore(); } }
+}; }
+
+function makeFreehand(store){ let pts=[],drawing=false; return { id:'freehand',cursor:'crosshair',previewRect:null,
+  onPointerDown(ctx,ev){ drawing=true; pts=[{...ev.img}]; },
+  onPointerMove(ctx,ev){ if(drawing) pts.push({...ev.img}); },
+  onPointerUp(ctx,ev,eng){ if(!drawing) return; drawing=false; pts.push({...ev.img}); const s=store.getState(); const sm=catmullRomSpline(pts,8); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.beginPath(); ctx.moveTo(sm[0].x+0.5,sm[0].y+0.5); for(let i=1;i<sm.length;i++) ctx.lineTo(sm[i].x+0.5,sm[i].y+0.5); ctx.stroke(); ctx.restore(); let minX=sm[0].x,maxX=sm[0].x,minY=sm[0].y,maxY=sm[0].y; sm.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); pts=[]; },
+  drawPreview(octx){ if(drawing&&pts.length>1){ const sm=catmullRomSpline(pts,8); octx.save(); octx.lineWidth=store.getState().brushSize; octx.strokeStyle=store.getState().primaryColor; octx.beginPath(); octx.moveTo(sm[0].x+0.5,sm[0].y+0.5); for(let i=1;i<sm.length;i++) octx.lineTo(sm[i].x+0.5,sm[i].y+0.5); octx.stroke(); octx.restore(); } }
+}; }
 function makeSelectRect(){ let dragging=false,moving=false,start=null,grabOffset=null; return { id:'selectRect', cursor:'crosshair', previewRect:null,
   onPointerDown(ctx,ev,eng){ const sel=eng.selection;
     if(sel && eng.pointInRect(ev.img, sel.rect)){ if(!sel.floatCanvas){ const {x,y,w,h}=sel.rect; const img=bctx.getImageData(x,y,w,h); const fc=document.createElement('canvas'); fc.width=w; fc.height=h; fc.getContext('2d').putImageData(img,0,0); bctx.clearRect(x,y,w,h); eng.expandPendingRectByRect(x,y,w,h); sel.floatCanvas=fc; sel.pos={x,y}; }
@@ -623,6 +743,15 @@ engine.register(makeBucket(store));
 engine.register(makeShape('line', store));
 engine.register(makeShape('rect', store));
 engine.register(makeShape('ellipse', store));
+engine.register(makeQuadratic(store));
+engine.register(makeCubic(store));
+engine.register(makeArc(store));
+engine.register(makeSector(store));
+engine.register(makeCatmull(store));
+engine.register(makeBSpline(store));
+engine.register(makeNURBS(store));
+engine.register(makeEllipse2(store));
+engine.register(makeFreehand(store));
 engine.register(makeTextTool(store));
 selectTool('pencil');
 
