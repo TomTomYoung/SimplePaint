@@ -560,13 +560,41 @@ function makeCatmull(store){ let pts=[]; function finalize(ctx,eng){ if(pts.leng
     onPointerMove(){}, onPointerUp(){}, drawPreview(octx){ if(pts.length>1){ const cr=catmullRomSpline(pts); octx.save(); octx.lineWidth=store.getState().brushSize; octx.strokeStyle=store.getState().primaryColor; octx.beginPath(); octx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) octx.lineTo(cr[i].x+0.5,cr[i].y+0.5); octx.stroke(); octx.restore(); } } };
 }
 
-function bspline(points,deg=3,seg=32){ const n=points.length-1; const knots=[]; for(let i=0;i<=n+deg+1;i++) knots.push(i); const domain=[deg, knots.length-deg-1]; const out=[]; const step=(knots[domain[1]]-knots[domain[0]])/seg; for(let u=knots[domain[0]]; u<=knots[domain[1]]; u+=step){ out.push(deBoor(deg,u,knots,points)); } return out; }
-function deBoor(k,x,t,c){ const d=c.map(p=>({...p})); for(let r=1;r<=k;r++){ for(let i=c.length-1;i>=r;i--){ const alpha=(x-t[i])/(t[i+k+1-r]-t[i]); d[i]={x:(1-alpha)*d[i-1].x+alpha*d[i].x,y:(1-alpha)*d[i-1].y+alpha*d[i].y}; } } return d[c.length-1]; }
+function bspline(points,deg=3,seg=32){
+  const n=points.length-1; if(n<deg) return points;
+  const knots=[]; const m=n+deg+1;
+  for(let i=0;i<=m;i++){
+    if(i<=deg) knots.push(0);
+    else if(i>=n+1) knots.push(n-deg+1);
+    else knots.push(i-deg);
+  }
+  const out=[]; const start=knots[deg], end=knots[n+1];
+  const step=(end-start)/seg;
+  for(let s=0;s<=seg;s++){
+    const u=start+s*step;
+    let j=n; if(u<end){ for(let k=deg;k<=n;k++){ if(u>=knots[k]&&u<knots[k+1]){ j=k; break; } } }
+    out.push(deBoor(deg,u,knots,points,j));
+  }
+  return out;
+}
+function deBoor(k,u,t,c,j){
+  const d=[];
+  for(let r=0;r<=k;r++) d[r]={...c[j-k+r]};
+  for(let r=1;r<=k;r++){
+    for(let i=k;i>=r;i--){
+      const idx=j-k+i;
+      const alpha=(u-t[idx])/(t[idx+k+1-r]-t[idx]);
+      d[i]={ x:(1-alpha)*d[i-1].x+alpha*d[i].x,
+             y:(1-alpha)*d[i-1].y+alpha*d[i].y };
+    }
+  }
+  return d[k];
+}
 
-function makeBSpline(store){ let pts=[]; function finalize(ctx,eng){ if(pts.length<4) return; const s=store.getState(); const cr=bspline(pts); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) ctx.lineTo(cr[i].x+0.5,cr[i].y+0.5); ctx.stroke(); ctx.restore(); let minX=cr[0].x,maxX=cr[0].x,minY=cr[0].y,maxY=cr[0].y; cr.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); eng.finishStrokeToHistory(); eng.requestRepaint(); pts=[]; }
+function makeBSpline(store){ let pts=[], fresh=true; function finalize(ctx,eng){ if(pts.length<4){ pts=[]; fresh=true; return; } const s=store.getState(); const cr=bspline(pts); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) ctx.lineTo(cr[i].x+0.5,cr[i].y+0.5); ctx.stroke(); ctx.restore(); let minX=cr[0].x,maxX=cr[0].x,minY=cr[0].y,maxY=cr[0].y; cr.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); eng.finishStrokeToHistory(); eng.requestRepaint(); pts=[]; fresh=true; }
   window.addEventListener('keydown',e=>{ if(e.key==='Enter') finalize(bctx,engine); });
   return { id:'bspline',cursor:'crosshair',previewRect:null,
-    onPointerDown(ctx,ev){ pts.push({...ev.img}); },
+    onPointerDown(ctx,ev){ if(fresh){ pts=[]; fresh=false; } pts.push({...ev.img}); },
     onPointerMove(){}, onPointerUp(){}, drawPreview(octx){ if(pts.length>1){ const cr=bspline(pts); octx.save(); octx.lineWidth=store.getState().brushSize; octx.strokeStyle=store.getState().primaryColor; octx.beginPath(); octx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) octx.lineTo(cr[i].x+0.5,cr[i].y+0.5); octx.stroke(); octx.restore(); } } };
 }
 
