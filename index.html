@@ -584,7 +584,8 @@ function makeCatmull(store){
     id:'catmull',cursor:'crosshair',previewRect:null,
     cancel(){ reset(); engine.requestRepaint(); },
     onPointerDown(ctx,ev){
-      if(ev.detail===2){ finalize(ctx, engine); return; }
+      // 左ダブルクリックで確定（Enterキーでも確定可能）
+      if(ev.button===0 && ev.detail===2){ finalize(ctx, engine); return; }
       if(fresh){ pts=[]; fresh=false; }
       pts.push({...ev.img});
     },
@@ -641,7 +642,12 @@ function makeBSpline(store){
   return {
     id:'bspline',cursor:'crosshair',previewRect:null,
     cancel(){ reset(); engine.requestRepaint(); },
-    onPointerDown(ctx,ev){ if(ev.detail===2){ finalize(ctx, engine); return; } if(fresh){ pts=[]; fresh=false; } pts.push({...ev.img}); },
+    onPointerDown(ctx,ev){
+      // 左ダブルクリックで確定（Enterキーでも確定可能）
+      if(ev.button===0 && ev.detail===2){ finalize(ctx, engine); return; }
+      if(fresh){ pts=[]; fresh=false; }
+      pts.push({...ev.img});
+    },
     onPointerMove(){}, onPointerUp(){},
     drawPreview(octx){ if(pts.length>1){ const cr=bspline(pts); octx.save(); octx.lineWidth=store.getState().brushSize; octx.strokeStyle=store.getState().primaryColor; octx.beginPath(); octx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) octx.lineTo(cr[i].x+0.5,cr[i].y+0.5); octx.stroke(); octx.restore(); } }
   };
