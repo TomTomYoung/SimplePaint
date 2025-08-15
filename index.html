@@ -134,6 +134,7 @@
       <button class="tool" data-tool="catmull" title="U">Catmull</button>
       <button class="tool" data-tool="bspline" title="B">Bスプライン</button>
       <button class="tool" data-tool="nurbs" title="N">NURBS</button>
+      <label class="row badge">重み <input id="nurbsWeight" type="number" value="1" step="0.1" style="width:60px"></label>
       <button class="tool" data-tool="ellipse2" title="E">楕円(回転)</button>
       <button class="tool" data-tool="freehand" title="H">補間描画</button>
       <label class="row badge">塗り <input id="fillOn" type="checkbox" checked></label>
@@ -222,6 +223,7 @@ const stage=document.getElementById('stage');
 const zoomEl=document.getElementById('zoomPct');
 const statusEl=document.getElementById('status');
 const autosaveBadge=document.getElementById('autosaveBadge');
+const nurbsWeightEl=document.getElementById('nurbsWeight');
 
 const headerEl = document.querySelector('header');
 function syncHeaderHeight(){
@@ -606,10 +608,15 @@ function makeBSpline(store){ let pts=[], fresh=true; function finalize(ctx,eng){
 
 function nurbs(points,weights,deg=3,seg=32){ const n=points.length-1; const knots=[]; for(let i=0;i<=n+deg+1;i++) knots.push(i); function N(i,k,u){ if(k===0) return (u>=knots[i]&&u<knots[i+1])?1:0; const a=(u-knots[i])/(knots[i+k]-knots[i])||0; const b=(knots[i+k+1]-u)/(knots[i+k+1]-knots[i+1])||0; return a*N(i,k-1,u)+b*N(i+1,k-1,u); } const domain=[deg, knots.length-deg-1]; const out=[]; const step=(knots[domain[1]]-knots[domain[0]])/seg; for(let u=knots[domain[0]]; u<=knots[domain[1]]; u+=step){ let x=0,y=0,w=0; for(let i=0;i<=n;i++){ const b=N(i,deg,u)*weights[i]; x+=points[i].x*b; y+=points[i].y*b; w+=b; } out.push({x:x/w,y:y/w}); } return out; }
 
-function makeNURBS(store){ let pts=[],ws=[]; function finalize(ctx,eng){ if(pts.length<4) return; const s=store.getState(); const cr=nurbs(pts,ws); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) ctx.lineTo(cr[i].x+0.5,cr[i].y+0.5); ctx.stroke(); ctx.restore(); let minX=cr[0].x,maxX=cr[0].x,minY=cr[0].y,maxY=cr[0].y; cr.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); eng.finishStrokeToHistory(); eng.requestRepaint(); pts=[]; ws=[]; }
+ function makeNURBS(store){ let pts=[],ws=[]; function finalize(ctx,eng){ if(pts.length<4) return; const s=store.getState(); const cr=nurbs(pts,ws); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) ctx.lineTo(cr[i].x+0.5,cr[i].y+0.5); ctx.stroke(); ctx.restore(); let minX=cr[0].x,maxX=cr[0].x,minY=cr[0].y,maxY=cr[0].y; cr.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); eng.finishStrokeToHistory(); eng.requestRepaint(); pts=[]; ws=[]; nurbsWeightEl.value='1'; }
   window.addEventListener('keydown',e=>{ if(e.key==='Enter') finalize(bctx,engine); });
   return { id:'nurbs',cursor:'crosshair',previewRect:null,
-    onPointerDown(ctx,ev){ pts.push({...ev.img}); const w=parseFloat(prompt('weight','1'))||1; ws.push(w); },
+    onPointerDown(ctx,ev){
+      if(pts.length===0) engine.beginStrokeSnapshot();
+      pts.push({...ev.img});
+      const w=parseFloat(nurbsWeightEl.value);
+      ws.push(Number.isFinite(w) && w>0 ? w : 1);
+    },
     onPointerMove(){}, onPointerUp(){}, drawPreview(octx){ if(pts.length>1){ const cr=nurbs(pts,ws); octx.save(); octx.lineWidth=store.getState().brushSize; octx.strokeStyle=store.getState().primaryColor; octx.beginPath(); octx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) octx.lineTo(cr[i].x+0.5,cr[i].y+0.5); octx.stroke(); octx.restore(); } } };
 }
 
