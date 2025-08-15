@@ -653,19 +653,99 @@ function makeBSpline(store){
   };
 }
 
-function nurbs(points,weights,deg=3,seg=32){ const n=points.length-1; const knots=[]; for(let i=0;i<=n+deg+1;i++) knots.push(i); function N(i,k,u){ if(k===0) return (u>=knots[i]&&u<knots[i+1])?1:0; const a=(u-knots[i])/(knots[i+k]-knots[i])||0; const b=(knots[i+k+1]-u)/(knots[i+k+1]-knots[i+1])||0; return a*N(i,k-1,u)+b*N(i+1,k-1,u); } const domain=[deg, knots.length-deg-1]; const out=[]; const step=(knots[domain[1]]-knots[domain[0]])/seg; for(let u=knots[domain[0]]; u<=knots[domain[1]]; u+=step){ let x=0,y=0,w=0; for(let i=0;i<=n;i++){ const b=N(i,deg,u)*weights[i]; x+=points[i].x*b; y+=points[i].y*b; w+=b; } out.push({x:x/w,y:y/w}); } return out; }
+function nurbs(points, weights, deg = 3, seg = 32) {
+  const n = points.length - 1;
+  // （そのままでも動くが、端点補間が欲しければクランプに置換する）
+  const knots = [];
+  for (let i = 0; i <= n + deg + 1; i++) knots.push(i);
 
- function makeNURBS(store){ let pts=[],ws=[]; function finalize(ctx,eng){ if(pts.length<4) return; const s=store.getState(); const cr=nurbs(pts,ws); ctx.save(); ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor; ctx.beginPath(); ctx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) ctx.lineTo(cr[i].x+0.5,cr[i].y+0.5); ctx.stroke(); ctx.restore(); let minX=cr[0].x,maxX=cr[0].x,minY=cr[0].y,maxY=cr[0].y; cr.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}); eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2); eng.finishStrokeToHistory(); eng.requestRepaint(); pts=[]; ws=[]; nurbsWeightEl.value='1'; }
+  function N(i, k, u) {
+    // ★ 末端uで最後の基底だけ1にする（w=0防止）
+    if (k === 0) {
+      if (u === knots[knots.length - 1]) return (i === n) ? 1 : 0;
+      return (u >= knots[i] && u < knots[i + 1]) ? 1 : 0;
+    }
+    const den1 = (knots[i + k] - knots[i]);
+    const den2 = (knots[i + k + 1] - knots[i + 1]);
+    const a = den1 ? (u - knots[i]) / den1 : 0;
+    const b = den2 ? (knots[i + k + 1] - u) / den2 : 0;
+    return a * N(i, k - 1, u) + b * N(i + 1, k - 1, u);
+  }
+
+  const uStart = knots[deg];
+  const uEnd   = knots[n + 1];
+  const out = [];
+  // ★ 末端を含めない（代わりに最後だけ一歩手前でサンプル）
+  const step = (uEnd - uStart) / seg;
+  for (let s = 0; s <= seg; s++) {
+    // s==seg のときはごくわずか手前に寄せる
+    const u = (s === seg) ? (uEnd - 1e-9) : (uStart + s * step);
+    let x = 0, y = 0, w = 0;
+    for (let i = 0; i <= n; i++) {
+      const b = N(i, deg, u) * (weights[i] ?? 1);
+      x += points[i].x * b;
+      y += points[i].y * b;
+      w += b;
+    }
+    if (w === 0) continue;            // ★ 念のためNaNガード
+    out.push({ x: x / w, y: y / w });
+  }
+  return out;
+}
+
+
+function makeNURBS(store){
+  let pts=[], ws=[];
+  function finalize(ctx,eng){
+    if(pts.length<4) return;
+    const s=store.getState();
+    const cr=nurbs(pts,ws);
+    if(!cr.length) { pts=[]; ws=[]; nurbsWeightEl.value='1'; eng.requestRepaint(); return; }
+    ctx.save();
+    ctx.lineWidth=s.brushSize; ctx.strokeStyle=s.primaryColor;
+    ctx.beginPath(); ctx.moveTo(cr[0].x+0.5, cr[0].y+0.5);
+    for(let i=1;i<cr.length;i++){
+      const p=cr[i]; if(!Number.isFinite(p.x)||!Number.isFinite(p.y)) continue; // ★ 念のため
+      ctx.lineTo(p.x+0.5, p.y+0.5);
+    }
+    ctx.stroke(); ctx.restore();
+    let minX=cr[0].x, maxX=cr[0].x, minY=cr[0].y, maxY=cr[0].y;
+    cr.forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);});
+    eng.expandPendingRectByRect(minX-s.brushSize,minY-s.brushSize,maxX-minX+s.brushSize*2,maxY-minY+s.brushSize*2);
+    eng.finishStrokeToHistory(); eng.requestRepaint();
+    pts=[]; ws=[]; nurbsWeightEl.value='1';
+  }
   window.addEventListener('keydown',e=>{ if(e.key==='Enter') finalize(bctx,engine); });
-  return { id:'nurbs',cursor:'crosshair',previewRect:null,
+  return {
+    id:'nurbs', cursor:'crosshair', previewRect:null,
     onPointerDown(ctx,ev){
       if(pts.length===0) engine.beginStrokeSnapshot();
+      // ★ ダブルクリックで確定
+      if(ev.detail===2){ finalize(ctx, engine); return; }
       pts.push({...ev.img});
       const w=parseFloat(nurbsWeightEl.value);
-      ws.push(Number.isFinite(w) && w>0 ? w : 1);
+      ws.push(Number.isFinite(w)&&w>0 ? w : 1);
     },
-    onPointerMove(){}, onPointerUp(){}, drawPreview(octx){ if(pts.length>1){ const cr=nurbs(pts,ws); octx.save(); octx.lineWidth=store.getState().brushSize; octx.strokeStyle=store.getState().primaryColor; octx.beginPath(); octx.moveTo(cr[0].x+0.5,cr[0].y+0.5); for(let i=1;i<cr.length;i++) octx.lineTo(cr[i].x+0.5,cr[i].y+0.5); octx.stroke(); octx.restore(); } } };
+    onPointerMove(){},
+    onPointerUp(){},
+    drawPreview(octx){
+      if(pts.length>1){
+        const cr=nurbs(pts,ws);
+        if(!cr.length) return;
+        octx.save();
+        octx.lineWidth=store.getState().brushSize;
+        octx.strokeStyle=store.getState().primaryColor;
+        octx.beginPath(); octx.moveTo(cr[0].x+0.5, cr[0].y+0.5);
+        for(let i=1;i<cr.length;i++){
+          const p=cr[i]; if(!Number.isFinite(p.x)||!Number.isFinite(p.y)) continue;
+          octx.lineTo(p.x+0.5, p.y+0.5);
+        }
+        octx.stroke(); octx.restore();
+      }
+    }
+  };
 }
+
 
 function makeEllipse2(store){ let stage=0,cx=0,cy=0,rx=0,ry=0,rot=0; return { id:'ellipse2',cursor:'crosshair',previewRect:null,
   onPointerDown(ctx,ev,eng){ if(stage===0){ cx=ev.img.x; cy=ev.img.y; stage=1; }
