@@ -294,6 +294,7 @@
         <button id="actual">100%</button>
 
         <div class="row" style="margin-left: auto; gap: 12px">
+          <button id="restoreBtn" style="display: none">前回復元</button>
           <span id="autosaveBadge" style="white-space: nowrap">AutoSave: —</span>
           <span style="white-space: nowrap">ズーム: <span id="zoomPct">100%</span></span>
         </div>
@@ -356,6 +357,7 @@
     const zoomEl = document.getElementById("zoomPct");
     const statusEl = document.getElementById("status");
     const autosaveBadge = document.getElementById("autosaveBadge");
+    const restoreBtn = document.getElementById("restoreBtn");
     const nurbsWeightEl = document.getElementById("nurbsWeight");
 
     const headerEl = document.querySelector("header");
@@ -2907,7 +2909,7 @@
       clearTimeout(saveTimer);
       saveTimer = setTimeout(saveSession, 800);
     }
-    async function loadSession() {
+    async function getSessionData() {
       try {
         const db = await openDB();
         const tx = db.transaction(STORE, "readonly");
@@ -2917,25 +2919,35 @@
           g.onsuccess = () => res(g.result);
           g.onerror = () => rej(g.error);
         });
-        if (data && data.dataURL) {
-          if (confirm("前回の作業を復元しますか？")) {
-            const img = new Image();
-            img.onload = () => {
-              bmp.width = data.width;
-              bmp.height = data.height;
-              bctx.clearRect(0, 0, bmp.width, bmp.height);
-              bctx.drawImage(img, 0, 0);
-              fitToScreen();
-              engine.requestRepaint();
-              autosaveBadge.textContent = "Restored: " + nowFmt();
-            };
-            img.src = data.dataURL;
-          }
-        }
+        return data;
       } catch (e) {
-        /* 無視 */
+        return null;
       }
     }
+    async function restoreSession() {
+      const data = await getSessionData();
+      if (data && data.dataURL) {
+        const img = new Image();
+        img.onload = () => {
+          bmp.width = data.width;
+          bmp.height = data.height;
+          bctx.clearRect(0, 0, bmp.width, bmp.height);
+          bctx.drawImage(img, 0, 0);
+          fitToScreen();
+          engine.requestRepaint();
+          autosaveBadge.textContent = "Restored: " + nowFmt();
+          restoreBtn.style.display = "none";
+        };
+        img.src = data.dataURL;
+      }
+    }
+    async function checkSession() {
+      const data = await getSessionData();
+      if (data && data.dataURL) {
+        restoreBtn.style.display = "inline-block";
+      }
+    }
+    restoreBtn.addEventListener("click", restoreSession);
     window.addEventListener("beforeunload", () => {
       saveSession();
     });
@@ -2958,7 +2970,7 @@
 
     initDocument(1280, 720, "#ffffff");
     engine.requestRepaint();
-    loadSession();
+    checkSession();
   </script>
 </body>
 
