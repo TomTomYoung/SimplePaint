@@ -1496,13 +1496,102 @@
       return out;
     }
 
+    // function makeCatmull(store) {
+    //   let pts = [],
+    //     fresh = true;
+    //   const reset = () => {
+    //     pts = [];
+    //     fresh = true;
+    //   };
+    //   function finalize(ctx, eng) {
+    //     if (pts.length < 4) {
+    //       reset();
+    //       eng.requestRepaint();
+    //       return;
+    //     }
+    //     const s = store.getState();
+    //     const cr = catmullRomSpline(pts);
+    //     ctx.save();
+    //     ctx.lineWidth = s.brushSize;
+    //     ctx.strokeStyle = s.primaryColor;
+    //     ctx.beginPath();
+    //     ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
+    //     for (let i = 1; i < cr.length; i++)
+    //       ctx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+    //     ctx.stroke();
+    //     ctx.restore();
+    //     let minX = cr[0].x,
+    //       maxX = cr[0].x,
+    //       minY = cr[0].y,
+    //       maxY = cr[0].y;
+    //     cr.forEach((p) => {
+    //       minX = Math.min(minX, p.x);
+    //       maxX = Math.max(maxX, p.x);
+    //       minY = Math.min(minY, p.y);
+    //       maxY = Math.max(maxY, p.y);
+    //     });
+    //     eng.expandPendingRectByRect(
+    //       minX - s.brushSize,
+    //       minY - s.brushSize,
+    //       maxX - minX + s.brushSize * 2,
+    //       maxY - minY + s.brushSize * 2
+    //     );
+    //     eng.finishStrokeToHistory();
+    //     eng.requestRepaint();
+    //     reset();
+    //   }
+    //   window.addEventListener("keydown", (e) => {
+
+    //     if (e.key === "Enter") finalize(bctx, engine);
+    //   });
+    //   return {
+    //     id: "catmull",
+    //     cursor: "crosshair",
+    //     previewRect: null,
+    //     cancel() {
+    //       reset();
+    //       engine.requestRepaint();
+    //     },
+    //     onPointerDown(ctx, ev, eng) {
+
+    //       console.log(ev);
+    //       // ★ ダブルクリック：このクリック地点を点列に追加してから確定
+    //       if (ev.button === 0 && ev.detail === 2) {
+    //         if (pts.length === 0) eng.beginStrokeSnapshot(); // 初回クリックと同等に扱う
+    //         pts.push({ ...ev.img }); // 終点として追加
+    //         finalize(ctx, eng); // Enter相当
+    //         return;
+    //       }
+    //       // ふつうのクリック
+    //       if (fresh) {
+    //         pts = [];
+    //         fresh = false;
+    //       }
+    //       pts.push({ ...ev.img });
+    //     },
+    //     onPointerMove() { },
+    //     onPointerUp() { },
+    //     drawPreview(octx) {
+    //       if (pts.length > 1) {
+    //         const cr = catmullRomSpline(pts);
+    //         octx.save();
+    //         octx.lineWidth = store.getState().brushSize;
+    //         octx.strokeStyle = store.getState().primaryColor;
+    //         octx.beginPath();
+    //         octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
+    //         for (let i = 1; i < cr.length; i++)
+    //           octx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+    //         octx.stroke();
+    //         octx.restore();
+    //       }
+    //     },
+    //   };
+    // }
+
     function makeCatmull(store) {
-      let pts = [],
-        fresh = true;
-      const reset = () => {
-        pts = [];
-        fresh = true;
-      };
+      let pts = [], fresh = true, hover = null;
+      const reset = () => { pts = []; fresh = true; hover = null; };
+
       function finalize(ctx, eng) {
         if (pts.length < 4) {
           reset();
@@ -1516,14 +1605,13 @@
         ctx.strokeStyle = s.primaryColor;
         ctx.beginPath();
         ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
-        for (let i = 1; i < cr.length; i++)
+        for (let i = 1; i < cr.length; i++) {
           ctx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+        }
         ctx.stroke();
         ctx.restore();
-        let minX = cr[0].x,
-          maxX = cr[0].x,
-          minY = cr[0].y,
-          maxY = cr[0].y;
+
+        let minX = cr[0].x, maxX = cr[0].x, minY = cr[0].y, maxY = cr[0].y;
         cr.forEach((p) => {
           minX = Math.min(minX, p.x);
           maxX = Math.max(maxX, p.x);
@@ -1540,10 +1628,11 @@
         eng.requestRepaint();
         reset();
       }
-      window.addEventListener("keydown", (e) => {
 
+      window.addEventListener("keydown", (e) => {
         if (e.key === "Enter") finalize(bctx, engine);
       });
+
       return {
         id: "catmull",
         cursor: "crosshair",
@@ -1553,37 +1642,43 @@
           engine.requestRepaint();
         },
         onPointerDown(ctx, ev, eng) {
-
-          console.log(ev);
-          // ★ ダブルクリック：このクリック地点を点列に追加してから確定
           if (ev.button === 0 && ev.detail === 2) {
-            if (pts.length === 0) eng.beginStrokeSnapshot(); // 初回クリックと同等に扱う
-            pts.push({ ...ev.img }); // 終点として追加
-            finalize(ctx, eng); // Enter相当
+            if (pts.length === 0) eng.beginStrokeSnapshot();
+            pts.push({ ...ev.img });
+            finalize(ctx, eng);
             return;
           }
-          // ふつうのクリック
-          if (fresh) {
-            pts = [];
-            fresh = false;
-          }
+          if (fresh) { pts = []; fresh = false; }
           pts.push({ ...ev.img });
         },
-        onPointerMove() { },
+        onPointerMove(ctx, ev) {
+          hover = { ...ev.img };
+        },
         onPointerUp() { },
         drawPreview(octx) {
-          if (pts.length > 1) {
-            const cr = catmullRomSpline(pts);
-            octx.save();
-            octx.lineWidth = store.getState().brushSize;
-            octx.strokeStyle = store.getState().primaryColor;
+          const s = store.getState();
+          octx.save();
+          octx.lineWidth = s.brushSize;
+          octx.strokeStyle = s.primaryColor;
+
+          if (pts.length >= 2) {
+            const src = hover ? [...pts, hover] : pts;
+            const cr = catmullRomSpline(src);
+            if (cr.length >= 2) {
+              octx.beginPath();
+              octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
+              for (let i = 1; i < cr.length; i++) {
+                octx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+              }
+              octx.stroke();
+            }
+          } else if (pts.length === 1 && hover) {
             octx.beginPath();
-            octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
-            for (let i = 1; i < cr.length; i++)
-              octx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+            octx.moveTo(pts[0].x + 0.5, pts[0].y + 0.5);
+            octx.lineTo(hover.x + 0.5, hover.y + 0.5);
             octx.stroke();
-            octx.restore();
           }
+          octx.restore();
         },
       };
     }
@@ -1635,13 +1730,11 @@
       return d[k];
     }
 
+
     function makeBSpline(store) {
-      let pts = [],
-        fresh = true;
-      const reset = () => {
-        pts = [];
-        fresh = true;
-      };
+      let pts = [], fresh = true, hover = null;
+      const reset = () => { pts = []; fresh = true; hover = null; };
+
       function finalize(ctx, eng) {
         if (pts.length < 4) {
           reset();
@@ -1655,14 +1748,13 @@
         ctx.strokeStyle = s.primaryColor;
         ctx.beginPath();
         ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
-        for (let i = 1; i < cr.length; i++)
+        for (let i = 1; i < cr.length; i++) {
           ctx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+        }
         ctx.stroke();
         ctx.restore();
-        let minX = cr[0].x,
-          maxX = cr[0].x,
-          minY = cr[0].y,
-          maxY = cr[0].y;
+
+        let minX = cr[0].x, maxX = cr[0].x, minY = cr[0].y, maxY = cr[0].y;
         cr.forEach((p) => {
           minX = Math.min(minX, p.x);
           maxX = Math.max(maxX, p.x);
@@ -1679,9 +1771,11 @@
         eng.requestRepaint();
         reset();
       }
+
       window.addEventListener("keydown", (e) => {
         if (e.key === "Enter") finalize(bctx, engine);
       });
+
       return {
         id: "bspline",
         cursor: "crosshair",
@@ -1694,33 +1788,55 @@
           if (ev.button === 0 && ev.detail === 2) {
             if (pts.length === 0) eng.beginStrokeSnapshot();
             pts.push({ ...ev.img });
-            finalize(ctx, eng); // Enter相当
+            finalize(ctx, eng);
             return;
           }
-          if (fresh) {
-            pts = [];
-            fresh = false;
-          }
+          if (fresh) { pts = []; fresh = false; }
           pts.push({ ...ev.img });
         },
-        onPointerMove() { },
+        onPointerMove(ctx, ev) {
+          hover = { ...ev.img };
+        },
         onPointerUp() { },
         drawPreview(octx) {
-          if (pts.length > 1) {
-            const cr = bspline(pts);
-            octx.save();
-            octx.lineWidth = store.getState().brushSize;
-            octx.strokeStyle = store.getState().primaryColor;
-            octx.beginPath();
-            octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
-            for (let i = 1; i < cr.length; i++)
-              octx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
-            octx.stroke();
-            octx.restore();
+          const s = store.getState();
+          octx.save();
+          octx.lineWidth = s.brushSize;
+          octx.strokeStyle = s.primaryColor;
+
+          const need = 4;
+          if (pts.length >= need) {
+            const src = hover ? [...pts, hover] : pts;
+            const cr = bspline(src);
+            if (cr.length >= 2) {
+              octx.beginPath();
+              octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
+              for (let i = 1; i < cr.length; i++) {
+                octx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+              }
+              octx.stroke();
+            }
+          } else if (pts.length >= 1) {
+            const poly = hover ? [...pts, hover] : pts;
+            if (poly.length >= 2) {
+              octx.beginPath();
+              octx.moveTo(poly[0].x + 0.5, poly[0].y + 0.5);
+              for (let i = 1; i < poly.length; i++) {
+                octx.lineTo(poly[i].x + 0.5, poly[i].y + 0.5);
+              }
+              octx.stroke();
+            } else if (poly.length === 1 && hover) {
+              octx.beginPath();
+              octx.moveTo(poly[0].x + 0.5, poly[0].y + 0.5);
+              octx.lineTo(hover.x + 0.5, hover.y + 0.5);
+              octx.stroke();
+            }
           }
+          octx.restore();
         },
       };
     }
+
 
     function nurbs(points, weights, deg = 3, seg = 32) {
       const n = points.length - 1;
@@ -1765,8 +1881,8 @@
     }
 
     function makeNURBS(store) {
-      let pts = [],
-        ws = [];
+      let pts = [], ws = [], hover = null;
+
       function finalize(ctx, eng) {
         if (pts.length < 4) return;
         const s = store.getState();
@@ -1774,6 +1890,7 @@
         if (!cr.length) {
           pts = [];
           ws = [];
+          hover = null;
           nurbsWeightEl.value = "1";
           eng.requestRepaint();
           return;
@@ -1785,15 +1902,13 @@
         ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
         for (let i = 1; i < cr.length; i++) {
           const p = cr[i];
-          if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue; // ★ 念のため
+          if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
           ctx.lineTo(p.x + 0.5, p.y + 0.5);
         }
         ctx.stroke();
         ctx.restore();
-        let minX = cr[0].x,
-          maxX = cr[0].x,
-          minY = cr[0].y,
-          maxY = cr[0].y;
+
+        let minX = cr[0].x, maxX = cr[0].x, minY = cr[0].y, maxY = cr[0].y;
         cr.forEach((p) => {
           minX = Math.min(minX, p.x);
           maxX = Math.max(maxX, p.x);
@@ -1808,13 +1923,17 @@
         );
         eng.finishStrokeToHistory();
         eng.requestRepaint();
+
         pts = [];
         ws = [];
+        hover = null;
         nurbsWeightEl.value = "1";
       }
+
       window.addEventListener("keydown", (e) => {
         if (e.key === "Enter") finalize(bctx, engine);
       });
+
       return {
         id: "nurbs",
         cursor: "crosshair",
@@ -1824,37 +1943,62 @@
             if (pts.length === 0) eng.beginStrokeSnapshot();
             pts.push({ ...ev.img });
             const w = parseFloat(nurbsWeightEl.value);
-            ws.push(Number.isFinite(w) && w > 0 ? w : 1); // ★ 重みも同期して追加
-            finalize(ctx, engine); // Enter相当
+            ws.push(Number.isFinite(w) && w > 0 ? w : 1);
+            finalize(ctx, eng);
             return;
           }
-          if (pts.length === 0) engine.beginStrokeSnapshot();
+          if (pts.length === 0) eng.beginStrokeSnapshot();
           pts.push({ ...ev.img });
           const w = parseFloat(nurbsWeightEl.value);
           ws.push(Number.isFinite(w) && w > 0 ? w : 1);
         },
-        onPointerMove() { },
+        onPointerMove(ctx, ev) {
+          hover = { ...ev.img };
+        },
         onPointerUp() { },
         drawPreview(octx) {
-          if (pts.length > 1) {
-            const cr = nurbs(pts, ws);
-            if (!cr.length) return;
-            octx.save();
-            octx.lineWidth = store.getState().brushSize;
-            octx.strokeStyle = store.getState().primaryColor;
-            octx.beginPath();
-            octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
-            for (let i = 1; i < cr.length; i++) {
-              const p = cr[i];
-              if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-              octx.lineTo(p.x + 0.5, p.y + 0.5);
+          const s = store.getState();
+          octx.save();
+          octx.lineWidth = s.brushSize;
+          octx.strokeStyle = s.primaryColor;
+
+          const need = 4;
+          if (pts.length >= need) {
+            const srcPts = hover ? [...pts, hover] : pts;
+            const srcWs = hover ? [...ws, 1] : ws;
+            const cr = nurbs(srcPts, srcWs);
+            if (cr.length >= 2) {
+              octx.beginPath();
+              octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
+              for (let i = 1; i < cr.length; i++) {
+                const p = cr[i];
+                if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+                octx.lineTo(p.x + 0.5, p.y + 0.5);
+              }
+              octx.stroke();
             }
-            octx.stroke();
-            octx.restore();
+          } else if (pts.length >= 1) {
+            const poly = hover ? [...pts, hover] : pts;
+            if (poly.length >= 2) {
+              octx.beginPath();
+              octx.moveTo(poly[0].x + 0.5, poly[0].y + 0.5);
+              for (let i = 1; i < poly.length; i++) {
+                octx.lineTo(poly[i].x + 0.5, poly[i].y + 0.5);
+              }
+              octx.stroke();
+            } else if (poly.length === 1 && hover) {
+              octx.beginPath();
+              octx.moveTo(poly[0].x + 0.5, poly[0].y + 0.5);
+              octx.lineTo(hover.x + 0.5, hover.y + 0.5);
+              octx.stroke();
+            }
           }
+          octx.restore();
         },
       };
     }
+
+
 
     function makeEllipse2(store) {
       let stage = 0,
