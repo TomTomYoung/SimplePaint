@@ -224,6 +224,39 @@
       pointer-events: auto;
       user-select: text;
     }
+    #layerPanel {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #layerList {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 2px;
+    }
+    .layer-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+    .layer-item.active {
+      background: #b3d7ff;
+    }
+    .layer-item .handle {
+      cursor: move;
+      user-select: none;
+    }
+    .layer-item input[type='range'] {
+      width: 60px;
+    }
   </style>
 </head>
 
@@ -279,9 +312,13 @@
         <button id="redo">Redo</button>
         <button id="clear">全消去</button>
         <div class="sep"></div>
-        <select id="layerSelect"></select>
-        <button id="addLayerBtn">＋</button>
-        <button id="delLayerBtn">－</button>
+        <div id="layerPanel">
+          <div style="display:flex; gap:4px; align-items:center;">
+            <button id="addLayerBtn">＋</button>
+            <button id="delLayerBtn">－</button>
+          </div>
+          <ul id="layerList"></ul>
+        </div>
         <div class="sep"></div>
         <button id="open">開く</button><input id="fileInput" type="file" accept="image/*" />
         <button id="savePNG">保存 PNG</button>
@@ -399,42 +436,157 @@
     /* ===== work bitmap ===== */
     const bmp = document.createElement("canvas");
     const bctx = bmp.getContext("2d", { willReadFrequently: true });
-const layers = []
-    let activeLayer = 0
-    function renderLayers() {
-      bctx.clearRect(0, 0, bmp.width, bmp.height);
-      for (const l of layers) bctx.drawImage(l, 0, 0);
+    const clipCanvas = document.createElement("canvas");
+    const clipCtx = clipCanvas.getContext("2d");
+    const layers = [];
+    let activeLayer = 0;
+
+    function flattenLayers(ctx) {
+      ctx.clearRect(0, 0, bmp.width, bmp.height);
+      for (let i = 0; i < layers.length; i++) {
+        const l = layers[i];
+        if (!l.visible) continue;
+        ctx.save();
+        ctx.globalAlpha = l.opacity ?? 1;
+        ctx.globalCompositeOperation = l.mode || "source-over";
+        if (l.clip && i > 0) {
+          clipCtx.clearRect(0, 0, bmp.width, bmp.height);
+          clipCtx.drawImage(layers[i - 1], 0, 0);
+          clipCtx.globalCompositeOperation = "source-in";
+          clipCtx.drawImage(l, 0, 0);
+          ctx.drawImage(clipCanvas, 0, 0);
+        } else {
+          ctx.drawImage(l, 0, 0);
+        }
+        ctx.restore();
+      }
     }
-    function updateLayerSelect() {
-      const sel = document.getElementById("layerSelect");
-      if (!sel) return;
-      sel.innerHTML = "";
-      layers.forEach((_, i) => {
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.textContent = `Layer ${i + 1}`;
-        if (i === activeLayer) opt.selected = true;
-        sel.appendChild(opt);
+
+    function renderLayers() {
+      flattenLayers(bctx);
+    }
+
+    function updateLayerList() {
+      const list = document.getElementById("layerList");
+      if (!list) return;
+      list.innerHTML = "";
+      layers.forEach((l, i) => {
+        const li = document.createElement("li");
+        li.className = "layer-item" + (i === activeLayer ? " active" : "");
+        li.draggable = true;
+        li.dataset.index = i;
+
+        li.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", i);
+        });
+        li.addEventListener("dragover", (e) => e.preventDefault());
+        li.addEventListener("drop", (e) => {
+          e.preventDefault();
+          const from = parseInt(e.dataTransfer.getData("text/plain"));
+          const to = parseInt(li.dataset.index);
+          moveLayer(from, to);
+        });
+
+        const handle = document.createElement("span");
+        handle.textContent = "≡";
+        handle.className = "handle";
+        li.appendChild(handle);
+
+        const vis = document.createElement("input");
+        vis.type = "checkbox";
+        vis.checked = l.visible;
+        vis.addEventListener("change", () => {
+          l.visible = vis.checked;
+          renderLayers();
+          engine.requestRepaint();
+        });
+        li.appendChild(vis);
+
+        const name = document.createElement("span");
+        name.textContent = `Layer ${i + 1}`;
+        name.style.flex = "1";
+        name.addEventListener("click", () => setActiveLayer(i));
+        li.appendChild(name);
+
+        const op = document.createElement("input");
+        op.type = "range";
+        op.min = 0;
+        op.max = 1;
+        op.step = 0.01;
+        op.value = l.opacity;
+        op.addEventListener("input", () => {
+          l.opacity = parseFloat(op.value);
+          renderLayers();
+          engine.requestRepaint();
+        });
+        li.appendChild(op);
+
+        const mode = document.createElement("select");
+        ["source-over", "multiply", "screen", "overlay", "darken", "lighten", "color", "difference"].forEach((m) => {
+          const o = document.createElement("option");
+          o.value = m;
+          o.textContent = m;
+          if (l.mode === m) o.selected = true;
+          mode.appendChild(o);
+        });
+        mode.addEventListener("change", () => {
+          l.mode = mode.value;
+          renderLayers();
+          engine.requestRepaint();
+        });
+        li.appendChild(mode);
+
+        const clip = document.createElement("input");
+        clip.type = "checkbox";
+        clip.checked = l.clip;
+        clip.title = "Clip to below";
+        clip.addEventListener("change", () => {
+          l.clip = clip.checked;
+          renderLayers();
+          engine.requestRepaint();
+        });
+        li.appendChild(clip);
+
+        list.appendChild(li);
       });
     }
+
     function setActiveLayer(i) {
       if (i < 0 || i >= layers.length) return;
       activeLayer = i;
       engine.ctx = layers[i].getContext("2d", { willReadFrequently: true });
-      updateLayerSelect();
+      updateLayerList();
       renderLayers();
       engine.requestRepaint();
     }
+
+    function moveLayer(from, to) {
+      if (from === to || from < 0 || to < 0 || from >= layers.length || to >= layers.length) return;
+      const [l] = layers.splice(from, 1);
+      layers.splice(to, 0, l);
+      engine.history.stack.forEach((p) => {
+        if (p.layer === from) p.layer = to;
+        else if (from < to && p.layer > from && p.layer <= to) p.layer--;
+        else if (to < from && p.layer >= to && p.layer < from) p.layer++;
+      });
+      setActiveLayer(to);
+      renderLayers();
+      updateLayerList();
+    }
+
     function addLayer() {
       const c = document.createElement("canvas");
       c.width = bmp.width;
       c.height = bmp.height;
-      //layers.splice(activeLayer + 1, 0, c);
-      //setActiveLayer(activeLayer + 1);
-      const idx = Math.min(activeLayer + 1, layers.length); // 先に正しい挿入先を決める
+      c.visible = true;
+      c.opacity = 1;
+      c.mode = "source-over";
+      c.clip = false;
+      const idx = Math.min(activeLayer + 1, layers.length);
       layers.splice(idx, 0, c);
-      setActiveLayer(idx); // ← これで初回も確実に ctx 切替      
+      setActiveLayer(idx);
     }
+
     function deleteLayer() {
       if (layers.length <= 1) return;
       layers.splice(activeLayer, 1);
@@ -2484,13 +2636,9 @@ const layers = []
 
     document.getElementById("addLayerBtn").addEventListener("click", () => {
       addLayer();
-      updateLayerSelect();
     });
     document.getElementById("delLayerBtn").addEventListener("click", () => {
       deleteLayer();
-    });
-    document.getElementById("layerSelect").addEventListener("change", (e) => {
-      setActiveLayer(parseInt(e.target.value));
     });
     document.getElementById("fit").addEventListener("click", fitToScreen);
     document.getElementById("actual").addEventListener("click", () => {
@@ -2545,6 +2693,8 @@ const layers = []
     function initDocument(w = 1280, h = 720, bg = "#ffffff") {
       bmp.width = w;
       bmp.height = h;
+      clipCanvas.width = w;
+      clipCanvas.height = h;
       layers.length = 0;
       addLayer();
       layers.forEach((l) => {
@@ -2557,7 +2707,7 @@ const layers = []
       bgctx.fillRect(0, 0, w, h);
       renderLayers();
       fitToScreen();
-      updateLayerSelect();
+      updateLayerList();
     }
     document
       .getElementById("open")
@@ -2593,7 +2743,7 @@ const layers = []
       c.width = bmp.width;
       c.height = bmp.height;
       const cctx = c.getContext("2d");
-      layers.forEach((l) => cctx.drawImage(l, 0, 0));
+      flattenLayers(cctx);
       downloadDataURL(c.toDataURL("image/png"), "image.png");
     });
     document.getElementById("saveJPG").addEventListener("click", () => {
@@ -2603,7 +2753,7 @@ const layers = []
       const cctx = c.getContext("2d");
       cctx.fillStyle = "#ffffff";
       cctx.fillRect(0, 0, c.width, c.height);
-      layers.forEach((l) => cctx.drawImage(l, 0, 0));
+      flattenLayers(cctx);
       downloadDataURL(c.toDataURL("image/jpeg", 0.92), "image.jpg");
     });
     document.getElementById("saveWEBP").addEventListener("click", () => {
@@ -2611,7 +2761,7 @@ const layers = []
       c.width = bmp.width;
       c.height = bmp.height;
       const cctx = c.getContext("2d");
-      layers.forEach((l) => cctx.drawImage(l, 0, 0));
+      flattenLayers(cctx);
       downloadDataURL(c.toDataURL("image/webp", 0.92), "image.webp");
     });
 
@@ -2965,7 +3115,7 @@ const layers = []
         c.width = bmp.width;
         c.height = bmp.height;
         const cctx = c.getContext("2d");
-      layers.forEach((l) => cctx.drawImage(l, 0, 0));
+        flattenLayers(cctx);
         const dataURL = c.toDataURL("image/png");
         store.put(
           { dataURL, width: bmp.width, height: bmp.height, ts: Date.now() },
