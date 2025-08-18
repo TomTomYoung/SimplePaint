@@ -429,8 +429,11 @@ const layers = []
       const c = document.createElement("canvas");
       c.width = bmp.width;
       c.height = bmp.height;
-      layers.splice(activeLayer + 1, 0, c);
-      setActiveLayer(activeLayer + 1);
+      //layers.splice(activeLayer + 1, 0, c);
+      //setActiveLayer(activeLayer + 1);
+      const idx = Math.min(activeLayer + 1, layers.length); // 先に正しい挿入先を決める
+      layers.splice(idx, 0, c);
+      setActiveLayer(idx); // ← これで初回も確実に ctx 切替      
     }
     function deleteLayer() {
       if (layers.length <= 1) return;
