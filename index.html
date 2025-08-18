@@ -279,6 +279,10 @@
         <button id="redo">Redo</button>
         <button id="clear">全消去</button>
         <div class="sep"></div>
+        <select id="layerSelect"></select>
+        <button id="addLayerBtn">＋</button>
+        <button id="delLayerBtn">－</button>
+        <div class="sep"></div>
         <button id="open">開く</button><input id="fileInput" type="file" accept="image/*" />
         <button id="savePNG">保存 PNG</button>
         <button id="saveJPG">保存 JPEG</button>
@@ -395,6 +399,45 @@
     /* ===== work bitmap ===== */
     const bmp = document.createElement("canvas");
     const bctx = bmp.getContext("2d", { willReadFrequently: true });
+const layers = []
+    let activeLayer = 0
+    function renderLayers() {
+      bctx.clearRect(0, 0, bmp.width, bmp.height);
+      for (const l of layers) bctx.drawImage(l, 0, 0);
+    }
+    function updateLayerSelect() {
+      const sel = document.getElementById("layerSelect");
+      if (!sel) return;
+      sel.innerHTML = "";
+      layers.forEach((_, i) => {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `Layer ${i + 1}`;
+        if (i === activeLayer) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+    function setActiveLayer(i) {
+      if (i < 0 || i >= layers.length) return;
+      activeLayer = i;
+      engine.ctx = layers[i].getContext("2d", { willReadFrequently: true });
+      updateLayerSelect();
+      renderLayers();
+      engine.requestRepaint();
+    }
+    function addLayer() {
+      const c = document.createElement("canvas");
+      c.width = bmp.width;
+      c.height = bmp.height;
+      layers.splice(activeLayer + 1, 0, c);
+      setActiveLayer(activeLayer + 1);
+    }
+    function deleteLayer() {
+      if (layers.length <= 1) return;
+      layers.splice(activeLayer, 1);
+      if (activeLayer >= layers.length) activeLayer = layers.length - 1;
+      setActiveLayer(activeLayer);
+    }
 
     /* ===== display resize ===== */
     function resizeCanvasToDisplaySize(canvas, cssW, cssH) {
@@ -504,9 +547,11 @@
 
       beginStrokeSnapshot() {
         this._preStrokeCanvas = document.createElement("canvas");
-        this._preStrokeCanvas.width = bmp.width;
-        this._preStrokeCanvas.height = bmp.height;
-        this._preStrokeCanvas.getContext("2d").drawImage(bmp, 0, 0);
+        const layer = layers[activeLayer];
+        this._preStrokeCanvas.width = layer.width;
+        this._preStrokeCanvas.height = layer.height;
+        this._preStrokeCanvas.getContext("2d").drawImage(layer, 0, 0);
+        this._strokeLayer = activeLayer;
         this._pendingRect = null;
       }
       expandPendingRectByRect(x, y, w, h) {
@@ -541,13 +586,18 @@
         const pre = this._preStrokeCanvas
           .getContext("2d")
           .getImageData(rect.x, rect.y, rect.w, rect.h);
-        const aft = bctx.getImageData(rect.x, rect.y, rect.w, rect.h);
-        this.history.pushPatch({ rect, before: pre, after: aft });
+        const layer = layers[this._strokeLayer];
+        const aft = layer
+          .getContext("2d")
+          .getImageData(rect.x, rect.y, rect.w, rect.h);
+        this.history.pushPatch({ layer: this._strokeLayer, rect, before: pre, after: aft });
         this._preStrokeCanvas = null;
         this._pendingRect = null;
+        renderLayers();
       }
 
       requestRepaint() {
+        renderLayers();
         const css = stage.getBoundingClientRect();
         resizeCanvasToDisplaySize(base, css.width, css.height);
         resizeCanvasToDisplaySize(overlay, css.width, css.height);
@@ -624,13 +674,15 @@
       undo() {
         const p = this.history.undo();
         if (!p) return;
-        bctx.putImageData(p.before, p.rect.x, p.rect.y);
+        layers[p.layer].getContext("2d").putImageData(p.before, p.rect.x, p.rect.y);
+        renderLayers();
         this.requestRepaint();
       }
       redo() {
         const p = this.history.redo();
         if (!p) return;
-        bctx.putImageData(p.after, p.rect.x, p.rect.y);
+        layers[p.layer].getContext("2d").putImageData(p.after, p.rect.x, p.rect.y);
+        renderLayers();
         this.requestRepaint();
       }
 
@@ -2409,17 +2461,33 @@
     });
     document.getElementById("clear").addEventListener("click", () => {
       cancelTextEditing(false);
-      const before = bctx.getImageData(0, 0, bmp.width, bmp.height);
-      bctx.clearRect(0, 0, bmp.width, bmp.height);
-      bctx.fillStyle = "#ffffff";
-      bctx.fillRect(0, 0, bmp.width, bmp.height);
-      const after = bctx.getImageData(0, 0, bmp.width, bmp.height);
+      const ctx = layers[activeLayer].getContext("2d");
+      const before = ctx.getImageData(0, 0, bmp.width, bmp.height);
+      ctx.clearRect(0, 0, bmp.width, bmp.height);
+      if (activeLayer === 0) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, bmp.width, bmp.height);
+      }
+      const after = ctx.getImageData(0, 0, bmp.width, bmp.height);
       engine.history.pushPatch({
+        layer: activeLayer,
         rect: { x: 0, y: 0, w: bmp.width, h: bmp.height },
         before,
         after,
       });
+      renderLayers();
       engine.requestRepaint();
+    });
+
+    document.getElementById("addLayerBtn").addEventListener("click", () => {
+      addLayer();
+      updateLayerSelect();
+    });
+    document.getElementById("delLayerBtn").addEventListener("click", () => {
+      deleteLayer();
+    });
+    document.getElementById("layerSelect").addEventListener("change", (e) => {
+      setActiveLayer(parseInt(e.target.value));
     });
     document.getElementById("fit").addEventListener("click", fitToScreen);
     document.getElementById("actual").addEventListener("click", () => {
@@ -2474,10 +2542,19 @@
     function initDocument(w = 1280, h = 720, bg = "#ffffff") {
       bmp.width = w;
       bmp.height = h;
-      bctx.clearRect(0, 0, w, h);
-      bctx.fillStyle = bg;
-      bctx.fillRect(0, 0, w, h);
+      layers.length = 0;
+      addLayer();
+      layers.forEach((l) => {
+        l.width = w;
+        l.height = h;
+        l.getContext("2d").clearRect(0, 0, w, h);
+      });
+      const bgctx = layers[0].getContext("2d");
+      bgctx.fillStyle = bg;
+      bgctx.fillRect(0, 0, w, h);
+      renderLayers();
       fitToScreen();
+      updateLayerSelect();
     }
     document
       .getElementById("open")
@@ -2492,19 +2569,9 @@
     function openImageFile(file) {
       const img = new Image();
       img.onload = () => {
-        const before = bctx.getImageData(
-          0,
-          0,
-          bmp.width || 1,
-          bmp.height || 1
-        );
-        bmp.width = img.naturalWidth;
-        bmp.height = img.naturalHeight;
-        bctx.imageSmoothingEnabled = store.getState().antialias;
-        bctx.clearRect(0, 0, bmp.width, bmp.height);
-        bctx.drawImage(img, 0, 0);
-        const after = bctx.getImageData(0, 0, bmp.width, bmp.height);
-        //engine.history.pushPatch({x:0,y:0,w:Math.max(before.width,bmp.width),h:Math.max(before.height,bmp.height),before,after});
+        initDocument(img.naturalWidth, img.naturalHeight, "#ffffff");
+        layers[activeLayer].getContext("2d").drawImage(img, 0, 0);
+        renderLayers();
         engine.clearSelection();
         fitToScreen();
         engine.requestRepaint();
@@ -2522,7 +2589,8 @@
       const c = document.createElement("canvas");
       c.width = bmp.width;
       c.height = bmp.height;
-      c.getContext("2d").drawImage(bmp, 0, 0);
+      const cctx = c.getContext("2d");
+      layers.forEach((l) => cctx.drawImage(l, 0, 0));
       downloadDataURL(c.toDataURL("image/png"), "image.png");
     });
     document.getElementById("saveJPG").addEventListener("click", () => {
@@ -2532,14 +2600,15 @@
       const cctx = c.getContext("2d");
       cctx.fillStyle = "#ffffff";
       cctx.fillRect(0, 0, c.width, c.height);
-      cctx.drawImage(bmp, 0, 0);
+      layers.forEach((l) => cctx.drawImage(l, 0, 0));
       downloadDataURL(c.toDataURL("image/jpeg", 0.92), "image.jpg");
     });
     document.getElementById("saveWEBP").addEventListener("click", () => {
       const c = document.createElement("canvas");
       c.width = bmp.width;
       c.height = bmp.height;
-      c.getContext("2d").drawImage(bmp, 0, 0);
+      const cctx = c.getContext("2d");
+      layers.forEach((l) => cctx.drawImage(l, 0, 0));
       downloadDataURL(c.toDataURL("image/webp", 0.92), "image.webp");
     });
 
@@ -2892,7 +2961,8 @@
         const c = document.createElement("canvas");
         c.width = bmp.width;
         c.height = bmp.height;
-        c.getContext("2d").drawImage(bmp, 0, 0);
+        const cctx = c.getContext("2d");
+      layers.forEach((l) => cctx.drawImage(l, 0, 0));
         const dataURL = c.toDataURL("image/png");
         store.put(
           { dataURL, width: bmp.width, height: bmp.height, ts: Date.now() },
@@ -2929,10 +2999,9 @@
       if (data && data.dataURL) {
         const img = new Image();
         img.onload = () => {
-          bmp.width = data.width;
-          bmp.height = data.height;
-          bctx.clearRect(0, 0, bmp.width, bmp.height);
-          bctx.drawImage(img, 0, 0);
+          initDocument(data.width, data.height, "#ffffff");
+          layers[activeLayer].getContext("2d").drawImage(img, 0, 0);
+          renderLayers();
           fitToScreen();
           engine.requestRepaint();
           autosaveBadge.textContent = "Restored: " + nowFmt();
