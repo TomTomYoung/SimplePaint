@@ -483,6 +483,7 @@
           const to = parseInt(li.dataset.index);
           moveLayer(from, to);
         });
+
         li.addEventListener("click", (ev) => {
           if (ev.target.matches("input,select,option")) return;
           setActiveLayer(i);
@@ -491,6 +492,7 @@
         const handle = document.createElement("span");
         handle.textContent = "≡";
         handle.className = "handle";
+
         handle.draggable = true;
         handle.addEventListener("dragstart", (e) => {
           e.dataTransfer.effectAllowed = "move";
@@ -503,6 +505,7 @@
         vis.checked = l.visible;
         vis.addEventListener("change", (e) => {
           e.stopPropagation();
+
           l.visible = vis.checked;
           renderLayers();
           engine.requestRepaint();
@@ -519,6 +522,7 @@
             updateLayerList();
           }
         });
+
         li.appendChild(name);
 
         const op = document.createElement("input");
@@ -539,6 +543,7 @@
         });
         li.appendChild(op);
         li.appendChild(opLabel);
+
 
         const mode = document.createElement("select");
         ["source-over", "multiply", "screen", "overlay", "darken", "lighten", "color", "difference"].forEach((m) => {
@@ -563,12 +568,12 @@
         clip.title = i === 0 ? "下のレイヤーが必要です" : "Clip to below";
         clip.addEventListener("change", (e) => {
           e.stopPropagation();
+
           l.clip = clip.checked;
           renderLayers();
           engine.requestRepaint();
         });
         li.appendChild(clip);
-
         list.appendChild(li);
       }
     }
@@ -605,6 +610,7 @@
       c.mode = "source-over";
       c.clip = false;
       c.name = `Layer ${layers.length + 1}`;
+
       const idx = Math.min(activeLayer + 1, layers.length);
       layers.splice(idx, 0, c);
       setActiveLayer(idx);
