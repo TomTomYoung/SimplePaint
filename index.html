@@ -47,7 +47,10 @@
       }
 
       /* ← ツールバーは横スクロールで詰める。親headerは伸びない */
-      #systems, #tools, #geotools, #texttools {
+      #systems,
+      #tools,
+      #geotools,
+      #texttools {
         display: flex;
         align-items: center;
         gap: var(--gap);
@@ -76,9 +79,6 @@
         border-radius: 4px;
       }
 
-
-
-
       /* ← グリッドの行高も auto に変更（以前は var(--ui) で固定だった） */
       #app {
         display: grid;
@@ -101,8 +101,6 @@
         background: #ccc;
         border-radius: 4px;
       }
-
-
 
       canvas {
         position: absolute;
@@ -127,10 +125,6 @@
         /* ← 原点固定でズレ/ぼけ防止 */
         will-change: transform;
       }
-
-
-
-
 
       button,
       select,
@@ -288,23 +282,17 @@
 
           <div class="row" style="margin-left: auto; gap: 12px">
             <button id="restoreBtn" style="display: none">前回復元</button>
-            <span id="autosaveBadge" style="white-space: nowrap"
-              >AutoSave: —</span
-            >
-            <span style="white-space: nowrap"
-              >ズーム: <span id="zoomPct">100%</span></span
-            >
-          </div>    
+          </div>
           <div class="sep"></div>
           <button id="undo">Undo</button>
           <button id="redo">Redo</button>
-          <button id="clear">全消去</button>                
+          <button id="clear">全消去</button>
         </div>
         <div id="tools" class="row">
           <button class="tool" data-tool="selectRect" title="M">選択</button>
           <button id="copyBtn" title="Ctrl+C">コピー</button>
           <button id="cutBtn" title="Ctrl+X">カット</button>
-          <button id="pasteBtn" title="Ctrl+V">ペースト</button>          
+          <button id="pasteBtn" title="Ctrl+V">ペースト</button>
           <div class="sep"></div>
           <button class="tool" data-tool="pencil" title="P">鉛筆</button>
           <button class="tool" data-tool="eraser" title="E">消しゴム</button>
@@ -326,7 +314,6 @@
             <ul id="layerList"></ul>
           </div>
           <div class="sep"></div>
-
         </div>
         <div id="geotools" class="row">
           <button class="tool" data-tool="line" title="L">直線</button>
@@ -360,7 +347,7 @@
           <label class="row badge"
             >AA <input id="antialias" type="checkbox"
           /></label>
-        </div>        
+        </div>
         <div id="texttools" class="row">
           <button class="tool" data-tool="text" title="T">テキスト</button>
           <select id="fontFamily">
@@ -377,8 +364,7 @@
             value="24"
             style="width: 64px"
           />
-        </div>  
-
+        </div>
       </header>
 
       <div id="stage">
@@ -389,7 +375,10 @@
 
       <footer class="row">
         <div id="status">準備完了</div>
-        <div class="row" style="margin-left: auto">
+        
+        <div style="margin-left: auto">
+          <span id="autosaveBadge" style="white-space: nowrap">AutoSave: —</span>
+          ズーム: <span id="zoomPct">100%</span></span>
           Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン /
           Shift=拘束 / Esc=解除
         </div>
