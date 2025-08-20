@@ -2896,16 +2896,19 @@
         fitToScreen();
         updateLayerList();
       }
+      
       document
         .getElementById("open")
         .addEventListener("click", () =>
           document.getElementById("fileInput").click()
         );
+
       document.getElementById("fileInput").addEventListener("change", (e) => {
         const f = e.target.files?.[0];
         if (f) openImageFile(f);
         e.target.value = "";
       });
+
       function openImageFile(file) {
         const img = new Image();
         img.onload = () => {
@@ -2919,12 +2922,14 @@
         };
         img.src = URL.createObjectURL(file);
       }
+
       function downloadDataURL(url, name) {
         const a = document.createElement("a");
         a.href = url;
         a.download = name;
         a.click();
       }
+
       document.getElementById("savePNG").addEventListener("click", () => {
         const c = document.createElement("canvas");
         c.width = bmp.width;
@@ -2933,6 +2938,7 @@
         flattenLayers(cctx);
         downloadDataURL(c.toDataURL("image/png"), "image.png");
       });
+
       document.getElementById("saveJPG").addEventListener("click", () => {
         const c = document.createElement("canvas");
         c.width = bmp.width;
@@ -2943,6 +2949,7 @@
         flattenLayers(cctx);
         downloadDataURL(c.toDataURL("image/jpeg", 0.92), "image.jpg");
       });
+
       document.getElementById("saveWEBP").addEventListener("click", () => {
         const c = document.createElement("canvas");
         c.width = bmp.width;
@@ -3038,6 +3045,7 @@
           } catch {}
         }
       });
+
       function handleClipboardItems(items) {
         for (const item of items) {
           for (const type of item.types) {
@@ -3048,6 +3056,7 @@
           }
         }
       }
+
       function pasteImageFile(file) {
         const img = new Image();
         img.onload = () => {
@@ -3074,6 +3083,8 @@
         img.src = URL.createObjectURL(file);
       }
 
+      //#region
+
       /* ===== Adjustments: UI + Preview + Apply ===== */
       const adjPanel = document.getElementById("adjustPanel");
       const adjBtn = document.getElementById("adjustBtn");
@@ -3094,6 +3105,7 @@
           clearFilterPreview();
         }
       });
+
       document.getElementById("adjReset").addEventListener("click", () => {
         brightnessEl.value = 0;
         contrastEl.value = 0;
@@ -3102,15 +3114,26 @@
         invertEl.checked = false;
         updateFilterPreview();
       });
+
       document.getElementById("adjCancel").addEventListener("click", () => {
         clearFilterPreview();
         adjPanel.style.display = "none";
       });
+
       document.getElementById("adjApply").addEventListener("click", () => {
         applyFilter();
+        resetAdjustUIToDefaults();
         adjPanel.style.display = "none";
         saveSessionDebounced();
       });
+
+      function resetAdjustUIToDefaults() {
+        brightnessEl.value = 0;
+        contrastEl.value = 0;
+        saturationEl.value = 0;
+        hueEl.value = 0;
+        invertEl.checked = false;
+      }      
 
       [brightnessEl, contrastEl, saturationEl, hueEl].forEach((el) =>
         el.addEventListener("input", updateFilterPreview)
@@ -3120,6 +3143,7 @@
       function startFilterPreview() {
         updateFilterPreview();
       }
+
       function clearFilterPreview() {
         engine.filterPreview = null;
         engine.requestRepaint();
@@ -3194,10 +3218,12 @@
         const d = img.data;
 
         const b = p.brightness / 100; // add in [ -1 .. 1 ]
-        const c = Math.tan(((p.contrast / 100) * Math.PI) / 4); // contrast factor
+        //const c = Math.tan(((p.contrast / 100) * Math.PI) / 4); // contrast factor
+        const c = 1 + (p.contrast / 100); // 0 → 1.0（無変化）
         const sat = 1 + p.saturation / 100; // multiply
         const hue = ((p.hue || 0) * Math.PI) / 180; // radians
         const inv = p.invert ? 1 : 0;
+
 
         for (let i = 0; i < d.length; i += 4) {
           let r = d[i] / 255,
@@ -3241,9 +3267,11 @@
         dctx.putImageData(img, 0, 0);
         return out;
       }
+      
       function clamp01(x) {
         return x < 0 ? 0 : x > 1 ? 1 : x;
       }
+      
       function rgb2hsv(r, g, b) {
         const max = Math.max(r, g, b),
           min = Math.min(r, g, b);
@@ -3260,6 +3288,7 @@
         const v = max;
         return { h, s, v };
       }
+      
       function hsv2rgb(h, s, v) {
         const i = Math.floor(h * 6),
           f = h * 6 - i,
@@ -3282,11 +3311,15 @@
         }
       }
 
+
+      //#endregion
+
       /* ===== Session (IndexedDB): autosave / restore ===== */
       const DB_NAME = "paintdb",
         STORE = "kv",
         KEY = "autosave";
-      function openDB() {
+      
+        function openDB() {
         return new Promise((res, rej) => {
           const r = indexedDB.open(DB_NAME, 1);
           r.onupgradeneeded = () => {
@@ -3296,6 +3329,7 @@
           r.onerror = () => rej(r.error);
         });
       }
+      
       async function saveSession() {
         try {
           const db = await openDB();
@@ -3317,11 +3351,13 @@
           autosaveBadge.textContent = "AutoSave: 失敗";
         }
       }
+
       let saveTimer = null;
       function saveSessionDebounced() {
         clearTimeout(saveTimer);
         saveTimer = setTimeout(saveSession, 800);
       }
+
       async function getSessionData() {
         try {
           const db = await openDB();
@@ -3337,6 +3373,7 @@
           return null;
         }
       }
+
       async function restoreSession() {
         const data = await getSessionData();
         if (data && data.dataURL) {
@@ -3353,16 +3390,19 @@
           img.src = data.dataURL;
         }
       }
+      
       async function checkSession() {
         const data = await getSessionData();
         if (data && data.dataURL) {
           restoreBtn.style.display = "inline-block";
         }
       }
+
       restoreBtn.addEventListener("click", restoreSession);
       window.addEventListener("beforeunload", () => {
         saveSession();
       });
+
       setInterval(saveSession, 15000); // 15秒ごとに自動保存
 
       /* ===== fit / resize / boot ===== */
@@ -3377,6 +3417,7 @@
         vp.panY += r.height / 2 - scr.y;
         engine.requestRepaint();
       }
+      
       const ro = new ResizeObserver(() => engine.requestRepaint());
       ro.observe(stage);
 
