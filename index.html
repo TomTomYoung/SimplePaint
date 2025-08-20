@@ -543,10 +543,64 @@
           });
           li.appendChild(vis);
 
+          // const name = document.createElement("span");
+          // name.textContent = `Layer ${i + 1}`;
+          // name.style.flex = "1";
+          // name.addEventListener("click", () => setActiveLayer(i));
+          // li.appendChild(name);
+
           const name = document.createElement("span");
-          name.textContent = `Layer ${i + 1}`;
+          name.textContent =
+            typeof l.name === "string" && l.name ? l.name : `Layer ${i + 1}`;
           name.style.flex = "1";
-          name.addEventListener("click", () => setActiveLayer(i));
+          name.style.userSelect = "none";
+          name.title = "ダブルクリックで名前変更 / クリックで選択";
+
+          // クリックで選択（既存動作維持）
+          name.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            setActiveLayer(i);
+          });
+
+          // ダブルクリックで名称編集
+          name.addEventListener("dblclick", (ev) => {
+            ev.stopPropagation();
+            const old =
+              typeof l.name === "string" && l.name ? l.name : `Layer ${i + 1}`;
+            const input = document.createElement("input");
+            input.type = "text";
+            input.value = old;
+            input.style.width = "100%";
+            input.style.font = "inherit";
+            input.style.padding = "0";
+            input.style.margin = "0";
+            input.style.border = "1px solid #999";
+
+            // コミット処理
+            const commit = () => {
+              const v = input.value.trim();
+              l.name = v || old; // 空なら旧名を維持
+              updateLayerList(); // 再描画
+            };
+            const cancel = () => updateLayerList();
+
+            input.addEventListener("keydown", (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commit();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancel();
+              }
+            });
+            input.addEventListener("blur", commit);
+
+            // name を input に差し替え
+            li.replaceChild(input, name);
+            input.focus();
+            input.select();
+          });
+
           li.appendChild(name);
 
           const op = document.createElement("input");
@@ -631,6 +685,19 @@
         updateLayerList();
       }
 
+      // function addLayer() {
+      //   const c = document.createElement("canvas");
+      //   c.width = bmp.width;
+      //   c.height = bmp.height;
+      //   c.visible = true;
+      //   c.opacity = 1;
+      //   c.mode = "source-over";
+      //   c.clip = false;
+      //   const idx = Math.min(activeLayer + 1, layers.length);
+      //   layers.splice(idx, 0, c);
+      //   setActiveLayer(idx);
+      // }
+
       function addLayer() {
         const c = document.createElement("canvas");
         c.width = bmp.width;
@@ -639,6 +706,16 @@
         c.opacity = 1;
         c.mode = "source-over";
         c.clip = false;
+
+        // 追加：レイヤ固有のidとname（並べ替えで変わらない）
+        if (c._id == null)
+          c._id =
+            crypto && crypto.randomUUID
+              ? crypto.randomUUID()
+              : "L" + Date.now() + Math.random().toString(16).slice(2);
+        if (typeof c.name !== "string" || !c.name)
+          c.name = `Layer ${layers.length + 1}`;
+
         const idx = Math.min(activeLayer + 1, layers.length);
         layers.splice(idx, 0, c);
         setActiveLayer(idx);
@@ -749,7 +826,9 @@
           requestAnimationFrame(tick);
         }
         get ctx() {
-          return layers[activeLayer].getContext("2d", { willReadFrequently: true });
+          return layers[activeLayer].getContext("2d", {
+            willReadFrequently: true,
+          });
         }
         setTool(id) {
           if (this.current && this.current.cancel) this.current.cancel();
