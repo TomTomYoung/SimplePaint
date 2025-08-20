@@ -2753,6 +2753,7 @@
       const vp = new Viewport();
       const engine = new Engine(store, vp);
 
+      //#region UI bind
       /* ===== UI bind ===== */
       document
         .getElementById("brush")
@@ -2876,6 +2877,9 @@
       engine.register(makeTextTool(store));
       selectTool("pencil");
 
+      //#endregion
+
+      //#region IO: open/save
       /* ===== IO: open/save ===== */
       function initDocument(w = 1280, h = 720, bg = "#ffffff") {
         bmp.width = w;
@@ -3083,7 +3087,9 @@
         img.src = URL.createObjectURL(file);
       }
 
-      //#region
+      //#endregion
+
+      //#region Adjustments: UI + Preview + Apply
 
       /* ===== Adjustments: UI + Preview + Apply ===== */
       const adjPanel = document.getElementById("adjustPanel");
@@ -3405,6 +3411,8 @@
 
       setInterval(saveSession, 15000); // 15秒ごとに自動保存
 
+
+      
       /* ===== fit / resize / boot ===== */
       function fitToScreen() {
         const r = stage.getBoundingClientRect();
