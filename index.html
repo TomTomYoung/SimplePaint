@@ -46,45 +46,8 @@
         border-bottom: none;
       }
 
-      /* ← グリッドの行高も auto に変更（以前は var(--ui) で固定だった） */
-      #app {
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        height: 100dvh;
-      }
-
-      #stage {
-        position: relative;
-        background: #f6f6f6;
-        overflow: scroll;
-      }
-
-      canvas {
-        position: absolute;
-        inset: 0;
-        image-rendering: pixelated;
-        z-index: 0;
-      }
-
-      #overlay {
-        pointer-events: none;
-        z-index: 1;
-      }
-
-      /* ← エディタレイヤは transform 原点を左上に固定し、拡縮時のズレを防止 */
-      #editorLayer {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        /* 編集時のみ JS で auto に */
-        z-index: 2;
-        transform-origin: 0 0;
-        /* ← 原点固定でズレ/ぼけ防止 */
-        will-change: transform;
-      }
-
       /* ← ツールバーは横スクロールで詰める。親headerは伸びない */
-      #tools {
+      #systems, #tools, #geotools, #texttools {
         display: flex;
         align-items: center;
         gap: var(--gap);
@@ -113,6 +76,22 @@
         border-radius: 4px;
       }
 
+
+
+
+      /* ← グリッドの行高も auto に変更（以前は var(--ui) で固定だった） */
+      #app {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        height: 100dvh;
+      }
+
+      #stage {
+        position: relative;
+        background: #f6f6f6;
+        overflow: scroll;
+      }
+
       #stage::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -122,6 +101,36 @@
         background: #ccc;
         border-radius: 4px;
       }
+
+
+
+      canvas {
+        position: absolute;
+        inset: 0;
+        image-rendering: pixelated;
+        z-index: 0;
+      }
+
+      #overlay {
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      /* ← エディタレイヤは transform 原点を左上に固定し、拡縮時のズレを防止 */
+      #editorLayer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        /* 編集時のみ JS で auto に */
+        z-index: 2;
+        transform-origin: 0 0;
+        /* ← 原点固定でズレ/ぼけ防止 */
+        will-change: transform;
+      }
+
+
+
+
 
       button,
       select,
@@ -265,8 +274,37 @@
   <body>
     <div id="app">
       <header>
+        <div id="systems" class="row">
+          <button id="open">開く</button
+          ><input id="fileInput" type="file" accept="image/*" />
+          <button id="savePNG">保存 PNG</button>
+          <button id="saveJPG">保存 JPEG</button>
+          <button id="saveWEBP">保存 WebP</button>
+          <div class="sep"></div>
+          <button id="adjustBtn">調整</button>
+          <div class="sep"></div>
+          <button id="fit">画面に合わせる</button>
+          <button id="actual">100%</button>
+
+          <div class="row" style="margin-left: auto; gap: 12px">
+            <button id="restoreBtn" style="display: none">前回復元</button>
+            <span id="autosaveBadge" style="white-space: nowrap"
+              >AutoSave: —</span
+            >
+            <span style="white-space: nowrap"
+              >ズーム: <span id="zoomPct">100%</span></span
+            >
+          </div>    
+          <div class="sep"></div>
+          <button id="undo">Undo</button>
+          <button id="redo">Redo</button>
+          <button id="clear">全消去</button>                
+        </div>
         <div id="tools" class="row">
           <button class="tool" data-tool="selectRect" title="M">選択</button>
+          <button id="copyBtn" title="Ctrl+C">コピー</button>
+          <button id="cutBtn" title="Ctrl+X">カット</button>
+          <button id="pasteBtn" title="Ctrl+V">ペースト</button>          
           <div class="sep"></div>
           <button class="tool" data-tool="pencil" title="P">鉛筆</button>
           <button class="tool" data-tool="eraser" title="E">消しゴム</button>
@@ -275,6 +313,22 @@
           </button>
           <button class="tool" data-tool="bucket" title="F">バケツ</button>
           <div class="sep"></div>
+          線幅 <input id="brush" type="range" min="1" max="64" value="4" />
+          <div class="sep"></div>
+          線色 <input id="color" type="color" value="#000000" /> 塗色
+          <input id="color2" type="color" value="#ffffff" />
+          <div class="sep"></div>
+          <div id="layerPanel">
+            <div style="display: flex; gap: 4px; align-items: center">
+              <button id="addLayerBtn">＋</button>
+              <button id="delLayerBtn">－</button>
+            </div>
+            <ul id="layerList"></ul>
+          </div>
+          <div class="sep"></div>
+
+        </div>
+        <div id="geotools" class="row">
           <button class="tool" data-tool="line" title="L">直線</button>
           <button class="tool" data-tool="rect" title="R">矩形</button>
           <button class="tool" data-tool="ellipse" title="O">楕円</button>
@@ -306,7 +360,8 @@
           <label class="row badge"
             >AA <input id="antialias" type="checkbox"
           /></label>
-          <div class="sep"></div>
+        </div>        
+        <div id="texttools" class="row">
           <button class="tool" data-tool="text" title="T">テキスト</button>
           <select id="fontFamily">
             <option value="system-ui, sans-serif">System</option>
@@ -322,49 +377,8 @@
             value="24"
             style="width: 64px"
           />
-          <div class="sep"></div>
-          線幅 <input id="brush" type="range" min="1" max="64" value="4" />
-          <div class="sep"></div>
-          線色 <input id="color" type="color" value="#000000" /> 塗色
-          <input id="color2" type="color" value="#ffffff" />
-          <div class="sep"></div>
-          <button id="undo">Undo</button>
-          <button id="redo">Redo</button>
-          <button id="clear">全消去</button>
-          <div class="sep"></div>
-          <div id="layerPanel">
-            <div style="display: flex; gap: 4px; align-items: center">
-              <button id="addLayerBtn">＋</button>
-              <button id="delLayerBtn">－</button>
-            </div>
-            <ul id="layerList"></ul>
-          </div>
-          <div class="sep"></div>
-          <button id="open">開く</button
-          ><input id="fileInput" type="file" accept="image/*" />
-          <button id="savePNG">保存 PNG</button>
-          <button id="saveJPG">保存 JPEG</button>
-          <button id="saveWEBP">保存 WebP</button>
-          <div class="sep"></div>
-          <button id="copyBtn" title="Ctrl+C">コピー</button>
-          <button id="cutBtn" title="Ctrl+X">カット</button>
-          <button id="pasteBtn" title="Ctrl+V">ペースト</button>
-          <div class="sep"></div>
-          <button id="adjustBtn">調整</button>
-          <div class="sep"></div>
-          <button id="fit">画面に合わせる</button>
-          <button id="actual">100%</button>
+        </div>  
 
-          <div class="row" style="margin-left: auto; gap: 12px">
-            <button id="restoreBtn" style="display: none">前回復元</button>
-            <span id="autosaveBadge" style="white-space: nowrap"
-              >AutoSave: —</span
-            >
-            <span style="white-space: nowrap"
-              >ズーム: <span id="zoomPct">100%</span></span
-            >
-          </div>
-        </div>
       </header>
 
       <div id="stage">
