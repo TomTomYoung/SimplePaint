@@ -307,9 +307,6 @@
           </button>
           <button class="tool" data-tool="bucket" title="F">バケツ</button>
           <div class="sep"></div>
-          線幅 <input id="brush" type="range" min="1" max="64" value="4" />
-          滑らかさ <input id="smooth" type="range" min="0" max="1" step="0.05" value="0.55" />
-          <div class="sep"></div>
           線色 <input id="color" type="color" value="#000000" /> 塗色
           <input id="color2" type="color" value="#ffffff" />
           <div class="sep"></div>
@@ -736,11 +733,22 @@
         if (layers.length <= 1) return;
 
         // 履歴スタック内の削除されるレイヤーを参照するエントリを調整
-        engine.history.stack = engine.history.stack.filter((p) => {
-          if (p.layer === activeLayer) return false; // 削除レイヤーの履歴を除去
+        const orig = engine.history.stack;
+        let removedBefore = 0;
+        const filtered = [];
+        orig.forEach((p, i) => {
+          if (p.layer === activeLayer) {
+            if (i <= engine.history.index) removedBefore++;
+            return; // 削除レイヤーの履歴を除去
+          }
           if (p.layer > activeLayer) p.layer--; // より上位のレイヤー番号を調整
-          return true;
+          filtered.push(p);
         });
+        engine.history.stack = filtered;
+        engine.history.index = Math.max(
+          -1,
+          Math.min(filtered.length - 1, engine.history.index - removedBefore)
+        );
 
         layers.splice(activeLayer, 1);
         if (activeLayer >= layers.length) activeLayer = layers.length - 1;
@@ -1124,6 +1132,9 @@
             updateStatus(p);
           });
           stage.addEventListener("pointerup", (e) => {
+            if (stage.hasPointerCapture && stage.hasPointerCapture(e.pointerId)) {
+              stage.releasePointerCapture(e.pointerId);
+            }
             if (isPanning) {
               isPanning = false;
               return;
@@ -1184,6 +1195,10 @@
             if (e.code === "KeyP") selectTool("pencil");
             if (e.code === "KeyB") selectTool("brush");
             if (e.code === "KeyT") selectTool("text");
+            if (e.key === "Enter") {
+              e.preventDefault();
+              this.current?.onEnter?.(this.ctx, this);
+            }
           });
 
           window.addEventListener("keyup", (e) => {
@@ -2414,14 +2429,13 @@
           reset();
         }
 
-        window.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") finalize(engine.ctx, engine);
-        });
-
         return {
           id: "catmull",
           cursor: "crosshair",
           previewRect: null,
+          onEnter(ctx, eng) {
+            finalize(ctx, eng);
+          },
           cancel() {
             reset();
             engine.requestRepaint();
@@ -2566,14 +2580,13 @@
           reset();
         }
 
-        window.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") finalize(engine.ctx, engine);
-        });
-
         return {
           id: "bspline",
           cursor: "crosshair",
           previewRect: null,
+          onEnter(ctx, eng) {
+            finalize(ctx, eng);
+          },
           cancel() {
             reset();
             engine.requestRepaint();
@@ -2670,7 +2683,7 @@
             y += points[i].y * b;
             w += b;
           }
-          if (w === 0) continue; // ★ 念のためNaNガード
+          if (!isFinite(w) || Math.abs(w) < 1e-8) continue; // ★ 念のためNaN/ゼロガード
           out.push({ x: x / w, y: y / w });
         }
         return out;
@@ -3127,6 +3140,10 @@
           engine.finishStrokeToHistory();
         }
 
+        if (activeEditor._onKey) {
+          activeEditor.removeEventListener("keydown", activeEditor._onKey);
+          delete activeEditor._onKey;
+        }
         editorLayer.removeChild(activeEditor);
         activeEditor = null;
         editorLayer.style.pointerEvents = "none"; // ★ここ！ camelCase
@@ -3164,9 +3181,10 @@
 
             // フォント設定
             const ff = document.getElementById("fontFamily").value;
-            const fs = parseFloat(
+            let fs = parseFloat(
               document.getElementById("fontSize").value || "24"
             );
+            if (isNaN(fs)) fs = 24;
             editor.style.fontFamily = ff;
             editor.style.fontSize = fs + "px";
             editor.style.lineHeight = Math.round(fs * 1.4) + "px";
@@ -3195,18 +3213,14 @@
                 e.preventDefault();
                 cancelTextEditing(true);
                 engine.requestRepaint();
-                cleanup();
               } else if (e.key === "Escape") {
                 e.preventDefault();
                 cancelTextEditing(false);
                 engine.requestRepaint();
-                cleanup();
               }
             };
-            function cleanup() {
-              editor.removeEventListener("keydown", onKey);
-            }
             editor.addEventListener("keydown", onKey);
+            editor._onKey = onKey;
           },
           onPointerMove() {},
           onPointerUp() {},
@@ -3269,9 +3283,10 @@
 
       document.getElementById("fontSize").addEventListener("change", () => {
         if (activeEditor) {
-          const fs = parseFloat(
+          let fs = parseFloat(
             document.getElementById("fontSize").value || "24"
           );
+          if (isNaN(fs)) fs = 24;
           activeEditor.style.fontSize = fs + "px";
           activeEditor.style.lineHeight = Math.round(fs * 1.4) + "px";
         }
