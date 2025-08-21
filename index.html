@@ -305,6 +305,7 @@
           <button class="tool" data-tool="bucket" title="F">バケツ</button>
           <div class="sep"></div>
           線幅 <input id="brush" type="range" min="1" max="64" value="4" />
+          滑らかさ <input id="smooth" type="range" min="0" max="1" step="0.05" value="0.55" />
           <div class="sep"></div>
           線色 <input id="color" type="color" value="#000000" /> 塗色
           <input id="color2" type="color" value="#ffffff" />
@@ -1417,14 +1418,13 @@
       // }
       function makeBrush(store) {
         // ===== パラメータ（好みで調整） =====
-        const MIN_RADIUS = 0.5;                // 下限半径（px）
-        const MAX_WIDTH_SCALE = 1.0;           // UIの brushSize に掛ける最大比
-        const MIN_WIDTH_SCALE = 0.35;          // UIの brushSize に掛ける最小比
-        const PRESSURE_CURVE = (p) => Math.pow(p, 0.7); // 筆圧→半径のカーブ
-        const SPEED_FOR_MIN = 3.0;             // この速度以上で最細（px/フレーム相当）
-        const SPEED_FOR_MAX = 0.2;             // この速度以下で最太
-        const SMOOTH_ALPHA = 0.55;             // EMA平滑化係数（0..1, 大きいほどなめらか）
-        const SPACING_RATIO = 0.4;             // スタンプ間隔 = 半径 * この係数
+          const MIN_RADIUS = 0.5;                // 下限半径（px）
+          const MAX_WIDTH_SCALE = 1.0;           // UIの brushSize に掛ける最大比
+          const MIN_WIDTH_SCALE = 0.35;          // UIの brushSize に掛ける最小比
+          const PRESSURE_CURVE = (p) => Math.pow(p, 0.7); // 筆圧→半径のカーブ
+          const SPEED_FOR_MIN = 3.0;             // この速度以上で最細（px/フレーム相当）
+          const SPEED_FOR_MAX = 0.2;             // この速度以下で最太
+          const SPACING_RATIO = 0.4;             // スタンプ間隔 = 半径 * この係数
 
         // ===== ユーティリティ =====
         const lerp = (a, b, t) => a + (b - a) * t;
@@ -1503,8 +1503,8 @@
             const cur = { x: ev.img.x, y: ev.img.y };
 
             // 位置の EMA 平滑化（揺れ抑制）
-            ema.x = lerp(ema.x, cur.x, SMOOTH_ALPHA);
-            ema.y = lerp(ema.y, cur.y, SMOOTH_ALPHA);
+              ema.x = lerp(ema.x, cur.x, s.smoothAlpha);
+              ema.y = lerp(ema.y, cur.y, s.smoothAlpha);
 
             // 短区間補間（last→ema）を等間隔に敷く
             const segLen = dist2(last, ema);
@@ -1562,9 +1562,9 @@
             if (!drawing) return;
 
             // 終端まで敷き切り（最後の隙間を埋める）
-            const s = store.getState();
-            const end = { x: ev.img.x, y: ev.img.y };
-            const final = { x: lerp(last.x, end.x, SMOOTH_ALPHA), y: lerp(last.y, end.y, SMOOTH_ALPHA) };
+              const s = store.getState();
+              const end = { x: ev.img.x, y: ev.img.y };
+              const final = { x: lerp(last.x, end.x, s.smoothAlpha), y: lerp(last.y, end.y, s.smoothAlpha) };
             const gap = lastStampAt ? dist2(lastStampAt, final) : dist2(last, final);
             if (gap > 0) {
               const spacing = Math.max(0.5, lastRadius * SPACING_RATIO);
@@ -3216,6 +3216,7 @@
         primaryColor: "#000000",
         secondaryColor: "#ffffff",
         brushSize: 4,
+        smoothAlpha: 0.55,
         fillOn: true,
         antialias: false,
       });
@@ -3224,16 +3225,21 @@
 
       //#region UI bind
       /* ===== UI bind ===== */
-      document
-        .getElementById("brush")
-        .addEventListener("input", (e) =>
-          store.set({ brushSize: +e.target.value })
-        );
-      document
-        .getElementById("color")
-        .addEventListener("input", (e) =>
-          store.set({ primaryColor: e.target.value })
-        );
+        document
+          .getElementById("brush")
+          .addEventListener("input", (e) =>
+            store.set({ brushSize: +e.target.value })
+          );
+        document
+          .getElementById("smooth")
+          .addEventListener("input", (e) =>
+            store.set({ smoothAlpha: +e.target.value })
+          );
+        document
+          .getElementById("color")
+          .addEventListener("input", (e) =>
+            store.set({ primaryColor: e.target.value })
+          );
       document
         .getElementById("color2")
         .addEventListener("input", (e) =>
