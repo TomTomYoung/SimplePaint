@@ -297,6 +297,9 @@
           <button class="tool" data-tool="pencil" title="P">鉛筆</button>
           <button class="tool" data-tool="pencilClick" title="Shift+P">鉛筆(オフドラッグ)</button>
           <button class="tool" data-tool="brush" title="B">ブラシ</button>
+          線幅 <input id="brush" type="range" min="1" max="64" value="4" />
+          滑らかさ <input id="smooth" type="range" min="0" max="1" step="0.05" value="0.55" />
+          間隔 <input id="spacing" type="range" min="0.1" max="1" step="0.05" value="0.4" />
           <button class="tool" data-tool="eraser" title="E">消しゴム</button>
           <button class="tool" data-tool="eraserClick" title="Shift+E">消しゴム(オフドラッグ)</button>
           <button class="tool" data-tool="eyedropper" title="I">
@@ -1535,7 +1538,7 @@
             lastRadius = lerp(lastRadius || targetRadius, targetRadius, 0.5);
 
             // スタンプ間隔（半径に比例）
-            const spacing = Math.max(0.5, lastRadius * SPACING_RATIO);
+            const spacing = Math.max(0.5, lastRadius * s.spacingRatio);
 
             // 途中からでも「間隔ちょうど」で敷けるよう、最後のスタンプ位置から刻む
             let from = lastStampAt || last;
@@ -1567,7 +1570,7 @@
               const final = { x: lerp(last.x, end.x, s.smoothAlpha), y: lerp(last.y, end.y, s.smoothAlpha) };
             const gap = lastStampAt ? dist2(lastStampAt, final) : dist2(last, final);
             if (gap > 0) {
-              const spacing = Math.max(0.5, lastRadius * SPACING_RATIO);
+              const spacing = Math.max(0.5, lastRadius * s.spacingRatio);
               const steps = Math.max(1, Math.ceil(gap / spacing));
               for (let i = 1; i <= steps; i++) {
                 const t = i / steps;
@@ -3217,6 +3220,7 @@
         secondaryColor: "#ffffff",
         brushSize: 4,
         smoothAlpha: 0.55,
+        spacingRatio: 0.4,
         fillOn: true,
         antialias: false,
       });
@@ -3234,6 +3238,11 @@
           .getElementById("smooth")
           .addEventListener("input", (e) =>
             store.set({ smoothAlpha: +e.target.value })
+          );
+        document
+          .getElementById("spacing")
+          .addEventListener("input", (e) =>
+            store.set({ spacingRatio: +e.target.value })
           );
         document
           .getElementById("color")
