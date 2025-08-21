@@ -1058,6 +1058,7 @@
               shift: e.shiftKey,
               button: e.button,
               detail, // ここが 1 または 2 になる
+              pressure: (e.pressure ?? 0.5) || 0.5, // 0..1（マウスは 0 だが 0.5 扱い）
             };
           };
 
@@ -1302,118 +1303,291 @@
           last = img;
         }
       }
+      // function makeBrush(store) {
+      //   let pts = [],
+      //     drawing = false;
+      //   return {
+      //     id: "brush",
+      //     cursor: "crosshair",
+      //     previewRect: null,
+      //     onPointerDown(ctx, ev, eng) {
+      //       eng.clearSelection();
+      //       drawing = true;
+      //       pts = [{ ...ev.img }];
+      //     },
+      //     onPointerMove(ctx, ev, eng) {
+      //       if (!drawing) return;
+      //       pts.push({ ...ev.img });
+      //       const s = store.getState();
+      //       if (pts.length < 4) {
+      //         const p1 = pts[pts.length - 2];
+      //         const p2 = pts[pts.length - 1];
+      //         ctx.save();
+      //         ctx.lineCap = "round";
+      //         ctx.lineJoin = "round";
+      //         ctx.strokeStyle = s.primaryColor;
+      //         ctx.lineWidth = s.brushSize;
+      //         ctx.beginPath();
+      //         ctx.moveTo(p1.x + 0.5, p1.y + 0.5);
+      //         ctx.lineTo(p2.x + 0.5, p2.y + 0.5);
+      //         ctx.stroke();
+      //         ctx.restore();
+      //         eng.expandPendingRectByRect(
+      //           Math.min(p1.x, p2.x) - s.brushSize,
+      //           Math.min(p1.y, p2.y) - s.brushSize,
+      //           Math.abs(p2.x - p1.x) + s.brushSize * 2,
+      //           Math.abs(p2.y - p1.y) + s.brushSize * 2
+      //         );
+      //         return;
+      //       }
+      //       const [p0, p1, p2, p3] = pts.slice(-4);
+      //       const cr = [];
+      //       for (let j = 0; j <= 8; j++)
+      //         cr.push(catmullRom(p0, p1, p2, p3, j / 8));
+      //       ctx.save();
+      //       ctx.lineCap = "round";
+      //       ctx.lineJoin = "round";
+      //       ctx.strokeStyle = s.primaryColor;
+      //       ctx.lineWidth = s.brushSize;
+      //       ctx.beginPath();
+      //       ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
+      //       for (let i = 1; i < cr.length; i++)
+      //         ctx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+      //       ctx.stroke();
+      //       ctx.restore();
+      //       let minX = cr[0].x,
+      //         maxX = cr[0].x,
+      //         minY = cr[0].y,
+      //         maxY = cr[0].y;
+      //       cr.forEach((p) => {
+      //         minX = Math.min(minX, p.x);
+      //         maxX = Math.max(maxX, p.x);
+      //         minY = Math.min(minY, p.y);
+      //         maxY = Math.max(maxY, p.y);
+      //       });
+      //       eng.expandPendingRectByRect(
+      //         minX - s.brushSize,
+      //         minY - s.brushSize,
+      //         maxX - minX + s.brushSize * 2,
+      //         maxY - minY + s.brushSize * 2
+      //       );
+      //     },
+      //     onPointerUp(ctx, ev, eng) {
+      //       if (!drawing) return;
+      //       drawing = false;
+      //       pts.push({ ...ev.img });
+      //       if (pts.length >= 4) {
+      //         const [p0, p1, p2, p3] = pts.slice(-4);
+      //         const cr = [];
+      //         for (let j = 0; j <= 8; j++)
+      //           cr.push(catmullRom(p0, p1, p2, p3, j / 8));
+      //         const s = store.getState();
+      //         ctx.save();
+      //         ctx.lineCap = "round";
+      //         ctx.lineJoin = "round";
+      //         ctx.strokeStyle = s.primaryColor;
+      //         ctx.lineWidth = s.brushSize;
+      //         ctx.beginPath();
+      //         ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
+      //         for (let i = 1; i < cr.length; i++)
+      //           ctx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+      //         ctx.stroke();
+      //         ctx.restore();
+      //         let minX = cr[0].x,
+      //           maxX = cr[0].x,
+      //           minY = cr[0].y,
+      //           maxY = cr[0].y;
+      //         cr.forEach((p) => {
+      //           minX = Math.min(minX, p.x);
+      //           maxX = Math.max(maxX, p.x);
+      //           minY = Math.min(minY, p.y);
+      //           maxY = Math.max(maxY, p.y);
+      //         });
+      //         eng.expandPendingRectByRect(
+      //           minX - s.brushSize,
+      //           minY - s.brushSize,
+      //           maxX - minX + s.brushSize * 2,
+      //           maxY - minY + s.brushSize * 2
+      //         );
+      //       }
+      //       pts = [];
+      //     },
+      //     drawPreview() {},
+      //   };
+      // }
       function makeBrush(store) {
-        let pts = [],
+        // ===== パラメータ（好みで調整） =====
+        const MIN_RADIUS = 0.5;                // 下限半径（px）
+        const MAX_WIDTH_SCALE = 1.0;           // UIの brushSize に掛ける最大比
+        const MIN_WIDTH_SCALE = 0.35;          // UIの brushSize に掛ける最小比
+        const PRESSURE_CURVE = (p) => Math.pow(p, 0.7); // 筆圧→半径のカーブ
+        const SPEED_FOR_MIN = 3.0;             // この速度以上で最細（px/フレーム相当）
+        const SPEED_FOR_MAX = 0.2;             // この速度以下で最太
+        const SMOOTH_ALPHA = 0.55;             // EMA平滑化係数（0..1, 大きいほどなめらか）
+        const SPACING_RATIO = 0.4;             // スタンプ間隔 = 半径 * この係数
+
+        // ===== ユーティリティ =====
+        const lerp = (a, b, t) => a + (b - a) * t;
+        const clamp01 = (v) => Math.min(1, Math.max(0, v));
+        const dist2 = (a, b) => {
+          const dx = a.x - b.x, dy = a.y - b.y;
+          return Math.sqrt(dx * dx + dy * dy);
+        };
+
+        // 速度→幅スケール（0..1）
+        function speedToWidthScale(spd) {
+          const t = clamp01((spd - SPEED_FOR_MAX) / (SPEED_FOR_MIN - SPEED_FOR_MAX));
+          // spd 小 → 0、spd 大 → 1 になるので反転して「遅いほど太い」
+          const s = 1 - t;
+          return lerp(MIN_WIDTH_SCALE, MAX_WIDTH_SCALE, s);
+        }
+
+        // スタンプ描画（丸）
+        function stamp(ctx, x, y, radius, color, eng) {
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x, y, Math.max(radius, MIN_RADIUS), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          const pad = Math.ceil(radius + 1);
+          eng.expandPendingRectByRect(x - pad, y - pad, pad * 2, pad * 2);
+        }
+
+        // ===== 内部状態 =====
+        let drawing = false;
+        let last = null;            // {x,y}
+        let ema = null;             // 平滑化位置
+        let lastStampAt = null;     // 最後にスタンプした点
+        let lastRadius = 0;
+
+        function reset() {
           drawing = false;
+          last = null;
+          ema = null;
+          lastStampAt = null;
+          lastRadius = 0;
+        }
+
         return {
           id: "brush",
           cursor: "crosshair",
-          previewRect: null,
           onPointerDown(ctx, ev, eng) {
             eng.clearSelection();
             drawing = true;
-            pts = [{ ...ev.img }];
+
+            const s = store.getState();
+            const p0 = { x: ev.img.x, y: ev.img.y };
+            last = { ...p0 };
+            ema = { ...p0 };
+            lastStampAt = null;
+
+            // 1ストローク用スナップショット（履歴）
+            eng.beginStrokeSnapshot();
+
+            // 最初のスタンプ
+            const baseW = s.brushSize;
+            const pr = (typeof ev.pressure === "number") ? PRESSURE_CURVE(ev.pressure) : 0.5;
+            const wScale = (typeof ev.pressure === "number")
+              ? lerp(MIN_WIDTH_SCALE, MAX_WIDTH_SCALE, pr)
+              : MAX_WIDTH_SCALE; // 始点は太めで気持ちよく
+            lastRadius = Math.max(MIN_RADIUS, (baseW * wScale) / 2);
+            stamp(ctx, p0.x, p0.y, lastRadius, s.primaryColor, eng);
+            lastStampAt = { ...p0 };
           },
+
           onPointerMove(ctx, ev, eng) {
             if (!drawing) return;
-            pts.push({ ...ev.img });
+
             const s = store.getState();
-            if (pts.length < 4) {
-              const p1 = pts[pts.length - 2];
-              const p2 = pts[pts.length - 1];
-              ctx.save();
-              ctx.lineCap = "round";
-              ctx.lineJoin = "round";
-              ctx.strokeStyle = s.primaryColor;
-              ctx.lineWidth = s.brushSize;
-              ctx.beginPath();
-              ctx.moveTo(p1.x + 0.5, p1.y + 0.5);
-              ctx.lineTo(p2.x + 0.5, p2.y + 0.5);
-              ctx.stroke();
-              ctx.restore();
-              eng.expandPendingRectByRect(
-                Math.min(p1.x, p2.x) - s.brushSize,
-                Math.min(p1.y, p2.y) - s.brushSize,
-                Math.abs(p2.x - p1.x) + s.brushSize * 2,
-                Math.abs(p2.y - p1.y) + s.brushSize * 2
-              );
+            const cur = { x: ev.img.x, y: ev.img.y };
+
+            // 位置の EMA 平滑化（揺れ抑制）
+            ema.x = lerp(ema.x, cur.x, SMOOTH_ALPHA);
+            ema.y = lerp(ema.y, cur.y, SMOOTH_ALPHA);
+
+            // 短区間補間（last→ema）を等間隔に敷く
+            const segLen = dist2(last, ema);
+            if (segLen <= 0) {
+              // 半径だけ更新（太さの追従）
+              const spd = dist2(last, ema); // 0
+              const baseW = s.brushSize;
+              const radiusBySpeed = (baseW * speedToWidthScale(spd)) / 2;
+              const radiusByPressure =
+                typeof ev.pressure === "number"
+                  ? (baseW * lerp(MIN_WIDTH_SCALE, MAX_WIDTH_SCALE, PRESSURE_CURVE(ev.pressure))) / 2
+                  : radiusBySpeed;
+              lastRadius = Math.max(MIN_RADIUS, radiusByPressure);
               return;
             }
-            const [p0, p1, p2, p3] = pts.slice(-4);
-            const cr = [];
-            for (let j = 0; j <= 8; j++)
-              cr.push(catmullRom(p0, p1, p2, p3, j / 8));
-            ctx.save();
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
-            ctx.strokeStyle = s.primaryColor;
-            ctx.lineWidth = s.brushSize;
-            ctx.beginPath();
-            ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
-            for (let i = 1; i < cr.length; i++)
-              ctx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
-            ctx.stroke();
-            ctx.restore();
-            let minX = cr[0].x,
-              maxX = cr[0].x,
-              minY = cr[0].y,
-              maxY = cr[0].y;
-            cr.forEach((p) => {
-              minX = Math.min(minX, p.x);
-              maxX = Math.max(maxX, p.x);
-              minY = Math.min(minY, p.y);
-              maxY = Math.max(maxY, p.y);
-            });
-            eng.expandPendingRectByRect(
-              minX - s.brushSize,
-              minY - s.brushSize,
-              maxX - minX + s.brushSize * 2,
-              maxY - minY + s.brushSize * 2
-            );
+
+            // 現フレームの太さを決定
+            const spd = segLen; // 簡易：距離を速度の代理に
+            const baseW = s.brushSize;
+            const radiusBySpeed = (baseW * speedToWidthScale(spd)) / 2;
+            const radiusByPressure =
+              typeof ev.pressure === "number"
+                ? (baseW * lerp(MIN_WIDTH_SCALE, MAX_WIDTH_SCALE, PRESSURE_CURVE(ev.pressure))) / 2
+                : radiusBySpeed;
+            const targetRadius = Math.max(MIN_RADIUS, radiusByPressure);
+
+            // 半径の追従も EMA で滑らかに
+            lastRadius = lerp(lastRadius || targetRadius, targetRadius, 0.5);
+
+            // スタンプ間隔（半径に比例）
+            const spacing = Math.max(0.5, lastRadius * SPACING_RATIO);
+
+            // 途中からでも「間隔ちょうど」で敷けるよう、最後のスタンプ位置から刻む
+            let from = lastStampAt || last;
+            const dirx = (ema.x - from.x);
+            const diry = (ema.y - from.y);
+            const total = Math.sqrt(dirx * dirx + diry * diry);
+            if (total >= spacing) {
+              const ux = dirx / total, uy = diry / total;
+              let traveled = 0;
+              while (traveled + spacing <= total) {
+                traveled += spacing;
+                const x = from.x + ux * traveled;
+                const y = from.y + uy * traveled;
+                stamp(ctx, x, y, lastRadius, s.primaryColor, eng);
+                lastStampAt = { x, y };
+              }
+            }
+
+            // 区間終端（ema）に追従
+            last = { ...ema };
           },
+
           onPointerUp(ctx, ev, eng) {
             if (!drawing) return;
-            drawing = false;
-            pts.push({ ...ev.img });
-            if (pts.length >= 4) {
-              const [p0, p1, p2, p3] = pts.slice(-4);
-              const cr = [];
-              for (let j = 0; j <= 8; j++)
-                cr.push(catmullRom(p0, p1, p2, p3, j / 8));
-              const s = store.getState();
-              ctx.save();
-              ctx.lineCap = "round";
-              ctx.lineJoin = "round";
-              ctx.strokeStyle = s.primaryColor;
-              ctx.lineWidth = s.brushSize;
-              ctx.beginPath();
-              ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
-              for (let i = 1; i < cr.length; i++)
-                ctx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
-              ctx.stroke();
-              ctx.restore();
-              let minX = cr[0].x,
-                maxX = cr[0].x,
-                minY = cr[0].y,
-                maxY = cr[0].y;
-              cr.forEach((p) => {
-                minX = Math.min(minX, p.x);
-                maxX = Math.max(maxX, p.x);
-                minY = Math.min(minY, p.y);
-                maxY = Math.max(maxY, p.y);
-              });
-              eng.expandPendingRectByRect(
-                minX - s.brushSize,
-                minY - s.brushSize,
-                maxX - minX + s.brushSize * 2,
-                maxY - minY + s.brushSize * 2
-              );
+
+            // 終端まで敷き切り（最後の隙間を埋める）
+            const s = store.getState();
+            const end = { x: ev.img.x, y: ev.img.y };
+            const final = { x: lerp(last.x, end.x, SMOOTH_ALPHA), y: lerp(last.y, end.y, SMOOTH_ALPHA) };
+            const gap = lastStampAt ? dist2(lastStampAt, final) : dist2(last, final);
+            if (gap > 0) {
+              const spacing = Math.max(0.5, lastRadius * SPACING_RATIO);
+              const steps = Math.max(1, Math.ceil(gap / spacing));
+              for (let i = 1; i <= steps; i++) {
+                const t = i / steps;
+                const x = lerp((lastStampAt?.x ?? last.x), final.x, t);
+                const y = lerp((lastStampAt?.y ?? last.y), final.y, t);
+                stamp(ctx, x, y, lastRadius, s.primaryColor, eng);
+                lastStampAt = { x, y };
+              }
             }
-            pts = [];
+
+            // 履歴確定
+            eng.finishStrokeToHistory();
+            reset();
           },
-          drawPreview() {},
+
+          drawPreview() { /* スタンプ式は実描画なのでプレビュー不要 */ },
         };
       }
+
+
       function makeEraser(store) {
         let drawing = false,
           last = null;
