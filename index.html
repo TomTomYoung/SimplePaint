@@ -295,7 +295,9 @@
           <button id="pasteBtn" title="Ctrl+V">ペースト</button>
           <div class="sep"></div>
           <button class="tool" data-tool="pencil" title="P">鉛筆</button>
+          <button class="tool" data-tool="pencilClick" title="Shift+P">鉛筆(オフドラッグ)</button>
           <button class="tool" data-tool="eraser" title="E">消しゴム</button>
+          <button class="tool" data-tool="eraserClick" title="Shift+E">消しゴム(オフドラッグ)</button>
           <button class="tool" data-tool="eyedropper" title="I">
             スポイト
           </button>
@@ -1243,6 +1245,61 @@
           last = img;
         }
       }
+      function makePencilClick(store) {
+        let drawing = false,
+          last = null;
+        return {
+          id: "pencilClick",
+          cursor: "crosshair",
+          onPointerDown(ctx, ev, eng) {
+            eng.clearSelection();
+            if (!drawing) {
+              drawing = true;
+              last = ev.img;
+              eng.expandPendingRect(
+                ev.img.x,
+                ev.img.y,
+                store.getState().brushSize
+              );
+              stroke(ctx, ev.img, store);
+            } else {
+              eng.expandPendingRect(
+                ev.img.x,
+                ev.img.y,
+                store.getState().brushSize
+              );
+              stroke(ctx, ev.img, store);
+              drawing = false;
+              last = null;
+            }
+          },
+          onPointerMove(ctx, ev, eng) {
+            if (!drawing) return;
+            eng.expandPendingRect(
+              ev.img.x,
+              ev.img.y,
+              store.getState().brushSize
+            );
+            stroke(ctx, ev.img, store);
+          },
+          onPointerUp() {},
+        };
+        function stroke(ctx, img, store) {
+          const s = store.getState();
+          ctx.save();
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.strokeStyle = s.primaryColor;
+          ctx.lineWidth = s.brushSize;
+          ctx.beginPath();
+          if (last) ctx.moveTo(last.x + 0.01, last.y + 0.01);
+          else ctx.moveTo(img.x + 0.01, img.y + 0.01);
+          ctx.lineTo(img.x + 0.01, img.y + 0.01);
+          ctx.stroke();
+          ctx.restore();
+          last = img;
+        }
+      }
       function makeEraser(store) {
         let drawing = false,
           last = null;
@@ -1273,6 +1330,62 @@
             drawing = false;
             last = null;
           },
+        };
+        function erase(ctx, img, store) {
+          const s = store.getState();
+          ctx.save();
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.strokeStyle = "rgba(0,0,0,1)";
+          ctx.lineWidth = s.brushSize;
+          ctx.beginPath();
+          if (last) ctx.moveTo(last.x + 0.01, last.y + 0.01);
+          else ctx.moveTo(img.x + 0.01, img.y + 0.01);
+          ctx.lineTo(img.x + 0.01, img.y + 0.01);
+          ctx.stroke();
+          ctx.restore();
+          last = img;
+        }
+      }
+      function makeEraserClick(store) {
+        let drawing = false,
+          last = null;
+        return {
+          id: "eraserClick",
+          cursor: "cell",
+          onPointerDown(ctx, ev, eng) {
+            eng.clearSelection();
+            if (!drawing) {
+              drawing = true;
+              last = ev.img;
+              eng.expandPendingRect(
+                ev.img.x,
+                ev.img.y,
+                store.getState().brushSize
+              );
+              erase(ctx, ev.img, store);
+            } else {
+              eng.expandPendingRect(
+                ev.img.x,
+                ev.img.y,
+                store.getState().brushSize
+              );
+              erase(ctx, ev.img, store);
+              drawing = false;
+              last = null;
+            }
+          },
+          onPointerMove(ctx, ev, eng) {
+            if (!drawing) return;
+            eng.expandPendingRect(
+              ev.img.x,
+              ev.img.y,
+              store.getState().brushSize
+            );
+            erase(ctx, ev.img, store);
+          },
+          onPointerUp() {},
         };
         function erase(ctx, img, store) {
           const s = store.getState();
@@ -2927,7 +3040,9 @@
       /* register tools */
       engine.register(makeSelectRect());
       engine.register(makePencil(store));
+      engine.register(makePencilClick(store));
       engine.register(makeEraser(store));
+      engine.register(makeEraserClick(store));
       engine.register(makeEyedropper(store));
       engine.register(makeBucket(store));
       engine.register(makeShape("line", store));
