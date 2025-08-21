@@ -307,6 +307,9 @@
           </button>
           <button class="tool" data-tool="bucket" title="F">バケツ</button>
           <div class="sep"></div>
+          線幅 <input id="brush" type="range" min="1" max="64" value="4" />
+          滑らかさ <input id="smooth" type="range" min="0" max="1" step="0.05" value="0.55" />
+          <div class="sep"></div>
           線色 <input id="color" type="color" value="#000000" /> 塗色
           <input id="color2" type="color" value="#ffffff" />
           <div class="sep"></div>
@@ -1424,6 +1427,7 @@
           const PRESSURE_CURVE = (p) => Math.pow(p, 0.7); // 筆圧→半径のカーブ
           const SPEED_FOR_MIN = 3.0;             // この速度以上で最細（px/フレーム相当）
           const SPEED_FOR_MAX = 0.2;             // この速度以下で最太
+          const SPACING_RATIO = 0.4;             // スタンプ間隔 = 半径 * この係数
 
         // ===== ユーティリティ =====
         const lerp = (a, b, t) => a + (b - a) * t;
