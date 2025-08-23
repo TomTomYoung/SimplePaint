@@ -51,15 +51,6 @@
         <div class="sep"></div>
         線色 <input id="color" type="color" value="#000000" /> 塗色
         <input id="color2" type="color" value="#ffffff" />
-        <div class="sep"></div>
-        <div id="layerPanel">
-          <div style="display: flex; gap: 4px; align-items: center">
-            <button id="addLayerBtn">＋</button>
-            <button id="delLayerBtn">－</button>
-          </div>
-          <ul id="layerList"></ul>
-        </div>
-        <div class="sep"></div>
       </div>
       <div id="geotools" class="row">
         <button class="tool" data-tool="line" title="L">直線</button>
@@ -97,9 +88,25 @@
     </header>
 
     <div id="stage">
-      <canvas id="base"></canvas>
-      <canvas id="overlay"></canvas>
-      <div id="editorLayer"></div>
+      <div id="leftPanel" class="side-panel">
+        <!-- 左サイドパネル（将来の拡張用） -->
+      </div>
+
+      <div id="canvasArea">
+        <canvas id="base"></canvas>
+        <canvas id="overlay"></canvas>
+        <div id="editorLayer"></div>
+      </div>
+
+      <div id="rightPanel" class="side-panel">
+        <div id="layerPanel">
+          <div style="display: flex; gap: 4px; align-items: center">
+            <button id="addLayerBtn">＋</button>
+            <button id="delLayerBtn">－</button>
+          </div>
+          <ul id="layerList"></ul>
+        </div>
+      </div>
     </div>
 
     <footer class="row">

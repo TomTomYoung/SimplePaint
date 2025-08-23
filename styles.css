@@ -90,19 +90,45 @@ footer {
 #stage {
   position: relative;
   background: #f6f6f6;
-  overflow: scroll;
+  overflow: hidden; /* scrollを削除 */
+  display: grid;
+  grid-template-columns: 200px 1fr 250px; /* 左200px、中央可変、右250px */
+  height: 100%;
 }
 
-#stage::-webkit-scrollbar {
+.side-panel {
+  background: #fafafa;
+  border: 1px solid #ddd;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+#leftPanel {
+  border-right: 1px solid #ddd;
+}
+
+#rightPanel {
+  border-left: 1px solid #ddd;
+}
+
+#canvasArea {
+  position: relative;
+  overflow: scroll; /* スクロールを中央エリアに移動 */
+  background: #f6f6f6;
+}
+
+#canvasArea::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-#stage::-webkit-scrollbar-thumb {
+#canvasArea::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 4px;
 }
 
+
+/* canvas要素の配置調整 */
 canvas {
   position: absolute;
   inset: 0;
@@ -115,15 +141,12 @@ canvas {
   z-index: 1;
 }
 
-/* ← エディタレイヤは transform 原点を左上に固定し、拡縮時のズレを防止 */
 #editorLayer {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* 編集時のみ JS で auto に */
   z-index: 2;
   transform-origin: 0 0;
-  /* ← 原点固定でズレ/ぼけ防止 */
   will-change: transform;
 }
 

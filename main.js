@@ -25,8 +25,11 @@ function syncHeaderHeight() {
 }
 
 function centerStageScroll() {
-  stage.scrollLeft = (stage.scrollWidth - stage.clientWidth) / 2;
-  stage.scrollTop = (stage.scrollHeight - stage.clientHeight) / 2;
+  const canvasArea = document.getElementById('canvasArea');
+  if (canvasArea) {
+    canvasArea.scrollLeft = (canvasArea.scrollWidth - canvasArea.clientWidth) / 2;
+    canvasArea.scrollTop = (canvasArea.scrollHeight - canvasArea.clientHeight) / 2;
+  }
 }
 new ResizeObserver(() => syncHeaderHeight()).observe(headerEl);
 window.addEventListener("load", syncHeaderHeight);
@@ -375,7 +378,8 @@ class Engine {
 
   requestRepaint() {
     renderLayers();
-    const css = stage.getBoundingClientRect();
+    const canvasArea = document.getElementById('canvasArea');
+    const css = canvasArea.getBoundingClientRect();
     resizeCanvasToDisplaySize(base, css.width, css.height);
     resizeCanvasToDisplaySize(overlay, css.width, css.height);
     const ratio = dpr();
@@ -468,21 +472,6 @@ class Engine {
   }
 
   _bindEvents() {
-    // const pointer = (e) => {
-    //   const r = base.getBoundingClientRect();
-    //   const sx = e.clientX - r.left;
-    //   const sy = e.clientY - r.top;
-    //   const img = this.vp.screenToImage(sx, sy);
-    //   return {
-    //     sx,
-    //     sy,
-    //     img,
-    //     shift: e.shiftKey,
-    //     button: e.button, // マウスボタン情報
-    //     detail: e.detail, // クリック回数（ダブルクリック検出）
-    //   };
-    // };
-
     let lastClickTS = 0,
       lastClickX = 0,
       lastClickY = 0,
@@ -530,7 +519,7 @@ class Engine {
       lastS = null,
       spaceDown = false;
 
-    stage.addEventListener("pointerdown", (e) => {
+    canvasArea.addEventListener("pointerdown", (e) => {
       // テキストエディタ内クリックはキャンバス処理しない
       if (
         e.target &&
@@ -561,13 +550,13 @@ class Engine {
       }
     });
 
-    stage.addEventListener("contextmenu", (e) => {
+    canvasArea.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       this.current?.cancel?.();
       this.requestRepaint();
     });
 
-    stage.addEventListener("pointermove", (e) => {
+    canvasArea.addEventListener("pointermove", (e) => {
       const p = pointer(e);
       if (isPanning && lastS) {
         const dx = e.clientX - lastS.x,
@@ -583,7 +572,7 @@ class Engine {
       this.requestRepaint();
       updateCursorInfo(p);
     });
-    stage.addEventListener("pointerup", (e) => {
+    canvasArea.addEventListener("pointerup", (e) => {
       if (stage.hasPointerCapture && stage.hasPointerCapture(e.pointerId)) {
         stage.releasePointerCapture(e.pointerId);
       }
@@ -596,7 +585,7 @@ class Engine {
       this.finishStrokeToHistory();
       this.requestRepaint();
     });
-    stage.addEventListener(
+    canvasArea.addEventListener(
       "wheel",
       (e) => {
         if (!(e.ctrlKey || e.metaKey)) return;
@@ -661,8 +650,8 @@ class Engine {
     });
 
     // DnD open
-    stage.addEventListener("dragover", (e) => e.preventDefault());
-    stage.addEventListener("drop", (e) => {
+    canvasArea.addEventListener("dragover", (e) => e.preventDefault());
+    canvasArea.addEventListener("drop", (e) => {
       e.preventDefault();
       const f = e.dataTransfer.files?.[0];
       if (f) openImageFile(f);
@@ -1860,7 +1849,8 @@ setInterval(saveSession, 15000); // 15秒ごとに自動保存
 
 /* ===== fit / resize / boot ===== */
 function fitToScreen() {
-  const r = stage.getBoundingClientRect();
+  const canvasArea = document.getElementById('canvasArea');
+  const r = canvasArea.getBoundingClientRect();
   const zx = r.width / bmp.width,
     zy = r.height / bmp.height;
   vp.zoom = Math.min(zx, zy);
@@ -1871,8 +1861,11 @@ function fitToScreen() {
   engine.requestRepaint();
 }
 
-const ro = new ResizeObserver(() => engine.requestRepaint());
-ro.observe(stage);
+const canvasArea = document.getElementById('canvasArea');
+if (canvasArea) {
+  const ro = new ResizeObserver(() => engine.requestRepaint());
+  ro.observe(canvasArea);
+}
 
 // UI初期化
 initToolbar();
