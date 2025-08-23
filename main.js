@@ -2,8 +2,6 @@ import { initToolbar, setToolCallbacks, bindParameterControls, showRestoreButton
 import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks, updateLayerList as panelUpdateLayerList } from './gui/panels.js';
 import { updateStatus, updateZoom } from './gui/statusbar.js';
 
-window.updateLayerList = panelUpdateLayerList;
-
 /* ===== helpers ===== */
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const dpr = () => window.devicePixelRatio || 1;
@@ -115,8 +113,10 @@ function updateLayerList() {
     },
     onMove: (from, to) => moveLayer(from, to)
   };
-  window.updateLayerList(layers, activeLayer, callbacks);
+  panelUpdateLayerList(layers, activeLayer, callbacks);
 }
+
+window.updateLayerList = updateLayerList;
 
 function setActiveLayer(i) {
   if (i < 0 || i >= layers.length) return;
