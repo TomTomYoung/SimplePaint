@@ -20,7 +20,20 @@ body {
 }
 
 /* ← 固定高さをやめて自動高さ。折り返しやオーバーフローに強くする */
-header,
+header {
+  min-height: var(--ui);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap);
+  padding: 6px 8px;
+  border-bottom: 1px solid #ddd;
+  overflow: auto;
+  /* スクロールを有効化 */
+  scrollbar-gutter: stable both-edges;
+  /* 常時スクロールバー領域を確保 */
+}
+
 footer {
   min-height: var(--ui);
   display: flex;
@@ -29,9 +42,6 @@ footer {
   padding: 6px 8px;
   border-bottom: 1px solid #ddd;
   overflow: hidden;
-}
-
-footer {
   border-top: 1px solid #ddd;
   border-bottom: none;
 }
@@ -41,6 +51,7 @@ footer {
 #tools,
 #geotools,
 #texttools {
+  max-height: 60px;
   display: flex;
   align-items: center;
   gap: var(--gap);
@@ -116,7 +127,20 @@ canvas {
   will-change: transform;
 }
 
-button,
+button {
+  height: 28px;
+  min-width: 60px;
+  /* 最小幅を指定 */
+  padding: 4px 12px;
+  /* 左右パディングを増加 */
+  white-space: nowrap;
+  /* テキスト折り返し禁止 */
+  overflow: hidden;
+  /* はみ出し非表示 */
+  text-overflow: ellipsis;
+  /* 長いテキストは「...」表示 */
+}
+
 select,
 input[type="color"],
 input[type="number"] {
@@ -124,8 +148,10 @@ input[type="number"] {
 }
 
 .tool {
+  min-width: 50px;           /* ツールボタンの最小幅 */
   padding: 4px 8px;
-  flex: none;
+  flex: 0 0 auto;            /* サイズ固定 */
+  white-space: nowrap;       /* 折り返し禁止 */
 }
 
 .row {
