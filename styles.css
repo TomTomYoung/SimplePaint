@@ -1,0 +1,254 @@
+:root {
+  --ui: 34px;
+  /* 最小高さ */
+  --gap: 6px;
+  --headerH: 48px;
+  /* JSで実高に更新 */
+  font-synthesis-weight: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+  overflow: hidden;
+}
+
+/* ← 固定高さをやめて自動高さ。折り返しやオーバーフローに強くする */
+header,
+footer {
+  min-height: var(--ui);
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  padding: 6px 8px;
+  border-bottom: 1px solid #ddd;
+  overflow: hidden;
+}
+
+footer {
+  border-top: 1px solid #ddd;
+  border-bottom: none;
+}
+
+/* ← ツールバーは横スクロールで詰める。親headerは伸びない */
+#systems,
+#tools,
+#geotools,
+#texttools {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  flex-wrap: wrap;
+  /* 2行に折り返し */
+  white-space: normal;
+  flex: 1 1 auto;
+  padding-bottom: 2px;
+  overflow: auto;
+  /* ← autoでOK */
+  min-width: 0;
+  /* ← これが肝 */
+  scrollbar-gutter: stable both-edges;
+  /* ← 常時レール確保 */
+}
+
+#tools::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: #f0f0f0;
+  /* ← レールを常時描画 */
+}
+
+#tools::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+/* ← グリッドの行高も auto に変更（以前は var(--ui) で固定だった） */
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100dvh;
+}
+
+#stage {
+  position: relative;
+  background: #f6f6f6;
+  overflow: scroll;
+}
+
+#stage::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#stage::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+canvas {
+  position: absolute;
+  inset: 0;
+  image-rendering: pixelated;
+  z-index: 0;
+}
+
+#overlay {
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ← エディタレイヤは transform 原点を左上に固定し、拡縮時のズレを防止 */
+#editorLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 編集時のみ JS で auto に */
+  z-index: 2;
+  transform-origin: 0 0;
+  /* ← 原点固定でズレ/ぼけ防止 */
+  will-change: transform;
+}
+
+button,
+select,
+input[type="color"],
+input[type="number"] {
+  height: 28px;
+}
+
+.tool {
+  padding: 4px 8px;
+  flex: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+}
+
+.sep {
+  width: 1px;
+  height: 22px;
+  background: #e2e2e2;
+  margin: 0 4px;
+}
+
+#status {
+  font-size: 12px;
+  color: #555;
+}
+
+.active {
+  outline: 2px solid #4a90e2;
+}
+
+/* 調整パネルをヘッダの実高に追従。 z-indexで最前面へ */
+#adjustPanel {
+  position: fixed;
+  right: 12px;
+  top: calc(var(--headerH) + 8px);
+  width: 280px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 10px;
+  display: none;
+  z-index: 999;
+  /* ← いちばん上 */
+}
+
+#adjustPanel h3 {
+  margin: 4px 0 8px;
+  font-size: 14px;
+}
+
+#adjustPanel .row {
+  justify-content: space-between;
+}
+
+#adjustPanel label {
+  font-size: 12px;
+  color: #333;
+}
+
+#adjustPanel input[type="range"] {
+  width: 160px;
+  height: 20px;
+}
+
+#adjustPanel .actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+#fileInput {
+  display: none;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 2px 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* 必須: テキスト編集ボックスの見た目と配置 */
+.text-editor {
+  position: absolute;
+  /* ← これが無いと left/top が効かない */
+  min-width: 40px;
+  min-height: 24px;
+  padding: 4px 6px;
+  outline: 1px dashed #4a90e2;
+  background: transparent;
+  white-space: pre-wrap;
+  color: #000;
+  font: 16px/1.4 system-ui, sans-serif;
+  /* 初期フォント */
+  pointer-events: auto;
+  user-select: text;
+}
+#layerPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+#layerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+.layer-item.active {
+  background: #b3d7ff;
+}
+.layer-item .handle {
+  cursor: move;
+  user-select: none;
+}
+.layer-item input[type="range"] {
+  width: 60px;
+}

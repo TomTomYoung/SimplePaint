@@ -1,3 +1,7 @@
+import { initToolbar, updateToolbar } from './gui/toolbar.js';
+import { initAdjustPanel, initLayerPanel } from './gui/panels.js';
+import { updateStatus, updateZoom } from './gui/statusbar.js';
+
 /* ===== helpers ===== */
       const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
       const dpr = () => window.devicePixelRatio || 1;
@@ -10,8 +14,6 @@
       const overlay = document.getElementById("overlay");
       const editorLayer = document.getElementById("editorLayer");
       const stage = document.getElementById("stage");
-      const zoomEl = document.getElementById("zoomPct");
-      const statusEl = document.getElementById("status");
       const autosaveBadge = document.getElementById("autosaveBadge");
       const restoreBtn = document.getElementById("restoreBtn");
       const nurbsWeightEl = document.getElementById("nurbsWeight");
@@ -32,6 +34,12 @@
       window.addEventListener("resize", syncHeaderHeight);
       window.addEventListener("load", centerStageScroll);
       window.addEventListener("resize", centerStageScroll);
+
+      document.addEventListener('DOMContentLoaded', () => {
+        initToolbar();
+        initAdjustPanel();
+        initLayerPanel();
+      });
 
       // 追加：エディタ外クリックでテキスト確定（先に走らせるため capture:true）
       document.addEventListener(
@@ -547,7 +555,7 @@
           }
           // エディタDOMの変換
           editorLayer.style.transform = `translate(${this.vp.panX}px, ${this.vp.panY}px) scale(${this.vp.zoom})`;
-          zoomEl.textContent = Math.round(this.vp.zoom * 100) + "%";
+          updateZoom(Math.round(this.vp.zoom * 100));
         }
         drawAnts(octx, r) {
           octx.save();
@@ -690,12 +698,12 @@
               this.vp.panY += dy;
               lastS = { x: e.clientX, y: e.clientY };
               this.requestRepaint();
-              updateStatus(p);
+              updateCursorInfo(p);
               return;
             }
             this.current?.onPointerMove(this.ctx, p, this);
             this.requestRepaint();
-            updateStatus(p);
+            updateCursorInfo(p);
           });
           stage.addEventListener("pointerup", (e) => {
             if (stage.hasPointerCapture && stage.hasPointerCapture(e.pointerId)) {
@@ -1458,17 +1466,15 @@
           .forEach((b) => b.classList.toggle("active", b.dataset.tool === id));
         engine.setTool(id);
       }
-      document
-        .querySelectorAll(".tool")
-        .forEach((b) =>
-          b.addEventListener("click", () => selectTool(b.dataset.tool))
+      window.selectTool = selectTool;
+      function updateCursorInfo(pos) {
+        updateStatus(
+          `x:${Math.floor(pos.img.x)}, y:${Math.floor(pos.img.y)}  線:${
+            store.getState().primaryColor
+          } 塗:${document.getElementById("color2").value}  幅:${
+            store.getState().brushSize
+          }`
         );
-      function updateStatus(pos) {
-        statusEl.textContent = `x:${Math.floor(pos.img.x)}, y:${Math.floor(
-          pos.img.y
-        )}  線:${store.getState().primaryColor} 塗:${
-          document.getElementById("color2").value
-        }  幅:${store.getState().brushSize}`;
       }
 
       /* register tools */
@@ -1626,16 +1632,16 @@
           await navigator.clipboard.write([
             new ClipboardItem({ "image/png": blob }),
           ]);
-          statusEl.textContent = "コピー完了";
+          updateStatus("コピー完了");
         } catch (e) {
-          statusEl.textContent = "コピー不可（権限/ブラウザ制限）";
+          updateStatus("コピー不可（権限/ブラウザ制限）");
         }
       }
 
       async function doCut() {
         const sel = engine.selection;
         if (!sel) {
-          statusEl.textContent = "選択がないためカット不可";
+          updateStatus("選択がないためカット不可");
           return;
         }
         await doCopy();
