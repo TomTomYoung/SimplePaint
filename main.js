@@ -1,6 +1,8 @@
-import { initToolbar, updateToolbar } from './gui/toolbar.js';
-import { initAdjustPanel, initLayerPanel } from './gui/panels.js';
+import { initToolbar, setToolCallbacks, bindParameterControls, showRestoreButton, updateAutosaveBadge } from './gui/toolbar.js';
+import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks, updateLayerList as panelUpdateLayerList } from './gui/panels.js';
 import { updateStatus, updateZoom } from './gui/statusbar.js';
+
+window.updateLayerList = panelUpdateLayerList;
 
 /* ===== helpers ===== */
       const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -14,9 +16,6 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
       const overlay = document.getElementById("overlay");
       const editorLayer = document.getElementById("editorLayer");
       const stage = document.getElementById("stage");
-      const autosaveBadge = document.getElementById("autosaveBadge");
-      const restoreBtn = document.getElementById("restoreBtn");
-      const nurbsWeightEl = document.getElementById("nurbsWeight");
 
       const headerEl = document.querySelector("header");
       function syncHeaderHeight() {
@@ -35,11 +34,6 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
       window.addEventListener("load", centerStageScroll);
       window.addEventListener("resize", centerStageScroll);
 
-      document.addEventListener('DOMContentLoaded', () => {
-        initToolbar();
-        initAdjustPanel();
-        initLayerPanel();
-      });
 
       // 追加：エディタ外クリックでテキスト確定（先に走らせるため capture:true）
       document.addEventListener(
@@ -90,151 +84,35 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
       }
 
       function updateLayerList() {
-        const list = document.getElementById("layerList");
-        if (!list) return;
-        list.innerHTML = "";
-        layers.forEach((l, i) => {
-          const li = document.createElement("li");
-          li.className = "layer-item" + (i === activeLayer ? " active" : "");
-          li.draggable = true;
-          li.dataset.index = i;
-
-          li.addEventListener("dragstart", (e) => {
-            e.dataTransfer.setData("text/plain", i);
-          });
-          li.addEventListener("dragover", (e) => e.preventDefault());
-          li.addEventListener("drop", (e) => {
-            e.preventDefault();
-            const from = parseInt(e.dataTransfer.getData("text/plain"));
-            const to = parseInt(li.dataset.index);
-            moveLayer(from, to);
-          });
-
-          const handle = document.createElement("span");
-          handle.textContent = "≡";
-          handle.className = "handle";
-          li.appendChild(handle);
-
-          const vis = document.createElement("input");
-          vis.type = "checkbox";
-          vis.checked = l.visible;
-          vis.addEventListener("change", () => {
-            l.visible = vis.checked;
+        const callbacks = {
+          onSelect: i => setActiveLayer(i),
+          onVisibility: (i, visible) => {
+            layers[i].visible = visible;
             renderLayers();
             engine.requestRepaint();
-          });
-          li.appendChild(vis);
-
-          // const name = document.createElement("span");
-          // name.textContent = `Layer ${i + 1}`;
-          // name.style.flex = "1";
-          // name.addEventListener("click", () => setActiveLayer(i));
-          // li.appendChild(name);
-
-          const name = document.createElement("span");
-          name.textContent =
-            typeof l.name === "string" && l.name ? l.name : `Layer ${i + 1}`;
-          name.style.flex = "1";
-          name.style.userSelect = "none";
-          name.title = "ダブルクリックで名前変更 / クリックで選択";
-
-          // クリックで選択（既存動作維持）
-          name.addEventListener("click", (ev) => {
-            ev.stopPropagation();
-            setActiveLayer(i);
-          });
-
-          // ダブルクリックで名称編集
-          name.addEventListener("dblclick", (ev) => {
-            ev.stopPropagation();
-            const old =
-              typeof l.name === "string" && l.name ? l.name : `Layer ${i + 1}`;
-            const input = document.createElement("input");
-            input.type = "text";
-            input.value = old;
-            input.style.width = "100%";
-            input.style.font = "inherit";
-            input.style.padding = "0";
-            input.style.margin = "0";
-            input.style.border = "1px solid #999";
-
-            // コミット処理
-            const commit = () => {
-              const v = input.value.trim();
-              l.name = v || old; // 空なら旧名を維持
-              updateLayerList(); // 再描画
-            };
-            const cancel = () => updateLayerList();
-
-            input.addEventListener("keydown", (e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                commit();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                cancel();
-              }
-            });
-            input.addEventListener("blur", commit);
-
-            // name を input に差し替え
-            li.replaceChild(input, name);
-            input.focus();
-            input.select();
-          });
-
-          li.appendChild(name);
-
-          const op = document.createElement("input");
-          op.type = "range";
-          op.min = 0;
-          op.max = 1;
-          op.step = 0.01;
-          op.value = l.opacity;
-          op.addEventListener("input", () => {
-            l.opacity = parseFloat(op.value);
+          },
+          onOpacity: (i, opacity) => {
+            layers[i].opacity = opacity;
             renderLayers();
             engine.requestRepaint();
-          });
-          li.appendChild(op);
-
-          const mode = document.createElement("select");
-          [
-            "source-over",
-            "multiply",
-            "screen",
-            "overlay",
-            "darken",
-            "lighten",
-            "color",
-            "difference",
-          ].forEach((m) => {
-            const o = document.createElement("option");
-            o.value = m;
-            o.textContent = m;
-            if (l.mode === m) o.selected = true;
-            mode.appendChild(o);
-          });
-          mode.addEventListener("change", () => {
-            l.mode = mode.value;
+          },
+          onBlendMode: (i, mode) => {
+            layers[i].mode = mode;
             renderLayers();
             engine.requestRepaint();
-          });
-          li.appendChild(mode);
-
-          const clip = document.createElement("input");
-          clip.type = "checkbox";
-          clip.checked = l.clip;
-          clip.title = "Clip to below";
-          clip.addEventListener("change", () => {
-            l.clip = clip.checked;
+          },
+          onClip: (i, clip) => {
+            layers[i].clip = clip;
             renderLayers();
             engine.requestRepaint();
-          });
-          li.appendChild(clip);
-
-          list.appendChild(li);
-        });
+          },
+          onRename: (i, name) => {
+            layers[i].name = name;
+            updateLayerList();
+          },
+          onMove: (from, to) => moveLayer(from, to)
+        };
+        window.updateLayerList(layers, activeLayer, callbacks);
       }
 
       function setActiveLayer(i) {
@@ -1366,99 +1244,96 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
       const engine = new Engine(store, vp);
 
       //#region UI bind
-      /* ===== UI bind ===== */
-        document
-          .getElementById("brush")
-          .addEventListener("input", (e) =>
-            store.set({ brushSize: +e.target.value })
-          );
-        document
-          .getElementById("smooth")
-          .addEventListener("input", (e) =>
-            store.set({ smoothAlpha: +e.target.value })
-          );
-        document
-          .getElementById("spacing")
-          .addEventListener("input", (e) =>
-            store.set({ spacingRatio: +e.target.value })
-          );
-        document
-          .getElementById("color")
-          .addEventListener("input", (e) =>
-            store.set({ primaryColor: e.target.value })
-          );
-      document
-        .getElementById("color2")
-        .addEventListener("input", (e) =>
-          store.set({ secondaryColor: e.target.value })
-        );
-      document.getElementById("fillOn").addEventListener("change", (e) => {
-        store.set({ fillOn: e.target.checked });
-      });
-      document.getElementById("antialias").addEventListener("change", (e) => {
-        store.set({ antialias: e.target.checked });
-        engine.requestRepaint();
-      });
-      document.getElementById("fontFamily").addEventListener("change", () => {
-        if (activeEditor)
-          activeEditor.style.fontFamily =
-            document.getElementById("fontFamily").value;
-      });
-
-      document.getElementById("fontSize").addEventListener("change", () => {
-        if (activeEditor) {
-          let fs = parseFloat(
-            document.getElementById("fontSize").value || "24"
-          );
-          if (isNaN(fs)) fs = 24;
-          activeEditor.style.fontSize = fs + "px";
-          activeEditor.style.lineHeight = Math.round(fs * 1.4) + "px";
-        }
-      });
-
-      document.getElementById("undo").addEventListener("click", () => {
-        cancelTextEditing(false);
-        engine.undo();
-      });
-      document.getElementById("redo").addEventListener("click", () => {
-        cancelTextEditing(false);
-        engine.redo();
-      });
-      document.getElementById("clear").addEventListener("click", () => {
-        cancelTextEditing(false);
-        const ctx = layers[activeLayer].getContext("2d");
-        const before = ctx.getImageData(0, 0, bmp.width, bmp.height);
-        ctx.clearRect(0, 0, bmp.width, bmp.height);
-        if (activeLayer === 0) {
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, bmp.width, bmp.height);
-        }
-        const after = ctx.getImageData(0, 0, bmp.width, bmp.height);
-        engine.history.pushPatch({
-          layer: activeLayer,
-          rect: { x: 0, y: 0, w: bmp.width, h: bmp.height },
-          before,
-          after,
+        /* ===== UI bind ===== */
+        // ツールバーコールバックの設定
+        setToolCallbacks({
+          onToolChange: toolId => {
+            store.set({ toolId });
+            engine.setTool(toolId);
+          },
+          onOpenFile: file => openImageFile(file),
+          onSave: format => {
+            if (format === 'png') document.getElementById('savePNG').click();
+            else if (format === 'jpg') document.getElementById('saveJPG').click();
+            else if (format === 'webp') document.getElementById('saveWEBP').click();
+          },
+          onUndo: () => engine.undo(),
+          onRedo: () => engine.redo(),
+          onClear: () => {
+            cancelTextEditing(false);
+            const ctx = layers[activeLayer].getContext("2d");
+            const before = ctx.getImageData(0, 0, bmp.width, bmp.height);
+            ctx.clearRect(0, 0, bmp.width, bmp.height);
+            if (activeLayer === 0) {
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, bmp.width, bmp.height);
+            }
+            const after = ctx.getImageData(0, 0, bmp.width, bmp.height);
+            engine.history.pushPatch({
+              layer: activeLayer,
+              rect: { x: 0, y: 0, w: bmp.width, h: bmp.height },
+              before,
+              after,
+            });
+            renderLayers();
+            engine.requestRepaint();
+          },
+          onFitToScreen: () => fitToScreen(),
+          onActualSize: () => {
+            vp.zoom = 1;
+            vp.panX = 0;
+            vp.panY = 0;
+            engine.requestRepaint();
+          },
+          onCopy: () => doCopy(),
+          onCut: () => doCut(),
+          onPaste: () => navigator.clipboard?.read?.()
+            .then(handleClipboardItems)
+            .catch(() => {}),
+          onRestore: () => restoreSession(),
+          isTextEditing: () => !!activeEditor,
+          onCancelText: () => {
+            cancelTextEditing(false);
+            engine.requestRepaint();
+          },
+          onCancel: () => engine.current?.cancel?.(),
+          onEnter: () => engine.current?.onEnter?.(engine.ctx, engine),
+          onSpaceDown: () => base.style.cursor = "grab",
+          onSpaceUp: () => base.style.cursor = engine.current?.cursor || "default"
         });
-        renderLayers();
-        engine.requestRepaint();
-      });
 
-      document.getElementById("addLayerBtn").addEventListener("click", () => {
-        addLayer();
-      });
-      document.getElementById("delLayerBtn").addEventListener("click", () => {
-        deleteLayer();
-      });
-      document.getElementById("fit").addEventListener("click", fitToScreen);
-      document.getElementById("actual").addEventListener("click", () => {
-        vp.zoom = 1;
-        vp.panX = 0;
-        vp.panY = 0;
-        engine.requestRepaint();
-      });
+        // パラメータコントロールのバインド
+        bindParameterControls({
+          onBrushSizeChange: v => store.set({ brushSize: v }),
+          onSmoothChange: v => store.set({ smoothAlpha: v }),
+          onSpacingChange: v => store.set({ spacingRatio: v }),
+          onColorChange: v => store.set({ primaryColor: v }),
+          onColor2Change: v => store.set({ secondaryColor: v }),
+          onFillChange: v => store.set({ fillOn: v }),
+          onAntialiasChange: v => {
+            store.set({ antialias: v });
+            engine.requestRepaint();
+          },
+          onFontFamilyChange: v => {
+            if (activeEditor) activeEditor.style.fontFamily = v;
+          },
+          onFontSizeChange: v => {
+            if (activeEditor) {
+              let fs = parseFloat(v || "24");
+              if (isNaN(fs)) fs = 24;
+              activeEditor.style.fontSize = fs + "px";
+              activeEditor.style.lineHeight = Math.round(fs * 1.4) + "px";
+            }
+          }
+        });
 
-      function selectTool(id) {
+        // レイヤーパネルコールバックの設定  
+        setLayerCallbacks({
+          onAdd: () => addLayer(),
+          onDelete: () => deleteLayer()
+        });
+
+        function selectTool(id) {
         cancelTextEditing(false);
         store.set({ toolId: id });
         document
@@ -1526,18 +1401,6 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
         updateLayerList();
       }
       
-      document
-        .getElementById("open")
-        .addEventListener("click", () =>
-          document.getElementById("fileInput").click()
-        );
-
-      document.getElementById("fileInput").addEventListener("change", (e) => {
-        const f = e.target.files?.[0];
-        if (f) openImageFile(f);
-        e.target.value = "";
-      });
-
       function openImageFile(file) {
         const img = new Image();
         img.onload = () => {
@@ -1589,20 +1452,6 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
       });
 
       /* ===== Clipboard: Copy / Cut / Paste ===== */
-      document.getElementById("copyBtn").addEventListener("click", doCopy);
-      document.getElementById("cutBtn").addEventListener("click", doCut);
-      document.getElementById("pasteBtn").addEventListener(
-        "click",
-        () =>
-          navigator.clipboard &&
-          navigator.clipboard.read &&
-          navigator.clipboard
-            .read()
-            .then(handleClipboardItems)
-            .catch(() => {
-              /* ブラウザにより不可 */
-            })
-      );
 
       async function doCopy() {
         const sel = engine.selection;
@@ -1725,37 +1574,16 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
       const hueEl = document.getElementById("adjHue");
       const invertEl = document.getElementById("adjInvert");
 
-      adjBtn.addEventListener("click", () => {
-        adjPanel.style.display =
-          adjPanel.style.display === "none" || adjPanel.style.display === ""
-            ? "block"
-            : "none";
-        if (adjPanel.style.display === "block") {
-          startFilterPreview();
-        } else {
-          clearFilterPreview();
+      setAdjustCallbacks({
+        onOpen: () => startFilterPreview(),
+        onClose: () => clearFilterPreview(),
+        onUpdate: () => updateFilterPreview(),
+        onCancel: () => clearFilterPreview(),
+        onApply: () => {
+          applyFilter();
+          resetAdjustUIToDefaults();
+          saveSessionDebounced();
         }
-      });
-
-      document.getElementById("adjReset").addEventListener("click", () => {
-        brightnessEl.value = 0;
-        contrastEl.value = 0;
-        saturationEl.value = 0;
-        hueEl.value = 0;
-        invertEl.checked = false;
-        updateFilterPreview();
-      });
-
-      document.getElementById("adjCancel").addEventListener("click", () => {
-        clearFilterPreview();
-        adjPanel.style.display = "none";
-      });
-
-      document.getElementById("adjApply").addEventListener("click", () => {
-        applyFilter();
-        resetAdjustUIToDefaults();
-        adjPanel.style.display = "none";
-        saveSessionDebounced();
       });
 
       function resetAdjustUIToDefaults() {
@@ -1764,12 +1592,7 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
         saturationEl.value = 0;
         hueEl.value = 0;
         invertEl.checked = false;
-      }      
-
-      [brightnessEl, contrastEl, saturationEl, hueEl].forEach((el) =>
-        el.addEventListener("input", updateFilterPreview)
-      );
-      invertEl.addEventListener("change", updateFilterPreview);
+      }
 
       function startFilterPreview() {
         updateFilterPreview();
@@ -1977,9 +1800,9 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
             KEY
           );
           await tx.complete;
-          autosaveBadge.textContent = "AutoSave: " + nowFmt();
+            updateAutosaveBadge("AutoSave: " + nowFmt());
         } catch (e) {
-          autosaveBadge.textContent = "AutoSave: 失敗";
+            updateAutosaveBadge("AutoSave: 失敗");
         }
       }
 
@@ -2015,8 +1838,8 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
             renderLayers();
             fitToScreen();
             engine.requestRepaint();
-            autosaveBadge.textContent = "Restored: " + nowFmt();
-            restoreBtn.style.display = "none";
+              updateAutosaveBadge("Restored: " + nowFmt());
+              showRestoreButton(false);
           };
           img.src = data.dataURL;
         }
@@ -2025,11 +1848,10 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
       async function checkSession() {
         const data = await getSessionData();
         if (data && data.dataURL) {
-          restoreBtn.style.display = "inline-block";
+            showRestoreButton(true);
         }
       }
 
-      restoreBtn.addEventListener("click", restoreSession);
       window.addEventListener("beforeunload", () => {
         saveSession();
       });
@@ -2054,6 +1876,10 @@ import { updateStatus, updateZoom } from './gui/statusbar.js';
       const ro = new ResizeObserver(() => engine.requestRepaint());
       ro.observe(stage);
 
+      // UI初期化
+      initToolbar();
+      initAdjustPanel();
+      initLayerPanel();
       initDocument(1280, 720, "#ffffff");
       engine.requestRepaint();
       checkSession();
