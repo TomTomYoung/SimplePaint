@@ -15,6 +15,18 @@ const overlay = document.getElementById("overlay");
 const editorLayer = document.getElementById("editorLayer");
 const stage = document.getElementById("stage");
 
+function getCanvasArea() {
+  // 分割後: stage 内の左ペイン（キャンバス側）を必ず取り直す
+  // id が変わっても対応できるよう優先順で探す
+  return (
+    stage?.querySelector('#canvasArea') ||
+    stage?.querySelector('[data-canvas-area="left"]') ||
+    stage?.querySelector('.canvas-area') ||
+    document.getElementById('canvasArea') ||
+    null
+  );
+}
+
 const headerEl = document.querySelector("header");
 function syncHeaderHeight() {
   if (!headerEl) return;
@@ -23,10 +35,10 @@ function syncHeaderHeight() {
 }
 
 function centerStageScroll() {
-  const canvasArea = document.getElementById('canvasArea');
-  if (canvasArea) {
-    canvasArea.scrollLeft = (canvasArea.scrollWidth - canvasArea.clientWidth) / 2;
-    canvasArea.scrollTop = (canvasArea.scrollHeight - canvasArea.clientHeight) / 2;
+  const area = getCanvasArea();
+  if (area) {
+    area.scrollLeft = (area.scrollWidth - area.clientWidth) / 2;
+    area.scrollTop = (area.scrollHeight - area.clientHeight) / 2;
   }
 }
 new ResizeObserver(() => syncHeaderHeight()).observe(headerEl);
@@ -378,8 +390,9 @@ class Engine {
 
   requestRepaint() {
     renderLayers();
-    const canvasArea = document.getElementById('canvasArea');
-    const css = canvasArea.getBoundingClientRect();
+    const area = getCanvasArea();
+    if (!area) return;
+    const css = area.getBoundingClientRect();
     resizeCanvasToDisplaySize(base, css.width, css.height);
     resizeCanvasToDisplaySize(overlay, css.width, css.height);
     const ratio = dpr();
@@ -515,11 +528,14 @@ class Engine {
       };
     };
 
+    const area = getCanvasArea();
+    if (!area) return;
+
     let isPanning = false,
       lastS = null,
       spaceDown = false;
 
-    canvasArea.addEventListener("pointerdown", (e) => {
+    area.addEventListener("pointerdown", (e) => {
       // テキストエディタ内クリックはキャンバス処理しない
       if (
         e.target &&
@@ -528,11 +544,21 @@ class Engine {
       )
         return;
 
+      // 左ペイン直下以外（オーバーレイや右ペインのはみ出し）を弾く
+      if (
+        e.currentTarget !== e.target &&
+        !base.contains(e.target) &&
+        !overlay.contains(e.target) &&
+        !editorLayer.contains(e.target)
+      ) {
+        return;
+      }
+
       const p = pointer(e);
 
       // ★ Textツールのときは Pointer Capture をしない（キャレット表示が安定）
       if (!(this.current && this.current.id === "text")) {
-        stage.setPointerCapture(e.pointerId);
+        (e.currentTarget)?.setPointerCapture?.(e.pointerId);
       }
 
       // 中ボタン or Space でパン
@@ -550,13 +576,13 @@ class Engine {
       }
     });
 
-    canvasArea.addEventListener("contextmenu", (e) => {
+    area.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       this.current?.cancel?.();
       this.requestRepaint();
     });
 
-    canvasArea.addEventListener("pointermove", (e) => {
+    area.addEventListener("pointermove", (e) => {
       const p = pointer(e);
       if (isPanning && lastS) {
         const dx = e.clientX - lastS.x,
@@ -572,9 +598,12 @@ class Engine {
       this.requestRepaint();
       updateCursorInfo(p);
     });
-    canvasArea.addEventListener("pointerup", (e) => {
-      if (stage.hasPointerCapture && stage.hasPointerCapture(e.pointerId)) {
-        stage.releasePointerCapture(e.pointerId);
+    area.addEventListener("pointerup", (e) => {
+      if (
+        e.currentTarget.hasPointerCapture &&
+        e.currentTarget.hasPointerCapture(e.pointerId)
+      ) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
       }
       if (isPanning) {
         isPanning = false;
@@ -585,7 +614,7 @@ class Engine {
       this.finishStrokeToHistory();
       this.requestRepaint();
     });
-    canvasArea.addEventListener(
+    area.addEventListener(
       "wheel",
       (e) => {
         if (!(e.ctrlKey || e.metaKey)) return;
@@ -623,8 +652,9 @@ class Engine {
       }
       if (e.code === "Space") {
         e.preventDefault();
+        spaceDown = true;
         base.style.cursor = "grab";
-      } // パン開始フラグはpointermove側で見る
+      }
       if ((e.ctrlKey || e.metaKey) && e.code === "KeyZ") {
         e.preventDefault();
         engine.undo();
@@ -650,8 +680,8 @@ class Engine {
     });
 
     // DnD open
-    canvasArea.addEventListener("dragover", (e) => e.preventDefault());
-    canvasArea.addEventListener("drop", (e) => {
+    area.addEventListener("dragover", (e) => e.preventDefault());
+    area.addEventListener("drop", (e) => {
       e.preventDefault();
       const f = e.dataTransfer.files?.[0];
       if (f) openImageFile(f);
@@ -1849,8 +1879,9 @@ setInterval(saveSession, 15000); // 15秒ごとに自動保存
 
 /* ===== fit / resize / boot ===== */
 function fitToScreen() {
-  const canvasArea = document.getElementById('canvasArea');
-  const r = canvasArea.getBoundingClientRect();
+  const area = getCanvasArea();
+  if (!area) return;
+  const r = area.getBoundingClientRect();
   const zx = r.width / bmp.width,
     zy = r.height / bmp.height;
   vp.zoom = Math.min(zx, zy);
@@ -1861,16 +1892,19 @@ function fitToScreen() {
   engine.requestRepaint();
 }
 
-const canvasArea = document.getElementById('canvasArea');
-if (canvasArea) {
+function bootOnceAreaReady(tryLeft = 10) {
+  const area = getCanvasArea();
+  if (!area) {
+    if (tryLeft > 0) return setTimeout(() => bootOnceAreaReady(tryLeft - 1), 100);
+    return;
+  }
   const ro = new ResizeObserver(() => engine.requestRepaint());
-  ro.observe(canvasArea);
+  ro.observe(area);
+  initToolbar();
+  initAdjustPanel();
+  initLayerPanel();
+  initDocument(1280, 720, "#ffffff");
+  engine.requestRepaint();
+  checkSession();
 }
-
-// UI初期化
-initToolbar();
-initAdjustPanel();
-initLayerPanel();
-initDocument(1280, 720, "#ffffff");
-engine.requestRepaint();
-checkSession();
+window.addEventListener('load', () => bootOnceAreaReady());
