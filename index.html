@@ -1,201 +1,167 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width,initial-scale=1,viewport-fit=cover"
-    />
-    <title>Paint (UI fixed)</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
 
-  <body>
-    <div id="app">
-      <header>
-        <div id="systems" class="row">
-          <button id="open">開く</button
-          ><input id="fileInput" type="file" accept="image/*" />
-          <button id="savePNG">保存 PNG</button>
-          <button id="saveJPG">保存 JPEG</button>
-          <button id="saveWEBP">保存 WebP</button>
-          <div class="sep"></div>
-          <button id="adjustBtn">調整</button>
-          <div class="sep"></div>
-          <button id="fit">画面に合わせる</button>
-          <button id="actual">100%</button>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Paint (UI fixed)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
 
-          <div class="row" style="margin-left: auto; gap: 12px">
-            <button id="restoreBtn" style="display: none">前回復元</button>
-          </div>
-          <div class="sep"></div>
-          <button id="undo">Undo</button>
-          <button id="redo">Redo</button>
-          <button id="clear">全消去</button>
-        </div>
-        <div id="tools" class="row">
-          <button class="tool" data-tool="selectRect" title="M">選択</button>
-          <button id="copyBtn" title="Ctrl+C">コピー</button>
-          <button id="cutBtn" title="Ctrl+X">カット</button>
-          <button id="pasteBtn" title="Ctrl+V">ペースト</button>
-          <div class="sep"></div>
-          <button class="tool" data-tool="pencil" title="P">鉛筆</button>
-          <button class="tool" data-tool="pencilClick" title="Shift+P">鉛筆(オフドラッグ)</button>
-          <button class="tool" data-tool="brush" title="B">ブラシ</button>
-          線幅 <input id="brush" type="range" min="1" max="64" value="4" />
-          滑らかさ <input id="smooth" type="range" min="0" max="1" step="0.05" value="0.55" />
-          間隔 <input id="spacing" type="range" min="0.1" max="1" step="0.05" value="0.4" />
-          <button class="tool" data-tool="eraser" title="E">消しゴム</button>
-          <button class="tool" data-tool="eraserClick" title="Shift+E">消しゴム(オフドラッグ)</button>
-          <button class="tool" data-tool="eyedropper" title="I">
-            スポイト
-          </button>
-          <button class="tool" data-tool="bucket" title="F">バケツ</button>
-          <div class="sep"></div>
-          線色 <input id="color" type="color" value="#000000" /> 塗色
-          <input id="color2" type="color" value="#ffffff" />
-          <div class="sep"></div>
-          <div id="layerPanel">
-            <div style="display: flex; gap: 4px; align-items: center">
-              <button id="addLayerBtn">＋</button>
-              <button id="delLayerBtn">－</button>
-            </div>
-            <ul id="layerList"></ul>
-          </div>
-          <div class="sep"></div>
-        </div>
-        <div id="geotools" class="row">
-          <button class="tool" data-tool="line" title="L">直線</button>
-          <button class="tool" data-tool="rect" title="R">矩形</button>
-          <button class="tool" data-tool="ellipse" title="O">楕円</button>
-          <button class="tool" data-tool="quad" title="Q">2次ベジェ</button>
-          <button class="tool" data-tool="cubic" title="C">3次ベジェ</button>
-          <button class="tool" data-tool="arc" title="A">円弧</button>
-          <button class="tool" data-tool="sector" title="S">扇形</button>
-          <button class="tool" data-tool="catmull" title="U">Catmull</button>
-          <button class="tool" data-tool="bspline" title="B">
-            Bスプライン
-          </button>
-          <button class="tool" data-tool="nurbs" title="N">NURBS</button>
-          <label class="row badge"
-            >重み
-            <input
-              id="nurbsWeight"
-              type="number"
-              value="1"
-              step="0.1"
-              style="width: 60px"
-          /></label>
-          <button class="tool" data-tool="ellipse2" title="E">
-            楕円(回転)
-          </button>
-          <button class="tool" data-tool="freehand" title="H">補間描画</button>
-          <button class="tool" data-tool="freehandClick" title="Shift+H">補間描画(オフドラッグ)</button>
-          <label class="row badge"
-            >塗り <input id="fillOn" type="checkbox" checked
-          /></label>
-          <label class="row badge"
-            >AA <input id="antialias" type="checkbox"
-          /></label>
-        </div>
-        <div id="texttools" class="row">
-          <button class="tool" data-tool="text" title="T">テキスト</button>
-          <select id="fontFamily">
-            <option value="system-ui, sans-serif">System</option>
-            <option value='"Noto Sans JP", sans-serif'>Noto Sans JP</option>
-            <option value="serif">Serif</option>
-            <option value="monospace">Monospace</option>
-          </select>
-          <input
-            id="fontSize"
-            type="number"
-            min="8"
-            max="200"
-            value="24"
-            style="width: 64px"
-          />
-        </div>
-      </header>
+<body>
+  <div id="app">
+    <header>
+      <div id="systems" class="row">
+        <button id="open">開く</button><input id="fileInput" type="file" accept="image/*" />
+        <button id="savePNG">保存 PNG</button>
+        <button id="saveJPG">保存 JPEG</button>
+        <button id="saveWEBP">保存 WebP</button>
+        <div class="sep"></div>
+        <button id="adjustBtn">調整</button>
+        <div class="sep"></div>
+        <button id="fit">画面に合わせる</button>
+        <button id="actual">100%</button>
 
-      <div id="stage">
-        <canvas id="base"></canvas>
-        <canvas id="overlay"></canvas>
-        <div id="editorLayer"></div>
+        <div class="row" style="margin-left: auto; gap: 12px">
+          <button id="restoreBtn" style="display: none">前回復元</button>
+        </div>
+        <div class="sep"></div>
+        <button id="undo">Undo</button>
+        <button id="redo">Redo</button>
+        <button id="clear">全消去</button>
       </div>
-
-      <footer class="row">
-        <div id="status">準備完了</div>
-        
-        <div style="margin-left: auto">
-          <span id="autosaveBadge" style="white-space: nowrap">AutoSave: —</span>
-          ズーム: <span id="zoomPct">100%</span></span>
-          Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン /
-          Shift=拘束 / Esc=解除
+      <div id="tools" class="row">
+        <button class="tool" data-tool="selectRect" title="M">選択</button>
+        <button id="copyBtn" title="Ctrl+C">コピー</button>
+        <button id="cutBtn" title="Ctrl+X">カット</button>
+        <button id="pasteBtn" title="Ctrl+V">ペースト</button>
+        <div class="sep"></div>
+        <button class="tool" data-tool="pencil" title="P">鉛筆</button>
+        <button class="tool" data-tool="pencilClick" title="Shift+P">鉛筆(オフドラッグ)</button>
+        <button class="tool" data-tool="brush" title="B">ブラシ</button>
+        線幅 <input id="brush" type="range" min="1" max="64" value="4" />
+        滑らかさ <input id="smooth" type="range" min="0" max="1" step="0.05" value="0.55" />
+        間隔 <input id="spacing" type="range" min="0.1" max="1" step="0.05" value="0.4" />
+        <button class="tool" data-tool="eraser" title="E">消しゴム</button>
+        <button class="tool" data-tool="eraserClick" title="Shift+E">消しゴム(オフドラッグ)</button>
+        <button class="tool" data-tool="eyedropper" title="I">
+          スポイト
+        </button>
+        <button class="tool" data-tool="bucket" title="F">バケツ</button>
+        <div class="sep"></div>
+        線色 <input id="color" type="color" value="#000000" /> 塗色
+        <input id="color2" type="color" value="#ffffff" />
+        <div class="sep"></div>
+        <div id="layerPanel">
+          <div style="display: flex; gap: 4px; align-items: center">
+            <button id="addLayerBtn">＋</button>
+            <button id="delLayerBtn">－</button>
+          </div>
+          <ul id="layerList"></ul>
         </div>
-      </footer>
+        <div class="sep"></div>
+      </div>
+      <div id="geotools" class="row">
+        <button class="tool" data-tool="line" title="L">直線</button>
+        <button class="tool" data-tool="rect" title="R">矩形</button>
+        <button class="tool" data-tool="ellipse" title="O">楕円</button>
+        <button class="tool" data-tool="quad" title="Q">2次ベジェ</button>
+        <button class="tool" data-tool="cubic" title="C">3次ベジェ</button>
+        <button class="tool" data-tool="arc" title="A">円弧</button>
+        <button class="tool" data-tool="sector" title="S">扇形</button>
+        <button class="tool" data-tool="catmull" title="U">Catmull</button>
+        <button class="tool" data-tool="bspline" title="B">
+          Bスプライン
+        </button>
+        <button class="tool" data-tool="nurbs" title="N">NURBS</button>
+        <label class="row badge">重み
+          <input id="nurbsWeight" type="number" value="1" step="0.1" style="width: 60px" /></label>
+        <button class="tool" data-tool="ellipse2" title="E">
+          楕円(回転)
+        </button>
+        <button class="tool" data-tool="freehand" title="H">補間描画</button>
+        <button class="tool" data-tool="freehandClick" title="Shift+H">補間描画(オフドラッグ)</button>
+        <label class="row badge">塗り <input id="fillOn" type="checkbox" checked /></label>
+        <label class="row badge">AA <input id="antialias" type="checkbox" /></label>
+      </div>
+      <div id="texttools" class="row">
+        <button class="tool" data-tool="text" title="T">テキスト</button>
+        <select id="fontFamily">
+          <option value="system-ui, sans-serif">System</option>
+          <option value='"Noto Sans JP", sans-serif'>Noto Sans JP</option>
+          <option value="serif">Serif</option>
+          <option value="monospace">Monospace</option>
+        </select>
+        <input id="fontSize" type="number" min="8" max="200" value="24" style="width: 64px" />
+      </div>
+    </header>
+
+    <div id="stage">
+      <canvas id="base"></canvas>
+      <canvas id="overlay"></canvas>
+      <div id="editorLayer"></div>
     </div>
 
-    <!-- 調整パネル（中身は前回と同じ） -->
-    <div id="adjustPanel" role="dialog" aria-label="調整">
-      <h3>調整（選択があれば選択範囲に適用）</h3>
-      <div class="row">
-        <label>明るさ</label
-        ><input
-          id="adjBrightness"
-          type="range"
-          min="-100"
-          max="100"
-          value="0"
-        />
-      </div>
-      <div class="row">
-        <label>コントラスト</label
-        ><input id="adjContrast" type="range" min="-100" max="100" value="0" />
-      </div>
-      <div class="row">
-        <label>彩度</label
-        ><input
-          id="adjSaturation"
-          type="range"
-          min="-100"
-          max="100"
-          value="0"
-        />
-      </div>
-      <div class="row">
-        <label>色相</label
-        ><input id="adjHue" type="range" min="-180" max="180" value="0" />
-      </div>
-      <div class="row">
-        <label>反転</label><input id="adjInvert" type="checkbox" />
-      </div>
-      <div class="actions">
-        <button id="adjReset">リセット</button>
-        <button id="adjCancel">キャンセル</button>
-        <button id="adjApply">適用</button>
-      </div>
-    </div>
+    <footer class="row">
+      <div id="status">準備完了</div>
 
-        <script src="tools/selectRect.js"></script>
-    <script src="tools/pencil.js"></script>
-    <script src="tools/pencilClick.js"></script>
-    <script src="tools/brush.js"></script>
-    <script src="tools/eraser.js"></script>
-    <script src="tools/eraserClick.js"></script>
-    <script src="tools/eyedropper.js"></script>
-    <script src="tools/bucket.js"></script>
-    <script src="tools/shape.js"></script>
-    <script src="tools/quadratic.js"></script>
-    <script src="tools/cubic.js"></script>
-    <script src="tools/arc.js"></script>
-    <script src="tools/sector.js"></script>
-    <script src="tools/catmull.js"></script>
-    <script src="tools/bspline.js"></script>
-    <script src="tools/nurbs.js"></script>
-    <script src="tools/ellipse2.js"></script>
-    <script src="tools/freehand.js"></script>
-    <script src="tools/freehandClick.js"></script>
-    <script src="tools/textTool.js"></script>
-    <script type="module" src="main.js"></script>
-  </body>
+      <div style="margin-left: auto">
+        <span id="autosaveBadge" style="white-space: nowrap">AutoSave: —</span>
+        ズーム: <span id="zoomPct">100%</span></span>
+        Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン /
+        Shift=拘束 / Esc=解除
+      </div>
+    </footer>
+  </div>
+
+  <!-- 調整パネル（中身は前回と同じ） -->
+  <div id="adjustPanel" role="dialog" aria-label="調整">
+    <h3>調整（選択があれば選択範囲に適用）</h3>
+    <div class="row">
+      <label>明るさ</label><input id="adjBrightness" type="range" min="-100" max="100" value="0" />
+    </div>
+    <div class="row">
+      <label>コントラスト</label><input id="adjContrast" type="range" min="-100" max="100" value="0" />
+    </div>
+    <div class="row">
+      <label>彩度</label><input id="adjSaturation" type="range" min="-100" max="100" value="0" />
+    </div>
+    <div class="row">
+      <label>色相</label><input id="adjHue" type="range" min="-180" max="180" value="0" />
+    </div>
+    <div class="row">
+      <label>反転</label><input id="adjInvert" type="checkbox" />
+    </div>
+    <div class="actions">
+      <button id="adjReset">リセット</button>
+      <button id="adjCancel">キャンセル</button>
+      <button id="adjApply">適用</button>
+    </div>
+  </div>
+  <script type="module" src="gui/panels.js"></script>
+  <script type="module" src="gui/toolbar.js"></script>
+  <script src="tools/selectRect.js"></script>
+  <script src="tools/pencil.js"></script>
+  <script src="tools/pencilClick.js"></script>
+  <script src="tools/brush.js"></script>
+  <script src="tools/eraser.js"></script>
+  <script src="tools/eraserClick.js"></script>
+  <script src="tools/eyedropper.js"></script>
+  <script src="tools/bucket.js"></script>
+  <script src="tools/shape.js"></script>
+  <script src="tools/quadratic.js"></script>
+  <script src="tools/cubic.js"></script>
+  <script src="tools/arc.js"></script>
+  <script src="tools/sector.js"></script>
+  <script src="tools/catmull.js"></script>
+  <script src="tools/bspline.js"></script>
+  <script src="tools/nurbs.js"></script>
+  <script src="tools/ellipse2.js"></script>
+  <script src="tools/freehand.js"></script>
+  <script src="tools/freehandClick.js"></script>
+  <script src="tools/textTool.js"></script>
+
+  <script type="module" src="main.js"></script>
+</body>
+
 </html>
