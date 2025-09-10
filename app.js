@@ -6,6 +6,7 @@ import { initIO, initDocument, openImageFile, triggerSave, doCopy, doCut, handle
 import { DOMManager } from './managers/dom-manager.js';
 import { Viewport } from './core/viewport.js';
 import { createStore, defaultState } from './core/store.js';
+import { EventBus } from './core/event-bus.js';
 import { AdjustmentManager } from './managers/adjustment-manager.js';
 import { cancelTextEditing, getActiveEditor } from './managers/text-editor.js';
 
@@ -13,9 +14,10 @@ export class PaintApp {
   constructor() {
     this.domManager = new DOMManager();
     window.getCanvasArea = () => this.domManager.getCanvasArea();
-    this.store = createStore(defaultState);
+    this.eventBus = new EventBus();
+    this.store = createStore(defaultState, this.eventBus);
     this.viewport = new Viewport();
-    this.engine = new Engine(this.store, this.viewport);
+    this.engine = new Engine(this.store, this.viewport, this.eventBus);
     this.adjustmentManager = null;
     this.init();
   }
