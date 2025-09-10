@@ -99,7 +99,25 @@ footer {
 .side-panel {
   background: #fafafa;
   border: 1px solid #ddd;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  padding: 4px 8px;
+  background: #eee;
+  border-bottom: 1px solid #ddd;
+}
+
+.panel-footer {
+  padding: 4px 8px;
+  background: #eee;
+  border-top: 1px solid #ddd;
+}
+
+.panel-body {
+  flex: 1;
+  overflow: scroll;
   padding: 8px;
 }
 
@@ -107,7 +125,7 @@ footer {
   border-right: 1px solid #ddd;
 }
 
-#rightPanel {
+#layerPanel {
   border-left: 1px solid #ddd;
 }
 
@@ -269,12 +287,10 @@ input[type="number"] {
   user-select: text;
 }
 
-#layerPanel {
+#layerPanel .panel-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 200px;
-  overflow-y: auto;
 }
 
 #layerList {
