@@ -41,6 +41,11 @@ export class Engine {
     this.filterPreview = null; // {canvas, x, y}
     this._bindEvents();
     this.requestRepaint = this.requestRepaint.bind(this);
+
+
+    this.isPanning=false;
+    this.lastS=false;
+
     const tick = () => {
       this._antsPhase = (this._antsPhase + 1) % 16;
       this.requestRepaint();
@@ -277,8 +282,8 @@ export class Engine {
     area.addEventListener("pointerdown", (e) => {
       const p = pointer(e);
       if (e.button === 1 || (p.ctrl && e.button === 0)) {
-        isPanning = true;
-        lastS = { x: e.clientX, y: e.clientY };
+        this.isPanning = true;
+        this.lastS = { x: e.clientX, y: e.clientY };
         e.currentTarget.setPointerCapture(e.pointerId);
         base.style.cursor = "grabbing";
         return;
@@ -296,12 +301,12 @@ export class Engine {
 
     area.addEventListener("pointermove", (e) => {
       const p = pointer(e);
-      if (isPanning && lastS) {
-        const dx = e.clientX - lastS.x,
-          dy = e.clientY - lastS.y;
+      if (this.isPanning && this.lastS) {
+        const dx = e.clientX - this.lastS.x,
+          dy = e.clientY - this.lastS.y;
         this.vp.panX += dx;
         this.vp.panY += dy;
-        lastS = { x: e.clientX, y: e.clientY };
+        this.lastS = { x: e.clientX, y: e.clientY };
         this.requestRepaint();
         this.updateCursorInfo(p);
         return;
@@ -317,8 +322,8 @@ export class Engine {
       ) {
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
-      if (isPanning) {
-        isPanning = false;
+      if (this.isPanning) {
+        this.isPanning = false;
         return;
       }
       const p = pointer(e);
