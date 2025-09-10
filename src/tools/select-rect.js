@@ -4,7 +4,7 @@
           start = null,
           grabOffset = null;
         return {
-          id: "selectRect",
+          id: "select-rect",
           cursor: "crosshair",
           previewRect: null,
           onPointerDown(ctx, ev, eng) {

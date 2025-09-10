@@ -2,7 +2,7 @@
         let pts = [],
           drawing = false;
         return {
-          id: "freehandClick",
+          id: "freehand-click",
           cursor: "crosshair",
           previewRect: null,
           onPointerDown(ctx, ev, eng) {

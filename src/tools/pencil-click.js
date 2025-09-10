@@ -2,7 +2,7 @@
         let drawing = false,
           last = null;
         return {
-          id: "pencilClick",
+          id: "pencil-click",
           cursor: "crosshair",
           onPointerDown(ctx, ev, eng) {
             eng.clearSelection();
