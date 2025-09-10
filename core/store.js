@@ -1,17 +1,35 @@
-export function createStore(initial) {
-  let state = { ...initial };
-  const subs = new Set();
-  return {
-    getState: () => state,
-    set(p) {
-      state = { ...state, ...p };
-      subs.forEach((f) => f(state));
-    },
-    subscribe(f) {
-      subs.add(f);
-      return () => subs.delete(f);
-    },
-  };
+import { EventBus } from './event-bus.js';
+
+export class Store {
+  constructor(initial = {}, eventBus = new EventBus()) {
+    this.state = { ...initial };
+    this.subs = new Set();
+    this.eventBus = eventBus;
+  }
+
+  getState() {
+    return { ...this.state };
+  }
+
+  set(updates) {
+    const oldState = { ...this.state };
+    this.state = { ...this.state, ...updates };
+    this.subs.forEach((f) => f(this.state, oldState));
+    this.eventBus.emit('store:updated', {
+      oldState,
+      newState: this.state,
+      changes: updates,
+    });
+  }
+
+  subscribe(f) {
+    this.subs.add(f);
+    return () => this.subs.delete(f);
+  }
+}
+
+export function createStore(initial, eventBus) {
+  return new Store(initial, eventBus);
 }
 
 export const defaultState = {

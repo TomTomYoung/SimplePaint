@@ -27,9 +27,10 @@ class History {
 
 /* ===== engine ===== */
 export class Engine {
-  constructor(store, vp) {
+  constructor(store, vp, eventBus) {
     this.store = store;
     this.vp = vp;
+    this.eventBus = eventBus;
     this.history = new History();
     this.tools = new Map();
     this.current = null;
