@@ -39,18 +39,10 @@
         <button class="tool" data-tool="pencil" title="P">鉛筆</button>
         <button class="tool" data-tool="pencil-click" title="Shift+P">鉛筆(オフドラッグ)</button>
         <button class="tool" data-tool="brush" title="B">ブラシ</button>
-        線幅 <input id="brush" type="range" min="1" max="64" value="4" />
-        滑らかさ <input id="smooth" type="range" min="0" max="1" step="0.05" value="0.55" />
-        間隔 <input id="spacing" type="range" min="0.1" max="1" step="0.05" value="0.4" />
         <button class="tool" data-tool="eraser" title="E">消しゴム</button>
         <button class="tool" data-tool="eraser-click" title="Shift+E">消しゴム(オフドラッグ)</button>
-        <button class="tool" data-tool="eyedropper" title="I">
-          スポイト
-        </button>
+        <button class="tool" data-tool="eyedropper" title="I">スポイト</button>
         <button class="tool" data-tool="bucket" title="F">バケツ</button>
-        <div class="sep"></div>
-        線色 <input id="color" type="color" value="#000000" /> 塗色
-        <input id="color2" type="color" value="#ffffff" />
       </div>
       <div id="geotools" class="row">
         <button class="tool" data-tool="line" title="L">直線</button>
@@ -65,25 +57,14 @@
           Bスプライン
         </button>
         <button class="tool" data-tool="nurbs" title="N">NURBS</button>
-        <label class="row badge">重み
-          <input id="nurbsWeight" type="number" value="1" step="0.1" style="width: 60px" /></label>
         <button class="tool" data-tool="ellipse-2" title="E">
           楕円(回転)
         </button>
         <button class="tool" data-tool="freehand" title="H">補間描画</button>
         <button class="tool" data-tool="freehand-click" title="Shift+H">補間描画(オフドラッグ)</button>
-        <label class="row badge">塗り <input id="fillOn" type="checkbox" checked /></label>
-        <label class="row badge">AA <input id="antialias" type="checkbox" /></label>
       </div>
       <div id="texttools" class="row">
         <button class="tool" data-tool="text" title="T">テキスト</button>
-        <select id="fontFamily">
-          <option value="system-ui, sans-serif">System</option>
-          <option value='"Noto Sans JP", sans-serif'>Noto Sans JP</option>
-          <option value="serif">Serif</option>
-          <option value="monospace">Monospace</option>
-        </select>
-        <input id="fontSize" type="number" min="8" max="200" value="24" style="width: 64px" />
       </div>
     </header>
 
@@ -147,6 +128,7 @@
   </div>
   <script type="module" src="src/gui/panels.js"></script>
   <script type="module" src="src/gui/toolbar.js"></script>
+  <script type="module" src="src/gui/tool-props.js"></script>
   <script src="src/tools/select-rect.js"></script>
   <script src="src/tools/pencil.js"></script>
   <script src="src/tools/pencil-click.js"></script>

@@ -1,9 +1,10 @@
       function makeFreehand(store) {
+        const id = 'freehand';
         let pts = [],
           drawing = false;
         return {
-          id: "freehand",
-          cursor: "crosshair",
+          id,
+          cursor: 'crosshair',
           previewRect: null,
           onPointerDown(ctx, ev) {
             drawing = true;
@@ -16,7 +17,7 @@
             if (!drawing) return;
             drawing = false;
             pts.push({ ...ev.img });
-            const s = store.getState();
+            const s = store.getToolState(id);
             const sm = catmullRomSpline(pts, 8);
             ctx.save();
             ctx.lineWidth = s.brushSize;
@@ -51,8 +52,8 @@
             if (drawing && pts.length > 1) {
               const sm = catmullRomSpline(pts, 8);
               octx.save();
-              octx.lineWidth = store.getState().brushSize;
-              octx.strokeStyle = store.getState().primaryColor;
+              octx.lineWidth = store.getToolState(id).brushSize;
+              octx.strokeStyle = store.getToolState(id).primaryColor;
               octx.beginPath();
               octx.moveTo(sm[0].x + 0.5, sm[0].y + 0.5);
               for (let i = 1; i < sm.length; i++)

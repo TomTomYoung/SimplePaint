@@ -1,4 +1,5 @@
-import { initToolbar, setToolCallbacks, bindParameterControls } from './gui/toolbar.js';
+import { initToolbar, setToolCallbacks } from './gui/toolbar.js';
+import { initToolPropsPanel } from './gui/tool-props.js';
 import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks } from './gui/panels.js';
 import { Engine } from './engine.js';
 import { layers, activeLayer, bmp, renderLayers, addLayer, deleteLayer } from './layer.js';
@@ -64,7 +65,6 @@ export class PaintApp {
 
   initUI() {
     this.setupToolbarCallbacks();
-    this.setupParameterControls();
     this.setupLayerCallbacks();
     this.setupAdjustmentCallbacks();
   }
@@ -98,30 +98,8 @@ export class PaintApp {
     });
   }
 
-  setupParameterControls() {
-    bindParameterControls({
-      onBrushSizeChange: v => this.store.set({ brushSize: v }),
-      onSmoothChange: v => this.store.set({ smoothAlpha: v }),
-      onSpacingChange: v => this.store.set({ spacingRatio: v }),
-      onColorChange: v => this.store.set({ primaryColor: v }),
-      onColor2Change: v => this.store.set({ secondaryColor: v }),
-      onFillChange: v => this.store.set({ fillOn: v }),
-      onAntialiasChange: v => { this.store.set({ antialias: v }); this.engine.requestRepaint(); },
-      onFontFamilyChange: v => {
-        const ed = getActiveEditor();
-        if (ed) ed.style.fontFamily = v;
-      },
-      onFontSizeChange: v => {
-        const ed = getActiveEditor();
-        if (ed) {
-          let fs = parseFloat(v || '24');
-          if (isNaN(fs)) fs = 24;
-          ed.style.fontSize = fs + 'px';
-          ed.style.lineHeight = Math.round(fs * 1.4) + 'px';
-        }
-      }
-    });
-  }
+  // パラメータコントロールは左パネルで管理するため不要
+  setupParameterControls() {}
 
   setupLayerCallbacks() {
     setLayerCallbacks({
@@ -196,6 +174,7 @@ export class PaintApp {
     initToolbar();
     initAdjustPanel();
     initLayerPanel();
+    initToolPropsPanel(this.store, this.engine);
     initDocument(1280, 720, '#ffffff');
     this.engine.requestRepaint();
     checkSession();

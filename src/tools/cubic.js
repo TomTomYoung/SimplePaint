@@ -1,12 +1,13 @@
       function makeCubic(store) {
+        const id = 'cubic';
         let stage = 0,
           p0 = null,
           p1 = null,
           p2 = null,
           p3 = null;
         return {
-          id: "cubic",
-          cursor: "crosshair",
+          id,
+          cursor: 'crosshair',
           previewRect: null,
           onPointerDown(ctx, ev, eng) {
             if (stage === 0) {
@@ -20,7 +21,7 @@
               stage = 3;
             } else if (stage === 3) {
               p3 = { ...ev.img };
-              const s = store.getState();
+              const s = store.getToolState(id);
               ctx.save();
               ctx.lineWidth = s.brushSize;
               ctx.strokeStyle = s.primaryColor;
@@ -61,7 +62,7 @@
           },
           onPointerUp() {},
           drawPreview(octx) {
-            const s = store.getState();
+            const s = store.getToolState(id);
             octx.save();
             octx.lineWidth = s.brushSize;
             octx.strokeStyle = s.primaryColor;

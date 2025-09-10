@@ -17,13 +17,14 @@ export function createTextEditor(x, y, store, engine, editorLayer, layers, activ
   editor.style.top = Math.floor(y) + "px";
   editor.style.minWidth = "80px";
 
-  const ff = document.getElementById("fontFamily").value;
-  let fs = parseFloat(document.getElementById("fontSize").value || "24");
+  const ts = store.getToolState('text');
+  const ff = ts.fontFamily;
+  let fs = parseFloat(ts.fontSize || 24);
   if (isNaN(fs)) fs = 24;
   editor.style.fontFamily = ff;
-  editor.style.fontSize = fs + "px";
-  editor.style.lineHeight = Math.round(fs * 1.4) + "px";
-  editor.style.color = store.getState().primaryColor;
+  editor.style.fontSize = fs + 'px';
+  editor.style.lineHeight = Math.round(fs * 1.4) + 'px';
+  editor.style.color = ts.primaryColor;
 
   editor.innerHTML = "<br>";
   editorLayer.appendChild(editor);

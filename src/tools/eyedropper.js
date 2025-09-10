@@ -10,7 +10,7 @@ export function makeEyedropper(store) {
         y = Math.floor(ev.img.y);
       if (x < 0 || y < 0 || x >= bmp.width || y >= bmp.height) return;
       const { data } = bctx.getImageData(x, y, 1, 1);
-      store.set({ primaryColor: toHex(data[0], data[1], data[2]) });
+      store.setToolState('eyedropper', { primaryColor: toHex(data[0], data[1], data[2]) });
     },
     onPointerMove() {},
     onPointerUp() {},

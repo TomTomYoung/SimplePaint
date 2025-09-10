@@ -75,7 +75,9 @@ export class Engine {
     return p.x >= r.x && p.y >= r.y && p.x < r.x + r.w && p.y < r.y + r.h;
   }
   updateCursorInfo(pos) {
-    updateStatus(`x:${Math.floor(pos.img.x)}, y:${Math.floor(pos.img.y)}  線:${this.store.getState().primaryColor} 塗:${document.getElementById("color2").value}  幅:${this.store.getState().brushSize}`);
+    const tid = this.store.getState().toolId;
+    const ts = this.store.getToolState(tid);
+    updateStatus(`x:${Math.floor(pos.img.x)}, y:${Math.floor(pos.img.y)}  線:${ts.primaryColor} 塗:${ts.secondaryColor}  幅:${ts.brushSize}`);
   }
 
   beginStrokeSnapshot() {

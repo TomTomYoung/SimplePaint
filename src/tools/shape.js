@@ -17,7 +17,7 @@ export function makeShape(kind, store) {
     onPointerMove(ctx, ev, eng) {
       if (!drawing) return;
       const cur = { ...ev.img };
-      const s = store.getState();
+      const s = store.getToolState(kind);
       const x1 = Math.min(start.x, cur.x),
         y1 = Math.min(start.y, cur.y);
       let w = Math.max(1, Math.abs(cur.x - start.x)),
@@ -65,7 +65,7 @@ export function makeShape(kind, store) {
       const lineWidth = state.brushSize,
         fillOn = state.fillOn;
       ctx.save();
-      ctx.imageSmoothingEnabled = store.getState().antialias;
+      ctx.imageSmoothingEnabled = store.getToolState(kind).antialias;
       ctx.lineWidth = lineWidth;
       ctx.strokeStyle = strokeColor;
       ctx.fillStyle = fillColor;

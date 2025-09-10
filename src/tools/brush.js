@@ -1,9 +1,10 @@
       function makeBrush(store) {
+        const id = 'brush';
         let pts = [],
           drawing = false;
         return {
-          id: "brush",
-          cursor: "crosshair",
+          id,
+          cursor: 'crosshair',
           previewRect: null,
           onPointerDown(ctx, ev, eng) {
             eng.clearSelection();
@@ -13,7 +14,7 @@
           onPointerMove(ctx, ev, eng) {
             if (!drawing) return;
             pts.push({ ...ev.img });
-            const s = store.getState();
+            const s = store.getToolState(id);
             if (pts.length < 4) {
               const p1 = pts[pts.length - 2];
               const p2 = pts[pts.length - 1];
@@ -76,7 +77,7 @@
               const cr = [];
               for (let j = 0; j <= 8; j++)
                 cr.push(catmullRom(p0, p1, p2, p3, j / 8));
-              const s = store.getState();
+              const s = store.getToolState(id);
               ctx.save();
               ctx.lineCap = "round";
               ctx.lineJoin = "round";
