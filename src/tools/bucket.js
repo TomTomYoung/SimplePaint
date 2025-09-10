@@ -1,4 +1,5 @@
 import { floodFill } from '../utils/drawing.js';
+import { bmp } from '../layer.js';
 
 export function makeBucket(store) {
   return {
@@ -11,6 +12,7 @@ export function makeBucket(store) {
         b = parseInt(h.slice(5, 7), 16);
       const p = floodFill(
         ctx,
+        bmp,
         Math.floor(ev.img.x),
         Math.floor(ev.img.y),
         [r, g, b, 255],

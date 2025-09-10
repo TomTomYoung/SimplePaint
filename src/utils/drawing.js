@@ -1,4 +1,3 @@
-import { bmp } from "../layer.js";
 export function drawEllipsePath(ctx, cx, cy, rx, ry) {
   const k = 0.5522847498307936;
   const ox = rx * k;
@@ -10,7 +9,7 @@ export function drawEllipsePath(ctx, cx, cy, rx, ry) {
   ctx.bezierCurveTo(cx + ox, cy + ry, cx + rx, cy + oy, cx + rx, cy);
 }
 
-export function floodFill(ctx, x0, y0, rgba, th = 0) {
+export function floodFill(ctx, bmp, x0, y0, rgba, th = 0) {
   if (x0 < 0 || y0 < 0 || x0 >= bmp.width || y0 >= bmp.height) return null;
   const img = ctx.getImageData(0, 0, bmp.width, bmp.height);
   const d = img.data;
