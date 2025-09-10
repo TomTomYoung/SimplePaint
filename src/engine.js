@@ -3,6 +3,7 @@ import { clamp, dpr, resizeCanvasToDisplaySize } from './utils/helpers.js';
 import { cancelTextEditing, getActiveEditor } from './managers/text-editor.js';
 import { openImageFile } from './io.js';
 import { updateStatus, updateZoom } from './gui/statusbar.js';
+import { selectTool } from './main.js';
 
 /* ===== history ===== */
 class History {
