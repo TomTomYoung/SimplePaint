@@ -48,7 +48,7 @@ export class PaintApp {
     this.engine.register(makeSector(this.store));
     this.engine.register(makeCatmull(this.store));
     this.engine.register(makeBSpline(this.store));
-    this.engine.register(makeNurbs(this.store));
+    this.engine.register(makeNURBS(this.store));
     this.engine.register(makeEllipse2(this.store));
     this.engine.register(makeFreehand(this.store));
     this.engine.register(makeFreehandClick(this.store));
