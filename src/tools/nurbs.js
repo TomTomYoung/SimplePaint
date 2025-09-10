@@ -1,22 +1,21 @@
 import { nurbs } from '../spline.js';
 import { engine } from '../main.js';
 
-const nurbsWeightEl = document.getElementById('nurbsWeight');
-
 export function makeNURBS(store) {
+  const id = 'nurbs';
   let pts = [],
     ws = [],
     hover = null;
 
   function finalize(ctx, eng) {
     if (pts.length < 4) return;
-    const s = store.getState();
+    const s = store.getToolState(id);
     const cr = nurbs(pts, ws);
     if (!cr.length) {
       pts = [];
       ws = [];
       hover = null;
-      nurbsWeightEl.value = '1';
+      store.setToolState(id, { nurbsWeight: 1 });
       eng.requestRepaint();
       return;
     }
@@ -55,7 +54,7 @@ export function makeNURBS(store) {
     pts = [];
     ws = [];
     hover = null;
-    nurbsWeightEl.value = '1';
+    store.setToolState(id, { nurbsWeight: 1 });
   }
 
   window.addEventListener('keydown', (e) => {
@@ -70,14 +69,14 @@ export function makeNURBS(store) {
       if (ev.button === 0 && ev.detail === 2) {
         if (pts.length === 0) eng.beginStrokeSnapshot();
         pts.push({ ...ev.img });
-        const w = parseFloat(nurbsWeightEl.value);
+        const w = parseFloat(store.getToolState(id).nurbsWeight);
         ws.push(Number.isFinite(w) && w > 0 ? w : 1);
         finalize(ctx, eng);
         return;
       }
       if (pts.length === 0) eng.beginStrokeSnapshot();
       pts.push({ ...ev.img });
-      const w = parseFloat(nurbsWeightEl.value);
+      const w = parseFloat(store.getToolState(id).nurbsWeight);
       ws.push(Number.isFinite(w) && w > 0 ? w : 1);
     },
     onPointerMove(ctx, ev) {
@@ -85,7 +84,7 @@ export function makeNURBS(store) {
     },
     onPointerUp() {},
     drawPreview(octx) {
-      const s = store.getState();
+      const s = store.getToolState(id);
       octx.save();
       octx.lineWidth = s.brushSize;
       octx.strokeStyle = s.primaryColor;

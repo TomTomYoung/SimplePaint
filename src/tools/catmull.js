@@ -3,6 +3,7 @@ import { bctx } from '../layer.js';
 import { engine } from '../main.js';
 
 export function makeCatmull(store) {
+  const id = 'catmull';
   let pts = [],
     fresh = true;
   const reset = () => {
@@ -15,7 +16,7 @@ export function makeCatmull(store) {
       eng.requestRepaint();
       return;
     }
-    const s = store.getState();
+    const s = store.getToolState(id);
     const cr = catmullRomSpline(pts);
     ctx.save();
     ctx.lineWidth = s.brushSize;
@@ -78,8 +79,8 @@ export function makeCatmull(store) {
       if (pts.length > 1) {
         const cr = catmullRomSpline(pts);
         octx.save();
-        octx.lineWidth = store.getState().brushSize;
-        octx.strokeStyle = store.getState().primaryColor;
+        octx.lineWidth = store.getToolState(id).brushSize;
+        octx.strokeStyle = store.getToolState(id).primaryColor;
         octx.beginPath();
         octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
         for (let i = 1; i < cr.length; i++)

@@ -1,4 +1,5 @@
       function makeArc(store) {
+        const id = 'arc';
         let stage = 0,
           cx = 0,
           cy = 0,
@@ -6,8 +7,8 @@
           start = 0,
           end = 0;
         return {
-          id: "arc",
-          cursor: "crosshair",
+          id,
+          cursor: 'crosshair',
           previewRect: null,
           onPointerDown(ctx, ev, eng) {
             if (stage === 0) {
@@ -20,7 +21,7 @@
               end = start;
               stage = 2;
             } else if (stage === 2) {
-              const s = store.getState();
+              const s = store.getToolState(id);
               ctx.save();
               ctx.lineWidth = s.brushSize;
               ctx.strokeStyle = s.primaryColor;
@@ -47,7 +48,7 @@
           onPointerUp() {},
           drawPreview(octx) {
             if (stage === 2) {
-              const s = store.getState();
+              const s = store.getToolState(id);
               octx.save();
               octx.lineWidth = s.brushSize;
               octx.strokeStyle = s.primaryColor;

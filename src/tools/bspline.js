@@ -2,6 +2,7 @@ import { bspline } from '../spline.js';
 import { engine } from '../main.js';
 
 export function makeBSpline(store) {
+  const id = 'bspline';
   let pts = [],
     fresh = true,
     hover = null;
@@ -17,7 +18,7 @@ export function makeBSpline(store) {
       eng.requestRepaint();
       return;
     }
-    const s = store.getState();
+    const s = store.getToolState(id);
     const cr = bspline(pts);
     ctx.save();
     ctx.lineWidth = s.brushSize;
@@ -80,7 +81,7 @@ export function makeBSpline(store) {
     },
     onPointerUp() {},
     drawPreview(octx) {
-      const s = store.getState();
+      const s = store.getToolState(id);
       octx.save();
       octx.lineWidth = s.brushSize;
       octx.strokeStyle = s.primaryColor;

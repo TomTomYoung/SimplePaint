@@ -1,9 +1,10 @@
       function makePencil(store) {
+        const id = 'pencil';
         let drawing = false,
           last = null;
         return {
-          id: "pencil",
-          cursor: "crosshair",
+          id,
+          cursor: 'crosshair',
           onPointerDown(ctx, ev, eng) {
             eng.clearSelection();
             drawing = true;
@@ -11,29 +12,29 @@
             eng.expandPendingRect(
               ev.img.x,
               ev.img.y,
-              store.getState().brushSize
+              store.getToolState(id).brushSize
             );
-            stroke(ctx, ev.img, store);
+            stroke(ctx, ev.img);
           },
           onPointerMove(ctx, ev, eng) {
             if (!drawing) return;
             eng.expandPendingRect(
               ev.img.x,
               ev.img.y,
-              store.getState().brushSize
+              store.getToolState(id).brushSize
             );
-            stroke(ctx, ev.img, store);
+            stroke(ctx, ev.img);
           },
           onPointerUp() {
             drawing = false;
             last = null;
           },
         };
-        function stroke(ctx, img, store) {
-          const s = store.getState();
+        function stroke(ctx, img) {
+          const s = store.getToolState(id);
           ctx.save();
-          ctx.lineCap = "round";
-          ctx.lineJoin = "round";
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
           ctx.strokeStyle = s.primaryColor;
           ctx.lineWidth = s.brushSize;
           ctx.beginPath();

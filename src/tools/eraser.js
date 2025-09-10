@@ -1,9 +1,10 @@
       function makeEraser(store) {
+        const id = 'eraser';
         let drawing = false,
           last = null;
         return {
-          id: "eraser",
-          cursor: "cell",
+          id,
+          cursor: 'cell',
           onPointerDown(ctx, ev, eng) {
             eng.clearSelection();
             drawing = true;
@@ -11,26 +12,26 @@
             eng.expandPendingRect(
               ev.img.x,
               ev.img.y,
-              store.getState().brushSize
+              store.getToolState(id).brushSize
             );
-            erase(ctx, ev.img, store);
+            erase(ctx, ev.img);
           },
           onPointerMove(ctx, ev, eng) {
             if (!drawing) return;
             eng.expandPendingRect(
               ev.img.x,
               ev.img.y,
-              store.getState().brushSize
+              store.getToolState(id).brushSize
             );
-            erase(ctx, ev.img, store);
+            erase(ctx, ev.img);
           },
           onPointerUp() {
             drawing = false;
             last = null;
           },
         };
-        function erase(ctx, img, store) {
-          const s = store.getState();
+        function erase(ctx, img) {
+          const s = store.getToolState(id);
           ctx.save();
           ctx.globalCompositeOperation = "destination-out";
           ctx.lineCap = "round";
