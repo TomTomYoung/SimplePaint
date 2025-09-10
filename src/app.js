@@ -12,7 +12,7 @@ import { cancelTextEditing, getActiveEditor } from './managers/text-editor.js';
 import { makeEyedropper } from './tools/eyedropper.js';
 import { makeBucket } from './tools/bucket.js';
 import { makeShape } from './tools/shape.js';
-import { makeTextTool } from './tools/textTool.js';
+import { makeTextTool } from './tools/text-tool.js';
 import { makeCatmull } from './tools/catmull.js';
 import { makeBSpline } from './tools/bspline.js';
 import { makeNURBS } from './tools/nurbs.js';

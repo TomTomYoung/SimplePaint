@@ -6,7 +6,7 @@
           ry = 0,
           rot = 0;
         return {
-          id: "ellipse2",
+          id: "ellipse-2",
           cursor: "crosshair",
           previewRect: null,
           onPointerDown(ctx, ev, eng) {

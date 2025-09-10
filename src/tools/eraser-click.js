@@ -2,7 +2,7 @@
         let drawing = false,
           last = null;
         return {
-          id: "eraserClick",
+          id: "eraser-click",
           cursor: "cell",
           onPointerDown(ctx, ev, eng) {
             eng.clearSelection();

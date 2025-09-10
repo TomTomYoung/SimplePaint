@@ -82,7 +82,7 @@ function initKeyboardShortcuts() {
       'KeyB': 'brush',
       'KeyE': 'eraser',
       'KeyT': 'text',
-      'KeyM': 'selectRect',
+      'KeyM': 'select-rect',
       'KeyI': 'eyedropper',
       'KeyF': 'bucket',
       'KeyL': 'line',
@@ -100,9 +100,9 @@ function initKeyboardShortcuts() {
     // Shiftキー併用の別ツール
     if (e.shiftKey) {
       const shiftShortcuts = {
-        'KeyP': 'pencilClick',
-        'KeyE': 'eraserClick',
-        'KeyH': 'freehandClick'
+        'KeyP': 'pencil-click',
+        'KeyE': 'eraser-click',
+        'KeyH': 'freehand-click'
       };
       if (shiftShortcuts[e.code]) {
         e.preventDefault();
