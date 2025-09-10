@@ -13,7 +13,7 @@ const app = new PaintApp();
 export const floodFill = (ctx, x0, y0, rgba, th = 0) =>
   floodFillImpl(ctx, bmp, x0, y0, rgba, th);
 
-export { toHex, drawEllipsePath, layers, activeLayer, bmp, isTextEditing, floodFill };
+export { toHex, drawEllipsePath, layers, activeLayer, bmp, isTextEditing };
 export const engine = app.engine;
 export const selectTool = (id) => app.selectTool(id);
 export const cancelTextEditing = (commit = false) =>
