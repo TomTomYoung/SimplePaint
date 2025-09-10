@@ -63,10 +63,12 @@ export const toolPropDefs = {
 export function initToolPropsPanel(store, engine) {
   const panel = document.getElementById('leftPanel');
   if (!panel) return;
+  const body = panel.querySelector('.panel-body');
+  if (!body) return;
 
   const render = (id) => {
     const defs = toolPropDefs[id] || [];
-    panel.innerHTML = '';
+    body.innerHTML = '';
     defs.forEach((d) => {
       const wrap = document.createElement('div');
       wrap.className = 'prop-item';
@@ -111,7 +113,7 @@ export function initToolPropsPanel(store, engine) {
       });
       wrap.appendChild(label);
       wrap.appendChild(input);
-      panel.appendChild(wrap);
+      body.appendChild(wrap);
     });
     panel.style.display = defs.length ? 'block' : 'none';
   };

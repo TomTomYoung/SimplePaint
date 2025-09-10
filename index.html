@@ -69,8 +69,10 @@
     </header>
 
     <div id="stage">
-      <div id="leftPanel" class="side-panel">
-        <!-- 左サイドパネル（将来の拡張用） -->
+      <div id="leftPanel" class="side-panel panel" data-name="ツール">
+        <div class="panel-header"></div>
+        <div class="panel-body"></div>
+        <div class="panel-footer"></div>
       </div>
 
       <div id="canvasArea">
@@ -79,14 +81,16 @@
         <div id="editorLayer"></div>
       </div>
 
-      <div id="rightPanel" class="side-panel">
-        <div id="layerPanel">
+      <div id="layerPanel" class="side-panel panel" data-name="レイヤー">
+        <div class="panel-header"></div>
+        <div class="panel-body">
           <div style="display: flex; gap: 4px; align-items: center">
             <button id="addLayerBtn">＋</button>
             <button id="delLayerBtn">－</button>
           </div>
           <ul id="layerList"></ul>
         </div>
+        <div class="panel-footer"></div>
       </div>
     </div>
 

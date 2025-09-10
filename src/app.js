@@ -1,6 +1,6 @@
 import { initToolbar, setToolCallbacks } from './gui/toolbar.js';
 import { initToolPropsPanel } from './gui/tool-props.js';
-import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks } from './gui/panels.js';
+import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks, initPanelHeaders } from './gui/panels.js';
 import { Engine } from './engine.js';
 import { layers, activeLayer, bmp, renderLayers, addLayer, deleteLayer } from './layer.js';
 import { initIO, initDocument, openImageFile, triggerSave, doCopy, doCut, handleClipboardItems, restoreSession, checkSession, saveSessionDebounced } from './io.js';
@@ -174,6 +174,7 @@ export class PaintApp {
     initToolbar();
     initAdjustPanel();
     initLayerPanel();
+    initPanelHeaders();
     initToolPropsPanel(this.store, this.engine);
     initDocument(1280, 720, '#ffffff');
     this.engine.requestRepaint();

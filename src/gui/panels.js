@@ -3,6 +3,14 @@
 let adjustCallbacks = {};
 let layerCallbacks = {};
 
+export function initPanelHeaders() {
+  document.querySelectorAll('.panel').forEach(p => {
+    const header = p.querySelector('.panel-header');
+    const name = p.dataset.name || p.id;
+    if (header) header.textContent = `${name} (ID: ${p.id})`;
+  });
+}
+
 export function initAdjustPanel() {
   const adjPanel = document.getElementById('adjustPanel');
   const adjBtn = document.getElementById('adjustBtn');
