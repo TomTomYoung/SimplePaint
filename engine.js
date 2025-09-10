@@ -1,4 +1,8 @@
 import { layers, activeLayer, bmp, renderLayers } from './layer.js';
+import { clamp, dpr, resizeCanvasToDisplaySize } from './utils/helpers.js';
+import { cancelTextEditing, getActiveEditor } from './managers/text-editor.js';
+import { openImageFile } from './io.js';
+import { updateStatus, updateZoom } from './gui/statusbar.js';
 
 /* ===== history ===== */
 class History {
@@ -62,6 +66,9 @@ export class Engine {
   }
   pointInRect(p, r) {
     return p.x >= r.x && p.y >= r.y && p.x < r.x + r.w && p.y < r.y + r.h;
+  }
+  updateCursorInfo(pos) {
+    updateStatus(`x:${Math.floor(pos.img.x)}, y:${Math.floor(pos.img.y)}  線:${this.store.getState().primaryColor} 塗:${document.getElementById("color2").value}  幅:${this.store.getState().brushSize}`);
   }
 
   beginStrokeSnapshot() {
@@ -277,7 +284,7 @@ export class Engine {
       }
       this.current?.onPointerDown(this.ctx, p, this);
       this.requestRepaint();
-      updateCursorInfo(p);
+      this.updateCursorInfo(p);
     });
 
     area.addEventListener("contextmenu", (e) => {
@@ -295,12 +302,12 @@ export class Engine {
         this.vp.panY += dy;
         lastS = { x: e.clientX, y: e.clientY };
         this.requestRepaint();
-        updateCursorInfo(p);
+        this.updateCursorInfo(p);
         return;
       }
       this.current?.onPointerMove(this.ctx, p, this);
       this.requestRepaint();
-      updateCursorInfo(p);
+      this.updateCursorInfo(p);
     });
     area.addEventListener("pointerup", (e) => {
       if (
@@ -339,10 +346,10 @@ export class Engine {
 
     window.addEventListener("keydown", (e) => {
       // ★ テキスト編集中はショートカットを殺す（Escだけ通す）
-      if (activeEditor) {
+      if (getActiveEditor()) {
         if (e.code === "Escape") {
           e.preventDefault();
-          cancelTextEditing(false);
+          cancelTextEditing(false, layers, activeLayer, this);
           this.requestRepaint();
         }
         return; // ← P/T/Space/Undo など全部無効
