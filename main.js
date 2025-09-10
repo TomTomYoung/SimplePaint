@@ -1,7 +1,10 @@
 import { initToolbar, setToolCallbacks, bindParameterControls, showRestoreButton, updateAutosaveBadge } from './gui/toolbar.js';
-import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks, updateLayerList as panelUpdateLayerList } from './gui/panels.js';
+import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks } from './gui/panels.js';
 import { updateStatus, updateZoom } from './gui/statusbar.js';
 import { Engine } from './engine.js';
+import { bmp, clipCanvas, layers, activeLayer, flattenLayers, renderLayers, updateLayerList, addLayer, deleteLayer } from './layer.js';
+
+window.bmp = bmp;
 
 /* ===== helpers ===== */
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -63,165 +66,6 @@ document.addEventListener(
   },
   { capture: true }
 );
-
-/* ===== work bitmap ===== */
-const bmp = document.createElement("canvas");
-const bctx = bmp.getContext("2d", { willReadFrequently: true });
-const clipCanvas = document.createElement("canvas");
-const clipCtx = clipCanvas.getContext("2d");
-const layers = [];
-let activeLayer = 0;
-
-function flattenLayers(ctx) {
-  ctx.clearRect(0, 0, bmp.width, bmp.height);
-  for (let i = 0; i < layers.length; i++) {
-    const l = layers[i];
-    if (!l.visible) continue;
-    ctx.save();
-    ctx.globalAlpha = l.opacity ?? 1;
-    ctx.globalCompositeOperation = l.mode || "source-over";
-    if (l.clip && i > 0) {
-      clipCtx.clearRect(0, 0, bmp.width, bmp.height);
-      clipCtx.drawImage(layers[i - 1], 0, 0);
-      clipCtx.globalCompositeOperation = "source-in";
-      clipCtx.drawImage(l, 0, 0);
-      ctx.drawImage(clipCanvas, 0, 0);
-    } else {
-      ctx.drawImage(l, 0, 0);
-    }
-    ctx.restore();
-  }
-}
-
-function renderLayers() {
-  flattenLayers(bctx);
-}
-
-function updateLayerList() {
-  const callbacks = {
-    onSelect: i => setActiveLayer(i),
-    onVisibility: (i, visible) => {
-      layers[i].visible = visible;
-      renderLayers();
-      engine.requestRepaint();
-    },
-    onOpacity: (i, opacity) => {
-      layers[i].opacity = opacity;
-      renderLayers();
-      engine.requestRepaint();
-    },
-    onBlendMode: (i, mode) => {
-      layers[i].mode = mode;
-      renderLayers();
-      engine.requestRepaint();
-    },
-    onClip: (i, clip) => {
-      layers[i].clip = clip;
-      renderLayers();
-      engine.requestRepaint();
-    },
-    onRename: (i, name) => {
-      layers[i].name = name;
-      updateLayerList();
-    },
-    onMove: (from, to) => moveLayer(from, to)
-  };
-  panelUpdateLayerList(layers, activeLayer, callbacks);
-}
-
-window.updateLayerList = updateLayerList;
-
-function setActiveLayer(i) {
-  if (i < 0 || i >= layers.length) return;
-  activeLayer = i;
-  // no direct assignment to engine.ctx; getter reflects active layer
-  updateLayerList();
-  renderLayers();
-  engine.requestRepaint();
-}
-
-function moveLayer(from, to) {
-  if (
-    from === to ||
-    from < 0 ||
-    to < 0 ||
-    from >= layers.length ||
-    to >= layers.length
-  )
-    return;
-  const [l] = layers.splice(from, 1);
-  layers.splice(to, 0, l);
-  engine.history.stack.forEach((p) => {
-    if (p.layer === from) p.layer = to;
-    else if (from < to && p.layer > from && p.layer <= to) p.layer--;
-    else if (to < from && p.layer >= to && p.layer < from) p.layer++;
-  });
-  setActiveLayer(to);
-  renderLayers();
-  updateLayerList();
-}
-
-// function addLayer() {
-//   const c = document.createElement("canvas");
-//   c.width = bmp.width;
-//   c.height = bmp.height;
-//   c.visible = true;
-//   c.opacity = 1;
-//   c.mode = "source-over";
-//   c.clip = false;
-//   const idx = Math.min(activeLayer + 1, layers.length);
-//   layers.splice(idx, 0, c);
-//   setActiveLayer(idx);
-// }
-
-function addLayer() {
-  const c = document.createElement("canvas");
-  c.width = bmp.width;
-  c.height = bmp.height;
-  c.visible = true;
-  c.opacity = 1;
-  c.mode = "source-over";
-  c.clip = false;
-
-  // 追加：レイヤ固有のidとname（並べ替えで変わらない）
-  if (c._id == null)
-    c._id =
-      crypto && crypto.randomUUID
-        ? crypto.randomUUID()
-        : "L" + Date.now() + Math.random().toString(16).slice(2);
-  if (typeof c.name !== "string" || !c.name)
-    c.name = `Layer ${layers.length + 1}`;
-
-  const idx = Math.min(activeLayer + 1, layers.length);
-  layers.splice(idx, 0, c);
-  setActiveLayer(idx);
-}
-
-function deleteLayer() {
-  if (layers.length <= 1) return;
-
-  // 履歴スタック内の削除されるレイヤーを参照するエントリを調整
-  const orig = engine.history.stack;
-  let removedBefore = 0;
-  const filtered = [];
-  orig.forEach((p, i) => {
-    if (p.layer === activeLayer) {
-      if (i <= engine.history.index) removedBefore++;
-      return; // 削除レイヤーの履歴を除去
-    }
-    if (p.layer > activeLayer) p.layer--; // より上位のレイヤー番号を調整
-    filtered.push(p);
-  });
-  engine.history.stack = filtered;
-  engine.history.index = Math.max(
-    -1,
-    Math.min(filtered.length - 1, engine.history.index - removedBefore)
-  );
-
-  layers.splice(activeLayer, 1);
-  if (activeLayer >= layers.length) activeLayer = layers.length - 1;
-  setActiveLayer(activeLayer);
-}
 
 /* ===== display resize ===== */
 function resizeCanvasToDisplaySize(canvas, cssW, cssH) {
@@ -928,8 +772,8 @@ bindParameterControls({
 
 // レイヤーパネルコールバックの設定  
 setLayerCallbacks({
-  onAdd: () => addLayer(),
-  onDelete: () => deleteLayer()
+  onAdd: () => addLayer(engine),
+  onDelete: () => deleteLayer(engine)
 });
 
 function selectTool(id) {
@@ -984,7 +828,7 @@ function initDocument(w = 1280, h = 720, bg = "#ffffff") {
   clipCanvas.width = w;
   clipCanvas.height = h;
   layers.length = 0;
-  addLayer();
+  addLayer(engine);
   layers.forEach((l) => {
     l.width = w;
     l.height = h;
@@ -995,7 +839,7 @@ function initDocument(w = 1280, h = 720, bg = "#ffffff") {
   bgctx.fillRect(0, 0, w, h);
   renderLayers();
   fitToScreen();
-  updateLayerList();
+  updateLayerList(engine);
 }
 
 function openImageFile(file) {
