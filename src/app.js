@@ -9,6 +9,13 @@ import { createStore, defaultState } from './core/store.js';
 import { EventBus } from './core/event-bus.js';
 import { AdjustmentManager } from './managers/adjustment-manager.js';
 import { cancelTextEditing, getActiveEditor } from './managers/text-editor.js';
+import { makeEyedropper } from './tools/eyedropper.js';
+import { makeBucket } from './tools/bucket.js';
+import { makeShape } from './tools/shape.js';
+import { makeTextTool } from './tools/textTool.js';
+import { makeCatmull } from './tools/catmull.js';
+import { makeBSpline } from './tools/bspline.js';
+import { makeNURBS } from './tools/nurbs.js';
 
 export class PaintApp {
   constructor() {
