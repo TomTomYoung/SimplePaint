@@ -1,3 +1,5 @@
+import { layers, activeLayer, bmp, renderLayers } from './layer.js';
+
 /* ===== history ===== */
 class History {
   constructor() {
