@@ -43,6 +43,7 @@ export class PaintApp {
     this.engine.register(makePencil(this.store));
     this.engine.register(makePencilClick(this.store));
     this.engine.register(makeBrush(this.store));
+    this.engine.register(makeMinimal(this.store));
     this.engine.register(makeEraser(this.store));
     this.engine.register(makeEraserClick(this.store));
     this.engine.register(makeEyedropper(this.store));

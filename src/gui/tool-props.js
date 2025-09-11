@@ -39,6 +39,10 @@ export const toolPropDefs = {
   pencil: [...strokeProps],
   'pencil-click': [...strokeProps],
   brush: [...strokeProps, ...smoothProps],
+  minimal: [
+    { name: 'brushSize', label: '線幅', type: 'range', min: 1, max: 6, step: 1, default: 4 },
+    { name: 'primaryColor', label: '線色', type: 'color', default: '#000000' },
+  ],
   eraser: [{ name: 'brushSize', label: 'サイズ', type: 'range', min: 1, max: 64, step: 1, default: 4 }],
   'eraser-click': [{ name: 'brushSize', label: 'サイズ', type: 'range', min: 1, max: 64, step: 1, default: 4 }],
   bucket: [{ name: 'primaryColor', label: '色', type: 'color', default: '#000000' }],
