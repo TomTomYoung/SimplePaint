@@ -56,6 +56,10 @@ export const toolPropDefs = {
       { name: 'penAngle', label: '角度', type: 'range', min: 0, max: 180, step: 1, default: 45 },
       { name: 'kappa', label: '縦横比', type: 'range', min: 1.5, max: 3, step: 0.1, default: 2 },
     ],
+    bristle: [
+      { name: 'brushSize', label: '線幅', type: 'range', min: 1, max: 64, step: 1, default: 8 },
+      { name: 'count', label: '本数', type: 'range', min: 4, max: 12, step: 1, default: 8 },
+    ],
     eraser: [{ name: 'brushSize', label: 'サイズ', type: 'range', min: 1, max: 64, step: 1, default: 4 }],
     'eraser-click': [{ name: 'brushSize', label: 'サイズ', type: 'range', min: 1, max: 64, step: 1, default: 4 }],
     bucket: [{ name: 'primaryColor', label: '色', type: 'color', default: '#000000' }],
