@@ -40,6 +40,7 @@ export const toolPropDefs = {
   'pencil-click': [...strokeProps],
   brush: [...strokeProps, ...smoothProps],
   smooth: [...strokeProps],
+  'texture-brush': [...strokeProps, { name: 'spacingRatio', label: '間隔', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.4 }],
   minimal: [
     { name: 'brushSize', label: '線幅', type: 'range', min: 1, max: 6, step: 1, default: 4 },
     { name: 'primaryColor', label: '線色', type: 'color', default: '#000000' },
