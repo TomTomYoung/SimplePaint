@@ -52,6 +52,7 @@ export class PaintApp {
     this.engine.register(makePreviewRefine(this.store));
     this.engine.register(makeVectorKeep(this.store));
     this.engine.register(makeCalligraphy(this.store));
+    this.engine.register(makeRibbon(this.store));
     this.engine.register(makeEraser(this.store));
     this.engine.register(makeEraserClick(this.store));
     this.engine.register(makeEyedropper(this.store));
