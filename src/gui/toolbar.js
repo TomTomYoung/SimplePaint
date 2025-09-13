@@ -89,6 +89,7 @@ function initKeyboardShortcuts() {
       'KeyR': 'rect',
       'KeyO': 'ellipse',
       'KeyD': 'scatter',
+      'KeyG': 'smudge',
       'KeyQ': 'quad',
       'KeyC': 'cubic',
       'KeyA': 'arc',

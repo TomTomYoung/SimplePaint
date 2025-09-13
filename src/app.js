@@ -56,6 +56,14 @@ export class PaintApp {
     this.engine.register(makeBristle(this.store));
     this.engine.register(makeAirbrush(this.store));
     this.engine.register(makeScatter(this.store));
+    this.engine.register(makeSmudge(this.store));
+    this.store.setToolState('smudge', {
+      radius: 16,
+      strength: 0.5,
+      dirMode: 'tangent',
+      angle: 0,
+      spacingRatio: 0.5,
+    });
     this.engine.register(makeEraser(this.store));
     this.engine.register(makeEraserClick(this.store));
     this.engine.register(makeEyedropper(this.store));
