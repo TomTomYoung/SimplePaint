@@ -41,6 +41,11 @@ export const toolPropDefs = {
   brush: [...strokeProps, ...smoothProps],
   smooth: [...strokeProps],
   'texture-brush': [...strokeProps, { name: 'spacingRatio', label: '間隔', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.4 }],
+  watercolor: [
+    ...strokeProps,
+    { name: 'diffusion', label: '拡散D', type: 'range', min: 0.05, max: 0.2, step: 0.01, default: 0.1 },
+    { name: 'evaporation', label: '蒸発E', type: 'range', min: 0.01, max: 0.05, step: 0.01, default: 0.02 },
+  ],
   'tess-stroke': [...strokeProps],
   minimal: [
     { name: 'brushSize', label: '線幅', type: 'range', min: 1, max: 6, step: 1, default: 4 },
