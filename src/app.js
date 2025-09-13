@@ -48,6 +48,7 @@ export class PaintApp {
     this.engine.register(makeTextureBrush(this.store));
     this.engine.register(makeTessellatedStroke(this.store));
     this.engine.register(makeSdfStroke(this.store));
+    this.engine.register(makeWatercolor(this.store));
     this.engine.register(makeEraser(this.store));
     this.engine.register(makeEraserClick(this.store));
     this.engine.register(makeEyedropper(this.store));

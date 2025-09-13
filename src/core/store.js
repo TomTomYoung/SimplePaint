@@ -69,4 +69,6 @@ export const toolDefaults = {
   nurbsWeight: 1,
   fontFamily: 'system-ui, sans-serif',
   fontSize: 24,
+  diffusion: 0.1,
+  evaporation: 0.02,
 };
