@@ -71,4 +71,7 @@ export const toolDefaults = {
   fontSize: 24,
   diffusion: 0.1,
   evaporation: 0.02,
+  penAngle: 45,
+  kappa: 2,
+  w_min: 1,
 };
