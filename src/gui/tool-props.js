@@ -158,6 +158,25 @@ export const toolPropDefs = {
       { name: 'angle', label: '角度', type: 'range', min: -180, max: 180, step: 1, default: 0 },
       { name: 'spacingRatio', label: '間隔', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.5 },
     ],
+
+    scatter: [...strokeProps],
+    smudge: [
+      { name: 'radius', label: 'サイズ', type: 'range', min: 1, max: 64, step: 1, default: 16 },
+      { name: 'strength', label: '強さ', type: 'range', min: 0, max: 1, step: 0.05, default: 0.5 },
+      {
+        name: 'dirMode',
+        label: '方向',
+        type: 'select',
+        options: [
+          { value: 'tangent', label: '接線' },
+          { value: 'angle', label: '角度指定' },
+        ],
+        default: 'tangent',
+      },
+      { name: 'angle', label: '角度', type: 'range', min: -180, max: 180, step: 1, default: 0 },
+      { name: 'spacingRatio', label: '間隔', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.5 },
+    ],
+
     eraser: [{ name: 'brushSize', label: 'サイズ', type: 'range', min: 1, max: 64, step: 1, default: 4 }],
     'eraser-click': [{ name: 'brushSize', label: 'サイズ', type: 'range', min: 1, max: 64, step: 1, default: 4 }],
     bucket: [{ name: 'primaryColor', label: '色', type: 'color', default: '#000000' }],
