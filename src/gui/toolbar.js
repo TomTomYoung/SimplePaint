@@ -94,6 +94,7 @@ function initKeyboardShortcuts() {
       'KeyS': 'sector',
       'KeyU': 'catmull',
       'KeyN': 'nurbs',
+      'KeyK': 'vector-keep',
       'KeyH': 'freehand'
     };
 
