@@ -55,6 +55,7 @@ export class PaintApp {
     this.engine.register(makeRibbon(this.store));
     this.engine.register(makeBristle(this.store));
     this.engine.register(makeAirbrush(this.store));
+    this.engine.register(makeScatter(this.store));
     this.engine.register(makeEraser(this.store));
     this.engine.register(makeEraserClick(this.store));
     this.engine.register(makeEyedropper(this.store));
