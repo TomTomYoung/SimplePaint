@@ -6,7 +6,11 @@ export class DOMManager {
       editorLayer: document.getElementById("editorLayer"),
       stage: document.getElementById("stage"),
       header: document.querySelector("header"),
+      leftResizer: document.getElementById("leftResizer"),
+      rightResizer: document.getElementById("rightResizer"),
     };
+    this.leftWidth = 200;
+    this.rightWidth = 250;
   }
 
   getCanvasArea() {
@@ -50,5 +54,45 @@ export class DOMManager {
       this.syncHeaderHeight();
       this.centerStageScroll();
     });
+
+    this.initPanelResizers();
+  }
+
+  initPanelResizers() {
+    const { stage, leftResizer, rightResizer } = this.elements;
+    if (!stage || !leftResizer || !rightResizer) return;
+
+    const update = () => {
+      stage.style.gridTemplateColumns = `${this.leftWidth}px 4px 1fr 4px ${this.rightWidth}px`;
+    };
+
+    const startDrag = (side, e) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startLeft = this.leftWidth;
+      const startRight = this.rightWidth;
+
+      const onMove = ev => {
+        const dx = ev.clientX - startX;
+        if (side === 'left') {
+          this.leftWidth = Math.max(100, startLeft + dx);
+        } else {
+          this.rightWidth = Math.max(100, startRight - dx);
+        }
+        update();
+      };
+
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    };
+
+    leftResizer.addEventListener('mousedown', e => startDrag('left', e));
+    rightResizer.addEventListener('mousedown', e => startDrag('right', e));
+
+    update();
   }
 }
