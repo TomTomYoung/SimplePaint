@@ -77,6 +77,17 @@ export const toolPropDefs = {
       { name: 'angle', label: '角度', type: 'range', min: -180, max: 180, step: 1, default: 0 },
       { name: 'spacingRatio', label: '間隔', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.5 },
     ],
+    'aa-line-brush': [
+      { name: 'opacity', label: '不透明度', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.8 },
+    ],
+    'pixel-brush': [
+      { name: 'pixelSize', label: 'ピクセルサイズ', type: 'range', min: 1, max: 32, step: 1, default: 1 },
+    ],
+    'blur-brush': [
+      { name: 'sigma', label: 'ぼかしσ', type: 'range', min: 0.5, max: 10, step: 0.5, default: 3 },
+      { name: 'iterations', label: '回数', type: 'number', min: 1, max: 5, step: 1, default: 1 },
+      { name: 'spacingRatio', label: '間隔', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.6 },
+    ],
     eraser: [{ name: 'brushSize', label: 'サイズ', type: 'range', min: 1, max: 64, step: 1, default: 4 }],
     'eraser-click': [{ name: 'brushSize', label: 'サイズ', type: 'range', min: 1, max: 64, step: 1, default: 4 }],
     bucket: [{ name: 'primaryColor', label: '色', type: 'color', default: '#000000' }],

@@ -64,6 +64,9 @@ export class PaintApp {
       angle: 0,
       spacingRatio: 0.5,
     });
+    this.engine.register(makeAaLineBrush(this.store));
+    this.engine.register(makePixelBrush(this.store));
+    this.engine.register(makeBlurBrush(this.store));
     this.engine.register(makeEraser(this.store));
     this.engine.register(makeEraserClick(this.store));
     this.engine.register(makeEyedropper(this.store));
