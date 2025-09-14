@@ -56,6 +56,91 @@ export class PaintApp {
     this.engine.register(makeBristle(this.store));
     this.engine.register(makeAirbrush(this.store));
     this.engine.register(makeScatter(this.store));
+    this.engine.register(makeAaLineBrush(this.store));
+    this.store.setToolState('aa-line-brush', {
+      primaryColor: '#000000',
+      opacity: 0.8,
+    });
+    this.engine.register(makeBlurBrush(this.store));
+    this.store.setToolState('blur-brush', {
+      sigma: 3,
+      iterations: 1,
+      spacingRatio: 0.6,
+    });
+    this.engine.register(makeChalkPastel(this.store));
+    this.store.setToolState('chalk-pastel', {
+      brushSize: 16,
+      primaryColor: '#000000',
+      paperScale: 1.3,
+      opacityJitter: 0.2,
+      spacingRatio: 0.45,
+    });
+    this.engine.register(makeEdgeAwarePaint(this.store));
+    this.store.setToolState('edge-aware-paint', {
+      primaryColor: '#000000',
+      tau: 30,
+      radius: 16,
+      boundaryPad: 1,
+      strength: 0.6,
+      spacingRatio: 0.5,
+    });
+    this.engine.register(makeFlowGuidedBrush(this.store));
+    this.store.setToolState('flow-guided-brush', {
+      brushSize: 16,
+      primaryColor: '#000000',
+      spacingRatio: 0.5,
+      lambda: 0.5,
+      fieldUpdateMs: 16,
+      fieldRadiusScale: 1.5,
+      dabLengthRatio: 1.0,
+    });
+    this.engine.register(makeGradientBrush(this.store));
+    this.store.setToolState('gradient-brush', {
+      brushSize: 16,
+      primaryColor: '#000000',
+      secondaryColor: '#ffffff',
+      spacingRatio: 0.5,
+      easing: 'linear',
+    });
+    this.engine.register(makeHatching(this.store));
+    this.store.setToolState('hatching', {
+      brushSize: 16,
+      primaryColor: '#000000',
+      crosshatch: false,
+      hatchAngle: 0,
+      hatchDensity: 0.5,
+      hatchWidth: 1,
+    });
+    this.engine.register(makeNoiseDisplaced(this.store));
+    this.store.setToolState('noise-displaced', {
+      brushSize: 4,
+      primaryColor: '#000000',
+      ndAmplitude: 2,
+      ndFrequency: 0.25,
+      ndSeed: 0,
+    });
+    this.engine.register(makePatternArtBrush(this.store));
+    this.store.setToolState('pattern-art-brush', {
+      primaryColor: '#000000',
+      phase: 0,
+      stretchTol: 0.1,
+      tint: true,
+      spacingScale: 0.25,
+    });
+    this.engine.register(makePixelBrush(this.store));
+    this.store.setToolState('pixel-brush', {
+      pixelSize: 1,
+      primaryColor: '#000000',
+    });
+    this.engine.register(makeSymmetryMirror(this.store));
+    this.store.setToolState('symmetry-mirror', {
+      brushSize: 12,
+      primaryColor: '#000000',
+      n: 6,
+      mode: 'dihedral',
+      reflect: true,
+      axisAngle: 0,
+    });
     this.engine.register(makeSmudge(this.store));
     this.store.setToolState('smudge', {
       radius: 16,

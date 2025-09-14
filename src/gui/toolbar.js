@@ -97,7 +97,18 @@ function initKeyboardShortcuts() {
       'KeyU': 'catmull',
       'KeyN': 'nurbs',
       'KeyK': 'vector-keep',
-      'KeyH': 'freehand'
+      'KeyH': 'freehand',
+      'KeyJ': 'aa-line-brush',
+      'KeyV': 'blur-brush',
+      'KeyW': 'chalk-pastel',
+      'KeyX': 'edge-aware-paint',
+      'KeyY': 'flow-guided-brush',
+      'KeyZ': 'gradient-brush',
+      'Digit1': 'hatching',
+      'Digit2': 'noise-displaced',
+      'Digit3': 'pattern-art-brush',
+      'Digit4': 'pixel-brush',
+      'Digit5': 'symmetry-mirror'
     };
 
     // Shiftキー併用の別ツール
