@@ -67,6 +67,8 @@ export class PaintApp {
     this.engine.register(makeAaLineBrush(this.store));
     this.engine.register(makePixelBrush(this.store));
     this.engine.register(makeBlurBrush(this.store));
+    this.engine.register(makeEdgeAwarePaint(this.store));
+    this.engine.register(makeNoiseDisplaced(this.store));
     this.engine.register(makeEraser(this.store));
     this.engine.register(makeEraserClick(this.store));
     this.engine.register(makeEyedropper(this.store));
