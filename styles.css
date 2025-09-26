@@ -135,10 +135,55 @@ footer {
   width: 4px;
 }
 
+#mapPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+#mapControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ddd;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.map-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#mapControls button {
+  min-width: 0;
+  padding: 4px 10px;
+}
+
+#mapControls input[type='range'] {
+  width: 140px;
+}
+
+#mapControls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
 #canvasArea {
   position: relative;
   overflow: scroll; /* スクロールを中央エリアに移動 */
   background: #f6f6f6;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 #canvasArea::-webkit-scrollbar {
