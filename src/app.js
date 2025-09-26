@@ -1,7 +1,7 @@
 import { initToolbar, setToolCallbacks } from './gui/toolbar.js';
 import { initToolPropsPanel } from './gui/tool-props.js';
 import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks, initPanelHeaders } from './gui/panels.js';
-import { initMapControls, setMapControlCallbacks, updateEditModeControls, updateZoomControls } from './gui/map-controls.js';
+
 import { Engine } from './engine.js';
 import { layers, activeLayer, bmp, renderLayers, addLayer, deleteLayer } from './layer.js';
 import { initIO, initDocument, openImageFile, triggerSave, doCopy, doCut, handleClipboardItems, restoreSession, checkSession, saveSessionDebounced } from './io.js';
@@ -122,7 +122,6 @@ export class PaintApp {
     this.setupToolbarCallbacks();
     this.setupLayerCallbacks();
     this.setupAdjustmentCallbacks();
-    this.setupMapControls();
   }
 
   setupToolbarCallbacks() {
@@ -178,24 +177,6 @@ export class PaintApp {
     });
   }
 
-  setupMapControls() {
-    initMapControls();
-    updateZoomControls(Math.round(this.viewport.zoom * 100));
-    updateEditModeControls(this.engine.editMode);
-    setMapControlCallbacks({
-      onZoomChange: zoom => {
-        const rect = window.base?.getBoundingClientRect?.();
-        if (rect) {
-          this.engine.zoomTo(zoom, { sx: rect.width / 2, sy: rect.height / 2 });
-        } else {
-          this.engine.zoomTo(zoom);
-        }
-      },
-      onModeChange: mode => {
-        this.engine.setEditMode(mode);
-      },
-    });
-  }
 
   selectTool(id) {
     cancelTextEditing(false, layers, activeLayer, this.engine);

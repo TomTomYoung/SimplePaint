@@ -124,38 +124,13 @@
 
       <div id="leftResizer" class="panel-resizer"></div>
 
-      <div id="mapPanel">
-        <div id="mapControls" class="row">
-          <div class="map-controls-group">
-            <button id="mapZoomOut" type="button" aria-label="ズームアウト">－</button>
-            <input
-              id="mapZoomSlider"
-              type="range"
-              min="25"
-              max="400"
-              step="5"
-              value="100"
-              aria-label="ズーム倍率"
-            />
-            <span id="mapZoomValue" aria-live="polite">100%</span>
-            <button id="mapZoomIn" type="button" aria-label="ズームイン">＋</button>
-          </div>
-          <div class="map-controls-group" role="radiogroup" aria-label="編集範囲">
-            <label>
-              <input type="radio" name="editScope" value="map" checked />マップ編集
-            </label>
-            <label>
-              <input type="radio" name="editScope" value="cell" />セル編集
-            </label>
-          </div>
-        </div>
 
-        <div id="canvasArea">
-          <canvas id="base"></canvas>
-          <canvas id="overlay"></canvas>
-          <div id="editorLayer"></div>
-        </div>
+      <div id="canvasArea">
+        <canvas id="base"></canvas>
+        <canvas id="overlay"></canvas>
+        <div id="editorLayer"></div>
       </div>
+
 
       <div id="rightResizer" class="panel-resizer"></div>
 
