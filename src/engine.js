@@ -3,6 +3,7 @@ import { clamp, dpr, resizeCanvasToDisplaySize } from './utils/helpers.js';
 import { cancelTextEditing, getActiveEditor } from './managers/text-editor.js';
 import { openImageFile } from './io.js';
 import { updateStatus, updateZoom } from './gui/statusbar.js';
+import { updateEditModeControls, updateZoomControls } from './gui/map-controls.js';
 import { selectTool } from './main.js';
 
 /* ===== history ===== */
@@ -40,6 +41,8 @@ export class Engine {
     this._preStrokeCanvas = null;
     this._pendingRect = null;
     this.filterPreview = null; // {canvas, x, y}
+    this.editMode = 'map';
+    this._pointerActive = false;
     this._bindEvents();
     this.requestRepaint = this.requestRepaint.bind(this);
 
@@ -78,6 +81,69 @@ export class Engine {
     const tid = this.store.getState().toolId;
     const ts = this.store.getToolState(tid);
     updateStatus(`x:${Math.floor(pos.img.x)}, y:${Math.floor(pos.img.y)}  線:${ts.primaryColor} 塗:${ts.secondaryColor}  幅:${ts.brushSize}`);
+  }
+
+  zoomTo(targetZoom, anchor = {}) {
+    const zoom = clamp(targetZoom, 0.1, 32);
+    const rect = window.base?.getBoundingClientRect?.();
+    const sx = anchor.sx ?? rect?.width / 2 ?? 0;
+    const sy = anchor.sy ?? rect?.height / 2 ?? 0;
+    const before = this.vp.screenToImage(sx, sy);
+    this.vp.zoom = zoom;
+    const after = this.vp.imageToScreen(before.x, before.y);
+    this.vp.panX += sx - after.x;
+    this.vp.panY += sy - after.y;
+    this.requestRepaint();
+  }
+
+  setEditMode(mode) {
+    const next = mode === 'cell' ? 'cell' : 'map';
+    if (this.editMode === next) return;
+    this.editMode = next;
+    if (next !== 'cell') {
+      this._pointerActive = false;
+    } else if (!this.selection) {
+      updateStatus('セル編集モード: 編集するセルを選択してください');
+    }
+    updateEditModeControls(this.editMode);
+    this.requestRepaint();
+  }
+
+  _shouldRestrictToSelection(toolId) {
+    if (this.editMode !== 'cell') return false;
+    if (toolId === 'select-rect') return false;
+    return true;
+  }
+
+  _clampPointerToSelection(pointer) {
+    const sel = this.selection?.rect;
+    if (!sel) return pointer;
+    const maxX = sel.x + sel.w;
+    const maxY = sel.y + sel.h;
+    const clampedX = clamp(pointer.img.x, sel.x, maxX);
+    const clampedY = clamp(pointer.img.y, sel.y, maxY);
+    if (clampedX === pointer.img.x && clampedY === pointer.img.y) return pointer;
+    return {
+      ...pointer,
+      img: { x: clampedX, y: clampedY },
+    };
+  }
+
+  _withSelectionClip(ctx, fn) {
+    const sel = this.selection?.rect;
+    if (!sel) {
+      fn(ctx);
+      return;
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(sel.x, sel.y, sel.w, sel.h);
+    ctx.clip();
+    try {
+      fn(ctx);
+    } finally {
+      ctx.restore();
+    }
   }
 
   beginStrokeSnapshot() {
@@ -198,7 +264,9 @@ export class Engine {
     }
     // エディタDOMの変換
     editorLayer.style.transform = `translate(${this.vp.panX}px, ${this.vp.panY}px) scale(${this.vp.zoom})`;
-    updateZoom(Math.round(this.vp.zoom * 100));
+    const zoomPct = Math.round(this.vp.zoom * 100);
+    updateZoom(zoomPct);
+    updateZoomControls(zoomPct);
   }
   drawAnts(octx, r) {
     octx.save();
@@ -284,6 +352,7 @@ export class Engine {
     if (!area) return;
     area.addEventListener("pointerdown", (e) => {
       const p = pointer(e);
+      this._pointerActive = false;
       if (e.button === 1 || (p.ctrl && e.button === 0)) {
         this.isPanning = true;
         this.lastS = { x: e.clientX, y: e.clientY };
@@ -291,13 +360,33 @@ export class Engine {
         base.style.cursor = "grabbing";
         return;
       }
-      this.current?.onPointerDown(this.ctx, p, this);
+      const tool = this.current;
+      if (!tool?.onPointerDown) return;
+      const ctx = this.ctx;
+      const toolId = this.store.getState().toolId;
+      if (this._shouldRestrictToSelection(toolId)) {
+        const selRect = this.selection?.rect;
+        if (!selRect) {
+          updateStatus('セル編集モード: 編集するセルを選択してください');
+          return;
+        }
+        if (!this.pointInRect(p.img, selRect)) {
+          updateStatus('セル編集モード: 選択範囲内で操作してください');
+          return;
+        }
+        const clamped = this._clampPointerToSelection(p);
+        this._withSelectionClip(ctx, (context) => tool.onPointerDown(context, clamped, this));
+      } else {
+        tool.onPointerDown(ctx, p, this);
+      }
+      this._pointerActive = true;
       this.requestRepaint();
       this.updateCursorInfo(p);
     });
 
     area.addEventListener("contextmenu", (e) => {
       e.preventDefault();
+      this._pointerActive = false;
       this.current?.cancel?.();
       this.requestRepaint();
     });
@@ -314,7 +403,23 @@ export class Engine {
         this.updateCursorInfo(p);
         return;
       }
-      this.current?.onPointerMove(this.ctx, p, this);
+      const tool = this.current;
+      const handler = tool?.onPointerMove;
+      if (handler) {
+        const ctx = this.ctx;
+        const toolId = this.store.getState().toolId;
+        if (this._shouldRestrictToSelection(toolId)) {
+          const selRect = this.selection?.rect;
+          if (!selRect) {
+            if (this._pointerActive) this._pointerActive = false;
+          } else {
+            const clamped = this._clampPointerToSelection(p);
+            this._withSelectionClip(ctx, (context) => handler(context, clamped, this));
+          }
+        } else {
+          handler(ctx, p, this);
+        }
+      }
       this.requestRepaint();
       this.updateCursorInfo(p);
     });
@@ -330,25 +435,41 @@ export class Engine {
         return;
       }
       const p = pointer(e);
-      this.current?.onPointerUp(this.ctx, p, this);
-      this.finishStrokeToHistory();
-      this.requestRepaint();
+      const tool = this.current;
+      const handler = tool?.onPointerUp;
+      let handled = false;
+      if (handler) {
+        const ctx = this.ctx;
+        const toolId = this.store.getState().toolId;
+        if (this._shouldRestrictToSelection(toolId)) {
+          const selRect = this.selection?.rect;
+          if (selRect && this._pointerActive) {
+            const clamped = this._clampPointerToSelection(p);
+            this._withSelectionClip(ctx, (context) => handler(context, clamped, this));
+            handled = true;
+          }
+        } else {
+          handler(ctx, p, this);
+          handled = true;
+        }
+      }
+      if (handled && this._pointerActive) {
+        this.finishStrokeToHistory();
+        this.requestRepaint();
+      }
+      this._pointerActive = false;
+      this.updateCursorInfo(p);
     });
     area.addEventListener(
       "wheel",
       (e) => {
         if (!(e.ctrlKey || e.metaKey)) return;
         e.preventDefault();
-        const rect = base.getBoundingClientRect();
+        const rect = window.base.getBoundingClientRect();
         const sx = e.clientX - rect.left,
           sy = e.clientY - rect.top;
-        const before = this.vp.screenToImage(sx, sy);
         const factor = e.deltaY > 0 ? 0.9 : 1.1;
-        this.vp.zoom = clamp(this.vp.zoom * factor, 0.1, 32);
-        const after = this.vp.imageToScreen(before.x, before.y);
-        this.vp.panX += sx - after.x;
-        this.vp.panY += sy - after.y;
-        this.requestRepaint();
+        this.zoomTo(this.vp.zoom * factor, { sx, sy });
       },
       { passive: false }
     );
