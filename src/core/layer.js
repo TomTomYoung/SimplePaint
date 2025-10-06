@@ -1,4 +1,4 @@
-import { updateLayerList as panelUpdateLayerList } from './gui/panels.js';
+import { updateLayerList as panelUpdateLayerList } from '../gui/panels.js';
 
 export const bmp = document.createElement('canvas');
 export const bctx = bmp.getContext('2d', { willReadFrequently: true });

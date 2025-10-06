@@ -1,4 +1,4 @@
-import { bmp, bctx } from '../layer.js';
+import { bmp, bctx } from '../core/layer.js';
 import { toHex } from '../utils/helpers.js';
 
 export function makeEyedropper(store) {

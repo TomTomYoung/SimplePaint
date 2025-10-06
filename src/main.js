@@ -6,7 +6,7 @@ import {
   createTextEditor as createTextEditorImpl,
   isTextEditing,
 } from './managers/text-editor.js';
-import { layers, activeLayer, bmp } from './layer.js';
+import { layers, activeLayer, bmp } from './core/layer.js';
 
 const app = new PaintApp();
 
