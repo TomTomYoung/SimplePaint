@@ -1,241 +1,181 @@
-import { bmp, clipCanvas, layers, activeLayer, flattenLayers, renderLayers, updateLayerList, addLayer } from '../core/layer.js';
-import { showRestoreButton, updateAutosaveBadge } from '../gui/toolbar.js';
 import { updateStatus } from '../gui/statusbar.js';
-import { extractImageFromClipboardItems, writeCanvasToClipboard } from './clipboard.js';
-import { canvasToBlob, downloadBlob, loadImageFile, renderToCanvas } from './file-io.js';
+import { showRestoreButton, updateAutosaveBadge } from '../gui/toolbar.js';
+import { createDocument, applyCanvasToActiveLayer, positionFloatingSelection, applySnapshotToDocument } from './document.js';
+import { copySelection, cutSelection, readClipboardItems } from './clipboard-actions.js';
+import { saveDocumentAs, renderDocumentCanvas } from './export-actions.js';
+import { createAutosaveController } from './autosave.js';
 import { createSessionManager } from './session.js';
+import { loadImageFile } from './file-io.js';
+import { bmp } from '../core/layer.js';
 
 let engine = null;
 let fitToScreen = () => {};
 const sessionManager = createSessionManager();
-let autosaveTimer = null;
+let autosaveController = null;
+
 const AUTOSAVE_INTERVAL = 15000;
 
 const nowFmt = () => new Date().toLocaleTimeString();
 
+function handleAutosaveStatus(event) {
+  switch (event.type) {
+    case 'saved':
+      updateAutosaveBadge('AutoSave: ' + nowFmt());
+      break;
+    case 'restored':
+      updateAutosaveBadge('Restored: ' + nowFmt());
+      showRestoreButton(false);
+      break;
+    case 'available':
+      showRestoreButton(true);
+      break;
+    case 'missing':
+      showRestoreButton(false);
+      break;
+    case 'error':
+      updateAutosaveBadge('AutoSave: 失敗');
+      break;
+    case 'restore-error':
+    case 'check-error':
+      console.error('Autosave error:', event.error);
+      break;
+    default:
+      break;
+  }
+}
+
+function ensureAutosaveController() {
+  if (autosaveController) return autosaveController;
+  autosaveController = createAutosaveController({
+    sessionManager,
+    autosaveInterval: AUTOSAVE_INTERVAL,
+    snapshotDocument: async () => {
+      const canvas = renderDocumentCanvas();
+      return {
+        dataURL: canvas.toDataURL('image/png'),
+        width: bmp.width,
+        height: bmp.height,
+        ts: Date.now(),
+      };
+    },
+    applySnapshot: (snapshot) =>
+      applySnapshotToDocument({ engine, fitToScreen, image: snapshot }),
+    onStatus: handleAutosaveStatus,
+  });
+  autosaveController.start();
+  return autosaveController;
+}
+
 export function initIO(eng, fitFunc) {
   engine = eng;
-  fitToScreen = fitFunc;
+  fitToScreen = typeof fitFunc === 'function' ? fitFunc : () => {};
+  ensureAutosaveController();
 
-  document.getElementById('savePNG').addEventListener('click', () => saveImage('png'));
-  document.getElementById('saveJPG').addEventListener('click', () => saveImage('jpg'));
-  document.getElementById('saveWEBP').addEventListener('click', () => saveImage('webp'));
+  document.getElementById('savePNG').addEventListener('click', () => triggerSave('png'));
+  document.getElementById('saveJPG').addEventListener('click', () => triggerSave('jpg'));
+  document.getElementById('saveWEBP').addEventListener('click', () => triggerSave('webp'));
 
   window.addEventListener('paste', async (e) => {
     if (e.clipboardData) {
-      const items = [...e.clipboardData.items].filter((it) => it.type.startsWith('image/'));
+      const items = [...e.clipboardData.items].filter((item) => item.type.startsWith('image/'));
       if (items.length) {
         e.preventDefault();
         const file = items[0].getAsFile();
         if (file) {
           try {
             const { canvas, width, height } = await loadImageFile(file);
-            placeCanvasSelection(canvas, width, height);
-          } catch {}
+            positionFloatingSelection(engine, canvas, width, height);
+            saveSessionDebounced();
+          } catch {
+            updateStatus('ペースト失敗');
+          }
         }
       }
     } else if (navigator.clipboard?.read) {
       try {
         const items = await navigator.clipboard.read();
-        handleClipboardItems(items);
-      } catch {}
+        await handleClipboardItems(items);
+      } catch {
+        updateStatus('ペースト不可（権限/ブラウザ制限）');
+      }
     }
   });
 
   window.addEventListener('beforeunload', () => {
     saveSession();
   });
-
-  setInterval(saveSession, AUTOSAVE_INTERVAL);
 }
 
-export function initDocument(w = 1280, h = 720, bg = '#ffffff') {
-  bmp.width = w;
-  bmp.height = h;
-  clipCanvas.width = w;
-  clipCanvas.height = h;
-  layers.length = 0;
-  addLayer(engine);
-  layers.forEach((l) => {
-    l.width = w;
-    l.height = h;
-    l.getContext('2d').clearRect(0, 0, w, h);
-  });
-  const bgctx = layers[0].getContext('2d');
-  bgctx.fillStyle = bg;
-  bgctx.fillRect(0, 0, w, h);
-  renderLayers();
-  fitToScreen();
-  updateLayerList(engine);
+export function initDocument(width = 1280, height = 720, backgroundColor = '#ffffff') {
+  createDocument({ engine, fitToScreen, width, height, backgroundColor });
+  saveSessionDebounced();
 }
 
 export async function openImageFile(file) {
   try {
     const { canvas, width, height } = await loadImageFile(file);
-    initDocument(width, height, '#ffffff');
-    layers[activeLayer].getContext('2d').drawImage(canvas, 0, 0);
-    renderLayers();
-    engine.clearSelection();
-    fitToScreen();
+    createDocument({ engine, fitToScreen, width, height, backgroundColor: '#ffffff' });
+    applyCanvasToActiveLayer(canvas);
     engine.requestRepaint();
     saveSessionDebounced();
-  } catch (e) {
-    console.error('Failed to open image file', e);
+  } catch (error) {
+    console.error('Failed to open image file', error);
   }
-}
-
-function downloadFromCanvas(canvas, format) {
-  const mime =
-    format === 'png'
-      ? 'image/png'
-      : format === 'jpg'
-      ? 'image/jpeg'
-      : 'image/webp';
-  const quality = format === 'png' ? undefined : 0.92;
-  canvasToBlob(canvas, mime, quality)
-    .then((blob) => downloadBlob(blob, `image.${format}`))
-    .catch(() => {});
-}
-
-async function saveImage(format) {
-  const background = format === 'jpg' ? '#ffffff' : undefined;
-  const canvas = renderToCanvas({
-    width: bmp.width,
-    height: bmp.height,
-    backgroundColor: background,
-    render: (ctx) => flattenLayers(ctx),
-  });
-  downloadFromCanvas(canvas, format);
 }
 
 export function triggerSave(format) {
-  if (format === 'png') saveImage('png');
-  else if (format === 'jpg') saveImage('jpg');
-  else if (format === 'webp') saveImage('webp');
+  saveDocumentAs(format).catch(() => {
+    updateStatus('保存に失敗しました');
+  });
 }
 
 export async function doCopy() {
-  const sel = engine.selection;
-  let sourceCanvas = null;
-  if (sel) {
-    const { x, y, w, h } = sel.rect;
-    const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    const cctx = c.getContext('2d');
-    if (sel.floatCanvas) {
-      cctx.drawImage(sel.floatCanvas, 0, 0);
-    } else {
-      const ctx = layers[activeLayer].getContext('2d');
-      const img = ctx.getImageData(x, y, w, h);
-      cctx.putImageData(img, 0, 0);
-    }
-    sourceCanvas = c;
-  } else {
-    sourceCanvas = bmp;
-  }
   try {
-    await writeCanvasToClipboard(sourceCanvas);
+    await copySelection(engine);
     updateStatus('コピー完了');
-  } catch (e) {
+  } catch (error) {
     updateStatus('コピー不可（権限/ブラウザ制限）');
   }
 }
 
 export async function doCut() {
-  const sel = engine.selection;
-  if (!sel) {
+  if (!engine.selection) {
     updateStatus('選択がないためカット不可');
     return;
   }
-  await doCopy();
-  const { x, y, w, h } = sel.rect;
-  const ctx = layers[activeLayer].getContext('2d');
-  const before = ctx.getImageData(x, y, w, h);
-  ctx.clearRect(x, y, w, h);
-  const after = ctx.getImageData(x, y, w, h);
-  engine.history.pushPatch({ rect: { x, y, w, h }, before, after });
-  engine.clearSelection();
-  engine.requestRepaint();
-  saveSessionDebounced();
+  try {
+    await cutSelection(engine);
+    updateStatus('カット完了');
+    saveSessionDebounced();
+  } catch (error) {
+    updateStatus('カットに失敗しました');
+  }
 }
 
 export async function handleClipboardItems(items) {
   try {
-    const result = await extractImageFromClipboardItems(items);
+    const result = await readClipboardItems(items);
     if (result) {
-      placeCanvasSelection(result.canvas, result.width, result.height);
+      positionFloatingSelection(engine, result.canvas, result.width, result.height);
+      saveSessionDebounced();
     }
-  } catch {}
-}
-
-function placeCanvasSelection(canvas, width, height) {
-  const cx = bmp.width / 2 - width / 2;
-  const cy = bmp.height / 2 - height / 2;
-  engine.selection = {
-    rect: {
-      x: Math.floor(cx),
-      y: Math.floor(cy),
-      w: width,
-      h: height,
-    },
-    floatCanvas: canvas,
-    pos: { x: Math.floor(cx), y: Math.floor(cy) },
-  };
-  engine.requestRepaint();
-  saveSessionDebounced();
-}
-
-export async function restoreSession() {
-  try {
-    const data = await sessionManager.load();
-    if (data && data.dataURL) {
-      const img = new Image();
-      img.onload = () => {
-        initDocument(data.width, data.height, '#ffffff');
-        layers[activeLayer].getContext('2d').drawImage(img, 0, 0);
-        renderLayers();
-        fitToScreen();
-        engine.requestRepaint();
-        updateAutosaveBadge('Restored: ' + nowFmt());
-        showRestoreButton(false);
-      };
-      img.src = data.dataURL;
-    }
-  } catch (e) {
-    console.error('Failed to restore session', e);
+  } catch {
+    updateStatus('クリップボードの読み込みに失敗しました');
   }
 }
 
-export async function checkSession() {
-  try {
-    const data = await sessionManager.load();
-    if (data && data.dataURL) {
-      showRestoreButton(true);
-    }
-  } catch (e) {
-    console.error('Failed to check session', e);
-  }
-}
-
-async function saveSession() {
-  try {
-    const canvas = renderToCanvas({
-      width: bmp.width,
-      height: bmp.height,
-      render: (ctx) => flattenLayers(ctx),
-    });
-    const dataURL = canvas.toDataURL('image/png');
-    await sessionManager.save({ dataURL, width: bmp.width, height: bmp.height, ts: Date.now() });
-    updateAutosaveBadge('AutoSave: ' + nowFmt());
-  } catch (e) {
-    updateAutosaveBadge('AutoSave: 失敗');
-  }
+export function saveSession() {
+  return ensureAutosaveController().saveNow();
 }
 
 export function saveSessionDebounced() {
-  clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(saveSession, 800);
+  ensureAutosaveController().scheduleSave();
 }
 
-export { saveSession };
+export function restoreSession() {
+  return ensureAutosaveController().restore();
+}
+
+export function checkSession() {
+  return ensureAutosaveController().check();
+}
