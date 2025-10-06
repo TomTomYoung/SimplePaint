@@ -1,5 +1,5 @@
 import { catmullRomSpline } from '../spline.js';
-import { bctx } from '../layer.js';
+import { bctx } from '../core/layer.js';
 import { engine } from '../main.js';
 
 export function makeCatmull(store) {
