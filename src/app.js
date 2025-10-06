@@ -2,9 +2,9 @@ import { initToolbar, setToolCallbacks } from './gui/toolbar.js';
 import { initToolPropsPanel } from './gui/tool-props.js';
 import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks, initPanelHeaders } from './gui/panels.js';
 
-import { Engine } from './engine.js';
-import { layers, activeLayer, bmp, renderLayers, addLayer, deleteLayer } from './layer.js';
-import { initIO, initDocument, openImageFile, triggerSave, doCopy, doCut, handleClipboardItems, restoreSession, checkSession, saveSessionDebounced } from './io.js';
+import { Engine } from './core/engine.js';
+import { layers, activeLayer, bmp, renderLayers, addLayer, deleteLayer } from './core/layer.js';
+import { initIO, initDocument, openImageFile, triggerSave, doCopy, doCut, handleClipboardItems, restoreSession, checkSession, saveSessionDebounced } from './io/index.js';
 import { DOMManager } from './managers/dom-manager.js';
 import { Viewport } from './core/viewport.js';
 import { createStore, defaultState } from './core/store.js';
