@@ -1,31 +1,12 @@
 import { layers, activeLayer, bmp, renderLayers } from './layer.js';
-import { clamp, dpr, resizeCanvasToDisplaySize } from '../utils/helpers.js';
+import { clamp } from '../utils/math.js';
+import { getDevicePixelRatio, resizeCanvasToDisplaySize } from '../utils/canvas-helpers.js';
 import { cancelTextEditing, getActiveEditor } from '../managers/text-editor.js';
 import { openImageFile } from '../io/index.js';
 import { updateStatus, updateZoom } from '../gui/statusbar.js';
 
 import { selectTool } from '../main.js';
-
-/* ===== history ===== */
-class History {
-  constructor() {
-    this.stack = [];
-    this.index = -1;
-  }
-  pushPatch(p) {
-    this.stack.length = this.index + 1;
-    this.stack.push(p);
-    this.index++;
-  }
-  undo() {
-    if (this.index < 0) return null;
-    return this.stack[this.index--];
-  }
-  redo() {
-    if (this.index >= this.stack.length - 1) return null;
-    return this.stack[++this.index];
-  }
-}
+import { HistoryManager } from '../managers/history-manager.js';
 
 /* ===== engine ===== */
 export class Engine {
@@ -33,7 +14,7 @@ export class Engine {
     this.store = store;
     this.vp = vp;
     this.eventBus = eventBus;
-    this.history = new History();
+    this.history = new HistoryManager();
     this.tools = new Map();
     this.current = null;
     this.selection = null;
@@ -146,7 +127,7 @@ export class Engine {
     const css = area.getBoundingClientRect();
     resizeCanvasToDisplaySize(base, css.width, css.height);
     resizeCanvasToDisplaySize(overlay, css.width, css.height);
-    const ratio = dpr();
+    const ratio = getDevicePixelRatio();
     const ctx = base.getContext("2d");
     const aa = this.store.getState().antialias;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
