@@ -243,6 +243,142 @@ export function polygonCentroid(points) {
   return { x: cx * factor, y: cy * factor };
 }
 
+const EPSILON = 1e-9;
+
+const cross2 = (ax, ay, bx, by) => ax * by - ay * bx;
+
+/**
+ * 点が線分上に存在するかを判定する。
+ * @param {{x:number,y:number}} point
+ * @param {{x:number,y:number}} a
+ * @param {{x:number,y:number}} b
+ * @param {number} [epsilon=1e-9]
+ * @returns {boolean}
+ */
+export function isPointOnSegment(point, a, b, epsilon = EPSILON) {
+  const abx = b.x - a.x;
+  const aby = b.y - a.y;
+  const apx = point.x - a.x;
+  const apy = point.y - a.y;
+  const cross = cross2(abx, aby, apx, apy);
+  if (Math.abs(cross) > epsilon) return false;
+  const dot = apx * abx + apy * aby;
+  if (dot < -epsilon) return false;
+  const lenSq = abx * abx + aby * aby;
+  if (dot - lenSq > epsilon) return false;
+  return true;
+}
+
+/**
+ * 線分と点との最接近点を求める。
+ * @param {{x:number,y:number}} point
+ * @param {{x:number,y:number}} a
+ * @param {{x:number,y:number}} b
+ * @returns {{x:number,y:number,t:number}}
+ */
+export function closestPointOnSegment(point, a, b) {
+  const abx = b.x - a.x;
+  const aby = b.y - a.y;
+  const lengthSq = abx * abx + aby * aby;
+  if (lengthSq === 0) {
+    return { x: a.x, y: a.y, t: 0 };
+  }
+  const apx = point.x - a.x;
+  const apy = point.y - a.y;
+  const tRaw = (apx * abx + apy * aby) / lengthSq;
+  const t = Math.max(0, Math.min(1, tRaw));
+  return {
+    x: a.x + abx * t,
+    y: a.y + aby * t,
+    t,
+  };
+}
+
+/**
+ * 点と線分の最短距離を計算する。
+ * @param {{x:number,y:number}} point
+ * @param {{x:number,y:number}} a
+ * @param {{x:number,y:number}} b
+ * @returns {number}
+ */
+export function distanceToSegment(point, a, b) {
+  const closest = closestPointOnSegment(point, a, b);
+  const dx = point.x - closest.x;
+  const dy = point.y - closest.y;
+  return Math.hypot(dx, dy);
+}
+
+/**
+ * 2 線分の交差判定と交点を求める。
+ * @param {{x:number,y:number}} a1
+ * @param {{x:number,y:number}} a2
+ * @param {{x:number,y:number}} b1
+ * @param {{x:number,y:number}} b2
+ * @returns {{x:number,y:number,t:number,u:number}|null}
+ */
+export function segmentIntersection(a1, a2, b1, b2) {
+  const rX = a2.x - a1.x;
+  const rY = a2.y - a1.y;
+  const sX = b2.x - b1.x;
+  const sY = b2.y - b1.y;
+  const denom = cross2(rX, rY, sX, sY);
+
+  if (Math.abs(denom) < EPSILON) {
+    // Parallel or collinear: treat as no intersection for robustness
+    return null;
+  }
+
+  const qpX = b1.x - a1.x;
+  const qpY = b1.y - a1.y;
+  const t = cross2(qpX, qpY, sX, sY) / denom;
+  const u = cross2(qpX, qpY, rX, rY) / denom;
+
+  if (t < -EPSILON || t > 1 + EPSILON || u < -EPSILON || u > 1 + EPSILON) {
+    return null;
+  }
+
+  const clampedT = Math.max(0, Math.min(1, t));
+  const clampedU = Math.max(0, Math.min(1, u));
+
+  return {
+    x: a1.x + rX * clampedT,
+    y: a1.y + rY * clampedT,
+    t: clampedT,
+    u: clampedU,
+  };
+}
+
+/**
+ * 点が多角形内に含まれるかを判定する（境界は含む）。
+ * @param {{x:number,y:number}} point
+ * @param {Array<{x:number,y:number}>} polygon
+ * @returns {boolean}
+ */
+export function pointInPolygon(point, polygon) {
+  if (polygon.length === 0) return false;
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i];
+    const b = polygon[(i + 1) % polygon.length];
+    if (isPointOnSegment(point, a, b)) return true;
+  }
+
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x;
+    const yi = polygon[i].y;
+    const xj = polygon[j].x;
+    const yj = polygon[j].y;
+    const intersect = yi > point.y !== yj > point.y;
+    if (intersect) {
+      const denom = yj - yi;
+      if (Math.abs(denom) < EPSILON) continue;
+      const x = ((xj - xi) * (point.y - yi)) / denom + xi;
+      if (point.x < x) inside = !inside;
+    }
+  }
+  return inside;
+}
+
 if (typeof window !== 'undefined') {
   window.catmullRomSpline = catmullRomSpline;
   window.bspline = bspline;
