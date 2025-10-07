@@ -199,3 +199,174 @@ export const linearToSrgb = (value) => {
   }
   return 1.055 * v ** (1 / 2.4) - 0.055;
 };
+
+const D65 = { x: 0.95047, y: 1, z: 1.08883 };
+const EPSILON = 216 / 24389;
+const KAPPA = 24389 / 27;
+
+const cubeRoot = (value) => {
+  const v = value < 0 ? -Math.cbrt(-value) : Math.cbrt(value);
+  return Number.isFinite(v) ? v : 0;
+};
+
+const labPivot = (value) =>
+  value > EPSILON ? cubeRoot(value) : (KAPPA * value + 16) / 116;
+
+const labPivotInverse = (value) => {
+  const v3 = value ** 3;
+  return v3 > EPSILON ? v3 : (116 * value - 16) / KAPPA;
+};
+
+/**
+ * sRGB(0〜1) を XYZ へ変換する。
+ * @param {number} r
+ * @param {number} g
+ * @param {number} b
+ * @returns {{x:number,y:number,z:number}}
+ */
+export const rgbToXyz = (r, g, b) => {
+  const rl = srgbToLinear(r);
+  const gl = srgbToLinear(g);
+  const bl = srgbToLinear(b);
+
+  const x = rl * 0.4124564 + gl * 0.3575761 + bl * 0.1804375;
+  const y = rl * 0.2126729 + gl * 0.7151522 + bl * 0.072175;
+  const z = rl * 0.0193339 + gl * 0.119192 + bl * 0.9503041;
+  return { x, y, z };
+};
+
+/**
+ * XYZ から sRGB(0〜1) へ変換する。
+ * @param {number} x
+ * @param {number} y
+ * @param {number} z
+ * @returns {{r:number,g:number,b:number}}
+ */
+export const xyzToRgb = (x, y, z) => {
+  const rl = x * 3.2404542 + y * -1.5371385 + z * -0.4985314;
+  const gl = x * -0.969266 + y * 1.8760108 + z * 0.041556;
+  const bl = x * 0.0556434 + y * -0.2040259 + z * 1.0572252;
+
+  return {
+    r: clampUnit(linearToSrgb(rl)),
+    g: clampUnit(linearToSrgb(gl)),
+    b: clampUnit(linearToSrgb(bl)),
+  };
+};
+
+/**
+ * XYZ から CIE L*a*b* へ変換する。
+ * @param {number} x
+ * @param {number} y
+ * @param {number} z
+ * @returns {{l:number,a:number,b:number}}
+ */
+export const xyzToLab = (x, y, z) => {
+  const fx = labPivot(x / D65.x);
+  const fy = labPivot(y / D65.y);
+  const fz = labPivot(z / D65.z);
+
+  return {
+    l: 116 * fy - 16,
+    a: 500 * (fx - fy),
+    b: 200 * (fy - fz),
+  };
+};
+
+/**
+ * CIE L*a*b* から XYZ へ変換する。
+ * @param {number} l
+ * @param {number} a
+ * @param {number} b
+ * @returns {{x:number,y:number,z:number}}
+ */
+export const labToXyz = (l, a, b) => {
+  const fy = (l + 16) / 116;
+  const fx = fy + a / 500;
+  const fz = fy - b / 200;
+
+  const xr = labPivotInverse(fx);
+  const yr = labPivotInverse(fy);
+  const zr = labPivotInverse(fz);
+
+  return {
+    x: xr * D65.x,
+    y: yr * D65.y,
+    z: zr * D65.z,
+  };
+};
+
+/**
+ * sRGB(0〜1) を CIE L*a*b* へ変換する。
+ * @param {number} r
+ * @param {number} g
+ * @param {number} b
+ * @returns {{l:number,a:number,b:number}}
+ */
+export const rgbToLab = (r, g, b) => {
+  const { x, y, z } = rgbToXyz(r, g, b);
+  return xyzToLab(x, y, z);
+};
+
+/**
+ * CIE L*a*b* から sRGB(0〜1) へ変換する。
+ * @param {number} l
+ * @param {number} a
+ * @param {number} b
+ * @returns {{r:number,g:number,b:number}}
+ */
+export const labToRgb = (l, a, b) => {
+  const { x, y, z } = labToXyz(l, a, b);
+  return xyzToRgb(x, y, z);
+};
+
+/**
+ * L*a*b* を L*C*h° に変換する。
+ * @param {number} l
+ * @param {number} a
+ * @param {number} b
+ * @returns {{l:number,c:number,h:number}}
+ */
+export const labToLch = (l, a, b) => {
+  const c = Math.sqrt(a * a + b * b);
+  const h = ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
+  return { l, c, h };
+};
+
+/**
+ * L*C*h° を L*a*b* に変換する。
+ * @param {number} l
+ * @param {number} c
+ * @param {number} h
+ * @returns {{l:number,a:number,b:number}}
+ */
+export const lchToLab = (l, c, h) => {
+  const hr = (h * Math.PI) / 180;
+  const a = c * Math.cos(hr);
+  const b = c * Math.sin(hr);
+  return { l, a, b };
+};
+
+/**
+ * sRGB(0〜1) を L*C*h° へ変換する。
+ * @param {number} r
+ * @param {number} g
+ * @param {number} b
+ * @returns {{l:number,c:number,h:number}}
+ */
+export const rgbToLch = (r, g, b) => {
+  const lab = rgbToLab(r, g, b);
+  return labToLch(lab.l, lab.a, lab.b);
+};
+
+/**
+ * L*C*h° から sRGB(0〜1) へ変換する。
+ * @param {number} l
+ * @param {number} c
+ * @param {number} h
+ * @returns {{r:number,g:number,b:number}}
+ */
+export const lchToRgb = (l, c, h) => {
+  const { a, b } = lchToLab(l, c, h);
+  return labToRgb(l, a, b);
+};

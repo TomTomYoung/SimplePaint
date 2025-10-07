@@ -12,6 +12,16 @@ import {
   denormalizeAlpha,
   srgbToLinear,
   linearToSrgb,
+  rgbToXyz,
+  xyzToRgb,
+  xyzToLab,
+  labToXyz,
+  rgbToLab,
+  labToRgb,
+  labToLch,
+  lchToLab,
+  rgbToLch,
+  lchToRgb,
 } from '../../src/utils/color-space.js';
 
 const approx = (actual, expected, epsilon = 1e-6) => {
@@ -101,5 +111,85 @@ test('linearToSrgb converts linear values back into sRGB space', () => {
   approx(linearToSrgb(0), 0);
   approx(linearToSrgb(1), 1);
   approx(linearToSrgb(0.21404114048223255), 0.5);
+});
+
+test('rgbToXyz maps sRGB primaries into the D65 XYZ space', () => {
+  const red = rgbToXyz(1, 0, 0);
+  approx(red.x, 0.4124564, 1e-6);
+  approx(red.y, 0.2126729, 1e-6);
+  approx(red.z, 0.0193339, 1e-6);
+
+  const green = rgbToXyz(0, 1, 0);
+  approx(green.x, 0.3575761, 1e-6);
+  approx(green.y, 0.7151522, 1e-6);
+  approx(green.z, 0.119192, 1e-6);
+});
+
+test('xyzToRgb approximately recovers the source colour', () => {
+  const source = { r: 0.25, g: 0.5, b: 0.75 };
+  const xyz = rgbToXyz(source.r, source.g, source.b);
+  const rgb = xyzToRgb(xyz.x, xyz.y, xyz.z);
+  approx(rgb.r, source.r, 5e-5);
+  approx(rgb.g, source.g, 5e-5);
+  approx(rgb.b, source.b, 5e-5);
+});
+
+test('rgbToLab converts sRGB colours to perceptual L*a*b* coordinates', () => {
+  const white = rgbToLab(1, 1, 1);
+  approx(white.l, 100, 5e-5);
+  approx(white.a, 0, 5e-5);
+  approx(white.b, 0, 5e-5);
+
+  const black = rgbToLab(0, 0, 0);
+  approx(black.l, 0, 5e-5);
+  approx(black.a, 0, 5e-5);
+  approx(black.b, 0, 5e-5);
+
+  const red = rgbToLab(1, 0, 0);
+  approx(red.l, 53.240794, 1e-6);
+  approx(red.a, 80.09246, 1e-5);
+  approx(red.b, 67.203197, 1e-5);
+});
+
+test('labToRgb converts Lab back to sRGB with gamut clipping', () => {
+  const labGray = rgbToLab(0.5, 0.5, 0.5);
+  const rgbGray = labToRgb(labGray.l, labGray.a, labGray.b);
+  approx(rgbGray.r, 0.5, 5e-4);
+  approx(rgbGray.g, 0.5, 5e-4);
+  approx(rgbGray.b, 0.5, 5e-4);
+
+  const labBright = { l: 90, a: 100, b: 100 };
+  const rgbBright = labToRgb(labBright.l, labBright.a, labBright.b);
+  assert.ok(rgbBright.r <= 1 && rgbBright.r >= 0);
+  assert.ok(rgbBright.g <= 1 && rgbBright.g >= 0);
+  assert.ok(rgbBright.b <= 1 && rgbBright.b >= 0);
+});
+
+test('xyzToLab and labToXyz are inverse operations', () => {
+  const xyz = { x: 0.2, y: 0.4, z: 0.3 };
+  const lab = xyzToLab(xyz.x, xyz.y, xyz.z);
+  const recon = labToXyz(lab.l, lab.a, lab.b);
+  approx(recon.x, xyz.x, 5e-5);
+  approx(recon.y, xyz.y, 5e-5);
+  approx(recon.z, xyz.z, 5e-5);
+});
+
+test('labToLch converts to cylindrical coordinates and back', () => {
+  const lab = { l: 70, a: 40, b: 20 };
+  const lch = labToLch(lab.l, lab.a, lab.b);
+  assert.equal(lch.l, lab.l);
+  approx(lch.c, Math.sqrt(lab.a ** 2 + lab.b ** 2));
+  const recon = lchToLab(lch.l, lch.c, lch.h);
+  approx(recon.a, lab.a, 1e-10);
+  approx(recon.b, lab.b, 1e-10);
+});
+
+test('rgbToLch and lchToRgb provide approximate round trips', () => {
+  const rgb = { r: 0.3, g: 0.6, b: 0.9 };
+  const lch = rgbToLch(rgb.r, rgb.g, rgb.b);
+  const recon = lchToRgb(lch.l, lch.c, lch.h);
+  approx(recon.r, rgb.r, 5e-3);
+  approx(recon.g, rgb.g, 5e-3);
+  approx(recon.b, rgb.b, 5e-3);
 });
 
