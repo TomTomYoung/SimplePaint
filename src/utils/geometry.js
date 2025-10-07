@@ -174,6 +174,75 @@ export function computeAABB(points) {
   return { minX, minY, maxX, maxY };
 }
 
+/**
+ * 折れ線の総延長を求める。
+ * @param {Array<{x:number,y:number}>} points
+ * @returns {number}
+ */
+export function polylineLength(points) {
+  if (points.length < 2) return 0;
+  let length = 0;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    length += Math.hypot(curr.x - prev.x, curr.y - prev.y);
+  }
+  return length;
+}
+
+/**
+ * 多角形の面積を求める。結果は常に非負。
+ * @param {Array<{x:number,y:number}>} points
+ * @returns {number}
+ */
+export function polygonArea(points) {
+  if (points.length < 3) return 0;
+  let sum = 0;
+  for (let i = 0; i < points.length; i++) {
+    const { x: x1, y: y1 } = points[i];
+    const { x: x2, y: y2 } = points[(i + 1) % points.length];
+    sum += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(sum) / 2;
+}
+
+/**
+ * 多角形の重心を求める。面積がほぼゼロの場合は頂点の平均を返す。
+ * @param {Array<{x:number,y:number}>} points
+ * @returns {{x:number,y:number}|null}
+ */
+export function polygonCentroid(points) {
+  const count = points.length;
+  if (!count) return null;
+  if (count === 1) return { ...points[0] };
+
+  let areaAcc = 0;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < count; i++) {
+    const { x: x1, y: y1 } = points[i];
+    const { x: x2, y: y2 } = points[(i + 1) % count];
+    const cross = x1 * y2 - x2 * y1;
+    areaAcc += cross;
+    cx += (x1 + x2) * cross;
+    cy += (y1 + y2) * cross;
+  }
+
+  const area = areaAcc / 2;
+  if (Math.abs(area) < 1e-8) {
+    let sumX = 0;
+    let sumY = 0;
+    for (const p of points) {
+      sumX += p.x;
+      sumY += p.y;
+    }
+    return { x: sumX / count, y: sumY / count };
+  }
+
+  const factor = 1 / (6 * area);
+  return { x: cx * factor, y: cy * factor };
+}
+
 if (typeof window !== 'undefined') {
   window.catmullRomSpline = catmullRomSpline;
   window.bspline = bspline;
