@@ -1,4 +1,4 @@
-      function makeArc(store) {
+export function makeArc(store) {
         const id = 'arc';
         let stage = 0,
           cx = 0,

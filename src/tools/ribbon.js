@@ -1,4 +1,4 @@
-function makeRibbon(store) {
+export function makeRibbon(store) {
   const id = 'ribbon';
   let drawing = false;
   const pts = [];

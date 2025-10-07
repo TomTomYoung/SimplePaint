@@ -1,4 +1,4 @@
-import { bspline } from '../spline.js';
+import { bspline, computeAABB } from '../utils/geometry.js';
 import { engine } from '../main.js';
 
 export function makeBSpline(store) {
@@ -30,23 +30,15 @@ export function makeBSpline(store) {
     }
     ctx.stroke();
     ctx.restore();
-
-    let minX = cr[0].x,
-      maxX = cr[0].x,
-      minY = cr[0].y,
-      maxY = cr[0].y;
-    cr.forEach((p) => {
-      minX = Math.min(minX, p.x);
-      maxX = Math.max(maxX, p.x);
-      minY = Math.min(minY, p.y);
-      maxY = Math.max(maxY, p.y);
-    });
-    eng.expandPendingRectByRect(
-      minX - s.brushSize,
-      minY - s.brushSize,
-      maxX - minX + s.brushSize * 2,
-      maxY - minY + s.brushSize * 2,
-    );
+    const bounds = computeAABB(cr);
+    if (bounds) {
+      eng.expandPendingRectByRect(
+        bounds.minX - s.brushSize,
+        bounds.minY - s.brushSize,
+        bounds.maxX - bounds.minX + s.brushSize * 2,
+        bounds.maxY - bounds.minY + s.brushSize * 2,
+      );
+    }
     eng.finishStrokeToHistory();
     eng.requestRepaint();
     reset();

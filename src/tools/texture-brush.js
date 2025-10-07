@@ -1,4 +1,4 @@
-function makeTextureBrush(store) {
+export function makeTextureBrush(store) {
   const id = 'texture-brush';
   const texture = createTexture();
   const tintCache = new Map(); // color -> tinted canvas

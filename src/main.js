@@ -1,12 +1,12 @@
 import { PaintApp } from './app.js';
-import { toHex } from './utils/helpers.js';
+import { toHex } from './utils/color.js';
 import { drawEllipsePath, floodFill as floodFillImpl } from './utils/drawing.js';
 import {
   cancelTextEditing as cancelTextEdit,
   createTextEditor as createTextEditorImpl,
   isTextEditing,
 } from './managers/text-editor.js';
-import { layers, activeLayer, bmp } from './layer.js';
+import { layers, activeLayer, bmp } from './core/layer.js';
 
 const app = new PaintApp();
 

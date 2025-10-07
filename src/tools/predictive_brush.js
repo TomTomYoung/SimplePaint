@@ -1,4 +1,4 @@
-function makePredictiveBrush(store) {
+export function makePredictiveBrush(store) {
   const id = 'predictive-brush';
 
   // ========= 状態 =========
@@ -297,5 +297,3 @@ function makePredictiveBrush(store) {
     return out;
   }
 }
-
-window.makePredictiveBrush = makePredictiveBrush;

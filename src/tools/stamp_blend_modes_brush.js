@@ -15,7 +15,7 @@
  * 再描画通知：スタンプAABBを統合し、pointerup で一括通知。
  * 注意：手動合成は重いので必要時のみ linear:true を推奨。
  */
-function makeStampBlendModesBrush(store) {
+export function makeStampBlendModesBrush(store) {
   const id = 'stamp-blend';
 
   let drawing = false;
@@ -257,5 +257,3 @@ function makeStampBlendModesBrush(store) {
   }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeStampBlendModesBrush = makeStampBlendModesBrush;

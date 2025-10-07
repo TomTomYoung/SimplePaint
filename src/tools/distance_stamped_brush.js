@@ -1,4 +1,4 @@
-function makeDistanceStampedBrush(store) {
+export function makeDistanceStampedBrush(store) {
   const id = 'distance-stamped';
 
   let drawing = false;
@@ -163,5 +163,3 @@ function makeDistanceStampedBrush(store) {
   // === 小物 ================================================================
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeDistanceStampedBrush = makeDistanceStampedBrush;

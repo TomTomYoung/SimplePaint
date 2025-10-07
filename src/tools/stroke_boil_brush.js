@@ -27,7 +27,7 @@
  *   - これは「プレビュー層」にのみ描く設計。最終フラット化が必要なら、別の「ベイク」処理で
  *     strokes を確定ラスタライズしてください（本ツールは行いません）。
  */
-function makeStrokeBoilBrush(store) {
+export function makeStrokeBoilBrush(store) {
   const id = 'stroke-boil';
 
   let drawing = false;
@@ -333,5 +333,3 @@ function makeStrokeBoilBrush(store) {
 
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeStrokeBoilBrush = makeStrokeBoilBrush;

@@ -1,4 +1,4 @@
-      function makeFreehandClick(store) {
+export function makeFreehandClick(store) {
         const id = 'freehand-click';
         let pts = [],
           drawing = false;

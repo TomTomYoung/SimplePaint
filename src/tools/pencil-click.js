@@ -1,4 +1,4 @@
-      function makePencilClick(store) {
+export function makePencilClick(store) {
         const id = 'pencil-click';
         let drawing = false,
           last = null;

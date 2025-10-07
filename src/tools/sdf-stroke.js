@@ -1,4 +1,4 @@
-function makeSdfStroke(store) {
+export function makeSdfStroke(store) {
   const id = 'sdf-stroke';
   const pts = [];
   let drawing = false;
@@ -149,5 +149,3 @@ function makeSdfStroke(store) {
     return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
   }
 }
-
-window.makeSdfStroke = makeSdfStroke;

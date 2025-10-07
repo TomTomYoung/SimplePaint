@@ -1,4 +1,4 @@
-function makeCurvatureAdaptiveBrush(store) {
+export function makeCurvatureAdaptiveBrush(store) {
   const id = 'curvature-adaptive';
 
   let drawing = false;
@@ -372,5 +372,3 @@ function makeCurvatureAdaptiveBrush(store) {
 
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeCurvatureAdaptiveBrush = makeCurvatureAdaptiveBrush;

@@ -1,4 +1,4 @@
-function makeVectorKeep(store) {
+export function makeVectorKeep(store) {
   const id = 'vector-keep';
   let drawing = false;
   let last = null;

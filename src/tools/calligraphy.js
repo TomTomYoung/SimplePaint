@@ -1,4 +1,4 @@
-function makeCalligraphy(store) {
+export function makeCalligraphy(store) {
   const id = 'calligraphy';
   let drawing = false;
   let last = null;

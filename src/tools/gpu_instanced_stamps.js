@@ -20,7 +20,7 @@
  *   tool.onPointerUp(gpu, ev, eng);
  */
 
-function makeGpuInstancedStamps(canvas, opts = {}) {
+export function makeGpuInstancedStamps(canvas, opts = {}) {
   // ======== 基本設定 ========
   const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: true });
   if (!gl) throw new Error('WebGL2 not available');
@@ -364,9 +364,6 @@ function makeGpuInstancedStamps(canvas, opts = {}) {
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
   function clampInt(v, lo, hi) { v = v | 0; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeGpuInstancedStamps = makeGpuInstancedStamps;
-
 /* =======================================================================================
  * 参考ツール：GPUスタンプブラシ（距離主導）
  * - 既存の onPointerDown/Move/Up 様式に合わせた薄いラッパ
@@ -374,7 +371,7 @@ window.makeGpuInstancedStamps = makeGpuInstancedStamps;
  * - ダメージは eng.expandPendingRectByRect に集約して通知
  * =======================================================================================
  */
-function makeGpuInstancedStampBrush(store, gpu) {
+export function makeGpuInstancedStampBrush(store, gpu) {
   const id = 'gpu-instanced-brush';
   let drawing = false;
   let last = null;
@@ -525,5 +522,3 @@ function makeGpuInstancedStampBrush(store, gpu) {
   }
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeGpuInstancedStampBrush = makeGpuInstancedStampBrush;

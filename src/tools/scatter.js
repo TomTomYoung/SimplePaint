@@ -1,4 +1,4 @@
-function makeScatter(store) {
+export function makeScatter(store) {
   const id = 'scatter';
   let drawing = false;
   let last = null;

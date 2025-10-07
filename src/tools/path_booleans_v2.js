@@ -31,7 +31,7 @@
  *   - ベクタ輪郭が必要な場合は、別途「ベイク（輪郭追跡）」処理で抽出してください。
  */
 
-function makePathBooleans(store) {
+export function makePathBooleans(store) {
   const id = 'path-bool';
 
   let drawing = false;
@@ -313,5 +313,3 @@ function makePathBooleans(store) {
   function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makePathBooleans = makePathBooleans;

@@ -29,7 +29,7 @@
  *   imageTint       : null|'#rrggbb'（画像に色を掛けたい場合の簡易ティント。nullなら原色）
  *   minSampleDist   : 入力間引き距離（px）
  */
-function makeGlyphBrush(store) {
+export function makeGlyphBrush(store) {
   const id = 'glyph-brush';
 
   let drawing = false;
@@ -368,5 +368,3 @@ function makeGlyphBrush(store) {
   function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeGlyphBrush = makeGlyphBrush;

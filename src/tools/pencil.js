@@ -1,4 +1,4 @@
-      function makePencil(store) {
+export function makePencil(store) {
         const id = 'pencil';
         let drawing = false,
           last = null;

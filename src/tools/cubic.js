@@ -1,4 +1,4 @@
-      function makeCubic(store) {
+export function makeCubic(store) {
         const id = 'cubic';
         let stage = 0,
           p0 = null,

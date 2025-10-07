@@ -1,5 +1,5 @@
 import { floodFill } from '../utils/drawing.js';
-import { bmp } from '../layer.js';
+import { bmp } from '../core/layer.js';
 
 export function makeBucket(store) {
   return {

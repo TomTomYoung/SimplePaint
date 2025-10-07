@@ -20,7 +20,7 @@
  *   spacingRatio  : Δs = spacingRatio * radius（既定 0.5）
  *   interp        : 'bilinear' | 'bicubic'
  */
-function makeOnImageWarp(store) {
+export function makeOnImageWarp(store) {
   const id = 'on-image-warp';
 
   let drawing = false;
@@ -293,5 +293,3 @@ function makeOnImageWarp(store) {
     };
   }
 }
-
-window.makeOnImageWarp = makeOnImageWarp;

@@ -1,5 +1,5 @@
-import { applyFilterToCanvas } from "../filters.js";
-import { bmp, layers, activeLayer } from "../layer.js";
+import { applyFilterToCanvas } from "../utils/image-processing.js";
+import { bmp, layers, activeLayer } from "../core/layer.js";
 
 export class AdjustmentManager {
   constructor(engine, layersRef = layers, activeLayerRef = activeLayer) {

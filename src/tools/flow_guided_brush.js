@@ -1,4 +1,4 @@
-function makeFlowGuidedBrush(store) {
+export function makeFlowGuidedBrush(store) {
   const id = 'flow-guided-brush';
 
   let drawing = false;
@@ -345,5 +345,3 @@ function makeFlowGuidedBrush(store) {
     return out;
   }
 }
-
-window.makeFlowGuidedBrush = makeFlowGuidedBrush;

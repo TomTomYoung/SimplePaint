@@ -9,7 +9,7 @@
  * - miterLimit: 4〜6（miter長 / (w/2) の上限。超えたら bevel へフォールバック）
  * - 自己交差は Canvas の非ゼロ塗りルールで自然に解消（簡易クリッピング相当）
  */
-function makeOutlineStrokeToFill(store) {
+export function makeOutlineStrokeToFill(store) {
   const id = 'outline-stroke-fill';
 
   let drawing = false;
@@ -368,5 +368,3 @@ function makeOutlineStrokeToFill(store) {
   }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeOutlineStrokeToFill = makeOutlineStrokeToFill;

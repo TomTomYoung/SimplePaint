@@ -41,7 +41,7 @@
  *  - 圧力値が無い環境では p=0 として扱う
  */
 
-function makeMetaBrush(store) {
+export function makeMetaBrush(store) {
   const id = 'meta-brush';
 
   // 状態
@@ -382,5 +382,3 @@ function makeMetaBrush(store) {
   }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeMetaBrush = makeMetaBrush;

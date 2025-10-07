@@ -17,7 +17,7 @@
  *   useSourceLuma: true で下地の輝度を使用。false は一定（=primaryColor の輝度）
  *   jitter       : 配置/半径ジッタ係数（0..0.5 推奨 0.15）
  */
-function makeHalftoneDitherBrush(store) {
+export function makeHalftoneDitherBrush(store) {
   const id = 'halftone-dither';
 
   let drawing = false;
@@ -322,5 +322,3 @@ function makeHalftoneDitherBrush(store) {
   }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeHalftoneDitherBrush = makeHalftoneDitherBrush;

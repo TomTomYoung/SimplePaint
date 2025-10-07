@@ -22,7 +22,7 @@
  *
  * 再描画通知：線分AABBを広めに通知（± brush/2 + snapRadius + 3）。
  */
-function makeSnapGridBrush(store) {
+export function makeSnapGridBrush(store) {
   const id = 'snap-grid';
 
   let drawing = false;
@@ -275,5 +275,3 @@ function makeSnapGridBrush(store) {
   }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeSnapGridBrush = makeSnapGridBrush;

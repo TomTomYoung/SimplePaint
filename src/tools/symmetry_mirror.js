@@ -1,4 +1,4 @@
-function makeSymmetryMirror(store) {
+export function makeSymmetryMirror(store) {
   const id = 'symmetry-mirror';
 
   let drawing = false;
@@ -312,5 +312,3 @@ function makeSymmetryMirror(store) {
     return out;
   }
 }
-
-window.makeSymmetryMirror = makeSymmetryMirror;

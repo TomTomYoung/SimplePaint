@@ -1,4 +1,4 @@
-      function makeEllipse2(store) {
+export function makeEllipse2(store) {
         const id = 'ellipse-2';
         let stage = 0,
           cx = 0,

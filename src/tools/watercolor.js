@@ -1,5 +1,5 @@
 //水彩
-function makeWatercolor(store) {
+export function makeWatercolor(store) {
   const id = 'watercolor';
 
   let drawing = false;
