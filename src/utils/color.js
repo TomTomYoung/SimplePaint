@@ -5,17 +5,27 @@
  */
 export const toHex = (r, g, b) =>
   `#${[r, g, b]
-    .map((component) => Math.max(0, Math.min(255, component))
-      .toString(16)
-      .padStart(2, '0'))
+    .map((component) =>
+      Math.round(Math.max(0, Math.min(255, component)))
+        .toString(16)
+        .padStart(2, '0')
+    )
     .join('')}`;
 
 export const hexToRgb = (hex) => {
   const normalized = hex.replace('#', '');
-  if (normalized.length !== 6) {
+  const expanded =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : normalized;
+
+  if (expanded.length !== 6) {
     throw new Error('Invalid hex color: ' + hex);
   }
-  const intVal = parseInt(normalized, 16);
+  const intVal = parseInt(expanded, 16);
   return {
     r: (intVal >> 16) & 0xff,
     g: (intVal >> 8) & 0xff,
