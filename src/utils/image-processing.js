@@ -4,11 +4,24 @@
  * 出力: 調整後の ImageData / Canvas
  */
 import { clamp, clamp01 } from './math.js';
-import { denormalizeRgb, hsvToRgb, normalizeRgb, rgbToHsv } from './color-space.js';
+import {
+  denormalizeRgb,
+  hsvToRgb,
+  normalizeRgb,
+  rgbToHsv,
+  rgbToHsl,
+  hslToRgb,
+} from './color-space.js';
 
 const toRadians = (degrees) => (degrees * Math.PI) / 180;
 const HUE_TO_UNIT = 1 / (2 * Math.PI);
 const DEFAULT_LUMINANCE_WEIGHTS = [0.2126, 0.7152, 0.0722];
+const CHANNEL_INDICES = {
+  red: 0,
+  green: 1,
+  blue: 2,
+  alpha: 3,
+};
 
 const normalizeWeights = (weights) => {
   if (!Array.isArray(weights) || weights.length !== 3) {
@@ -477,3 +490,443 @@ export const applyPrewittOperator = (imageData, options = {}) =>
  */
 export const applyLaplacianOperator = (imageData, options = {}) =>
   applySingleKernelEdgeDetection(imageData, options.kernel ?? LAPLACIAN_KERNEL, options);
+
+const resolveColor = (value, fallback) => {
+  if (Array.isArray(value)) {
+    if (value.length !== 3) {
+      throw new Error('Colour arrays must contain three components.');
+    }
+    return value.map((component) => clampToByte(component));
+  }
+
+  if (typeof value === 'number') {
+    const channel = clampToByte(value);
+    return [channel, channel, channel];
+  }
+
+  return [fallback, fallback, fallback];
+};
+
+const resolveAlpha = (value, fallback) =>
+  value === undefined ? fallback : clampToByte(value);
+
+const buildCdf = (histogram) => {
+  const cdf = new Uint32Array(histogram.length);
+  let cumulative = 0;
+  let minNonZero = 0;
+  let minFound = false;
+
+  for (let i = 0; i < histogram.length; i += 1) {
+    cumulative += histogram[i];
+    cdf[i] = cumulative;
+    if (!minFound && cumulative > 0) {
+      minNonZero = cumulative;
+      minFound = true;
+    }
+  }
+
+  return { cdf, minNonZero, total: cumulative };
+};
+
+const mapIntensityWithCdf = (cdfInfo, value) => {
+  const { cdf, minNonZero, total } = cdfInfo;
+  if (total === 0 || total === minNonZero) {
+    return value;
+  }
+
+  const numerator = cdf[value] - minNonZero;
+  if (numerator <= 0) {
+    return 0;
+  }
+
+  return clamp(Math.round((numerator / (total - minNonZero)) * 255), 0, 255);
+};
+
+/**
+ * 画像ヒストグラムを算出する。
+ * 入力: ImageData とチャネル指定
+ * 出力: 256 ビンのヒストグラム (Uint32Array)
+ */
+export const computeHistogram = (imageData, options = {}) => {
+  const channel = options.channel ?? 'luminance';
+  const histogram = new Uint32Array(256);
+  const { data } = imageData;
+
+  if (channel === 'luminance') {
+    const weights = options.weights ?? DEFAULT_LUMINANCE_WEIGHTS;
+    const [wr, wg, wb] = normalizeWeights(weights);
+
+    for (let i = 0; i < data.length; i += 4) {
+      const value = clampToByte(data[i] * wr + data[i + 1] * wg + data[i + 2] * wb);
+      histogram[value] += 1;
+    }
+
+    return histogram;
+  }
+
+  const channelIndex = CHANNEL_INDICES[channel];
+  if (channelIndex === undefined) {
+    throw new Error(`Unsupported histogram channel: ${channel}`);
+  }
+
+  for (let i = 0; i < data.length; i += 4) {
+    histogram[data[i + channelIndex]] += 1;
+  }
+
+  return histogram;
+};
+
+const resolveThresholdValue = (imageData, options, weights) => {
+  const method = options.method ?? 'manual';
+  if (method === 'manual') {
+    return clamp(Math.round(options.threshold ?? 128), 0, 255);
+  }
+
+  if (method === 'otsu') {
+    const histogram = computeHistogram(imageData, { channel: 'luminance', weights });
+    return calculateOtsuThreshold(histogram);
+  }
+
+  throw new Error(`Unsupported threshold method: ${method}`);
+};
+
+const calculateOtsuThreshold = (histogram) => {
+  let total = 0;
+  let sum = 0;
+
+  for (let i = 0; i < histogram.length; i += 1) {
+    total += histogram[i];
+    sum += i * histogram[i];
+  }
+
+  if (total === 0) {
+    return 0;
+  }
+
+  let sumB = 0;
+  let weightB = 0;
+  let maxVariance = -1;
+  let threshold = 0;
+
+  for (let i = 0; i < histogram.length - 1; i += 1) {
+    weightB += histogram[i];
+    if (weightB === 0) {
+      continue;
+    }
+
+    const weightF = total - weightB;
+    if (weightF === 0) {
+      break;
+    }
+
+    sumB += i * histogram[i];
+    const meanB = sumB / weightB;
+    const meanF = (sum - sumB) / weightF;
+    const variance = weightB * weightF * (meanB - meanF) ** 2;
+
+    if (variance > maxVariance) {
+      maxVariance = variance;
+      threshold = i;
+    } else if (variance === maxVariance && i > threshold) {
+      threshold = i;
+    }
+  }
+
+  return threshold;
+};
+
+/**
+ * ヒストグラム平坦化を適用する。
+ * 入力: ImageData と平坦化モード
+ * 出力: ヒストグラム平坦化後の ImageData
+ */
+export const applyHistogramEqualization = (imageData, options = {}) => {
+  const mode = options.mode ?? 'luminance';
+  const { width, height, data: src } = imageData;
+  const out = new ImageData(width, height);
+  const dst = out.data;
+  const totalPixels = width * height;
+
+  if (mode === 'rgb') {
+    const channels = ['red', 'green', 'blue'];
+    const cdfInfo = channels.map((channel) => buildCdf(computeHistogram(imageData, { channel })));
+
+    for (let i = 0; i < src.length; i += 4) {
+      dst[i] = mapIntensityWithCdf(cdfInfo[0], src[i]);
+      dst[i + 1] = mapIntensityWithCdf(cdfInfo[1], src[i + 1]);
+      dst[i + 2] = mapIntensityWithCdf(cdfInfo[2], src[i + 2]);
+      dst[i + 3] = src[i + 3];
+    }
+
+    return out;
+  }
+
+  const weights = options.weights ?? DEFAULT_LUMINANCE_WEIGHTS;
+  const histogram = computeHistogram(imageData, { channel: 'luminance', weights });
+  const cdfInfo = buildCdf(histogram);
+
+  if (totalPixels === 0 || cdfInfo.total === cdfInfo.minNonZero) {
+    dst.set(src);
+    return out;
+  }
+
+  const [wr, wg, wb] = normalizeWeights(weights);
+
+  for (let i = 0; i < src.length; i += 4) {
+    const luminance = clampToByte(src[i] * wr + src[i + 1] * wg + src[i + 2] * wb);
+    const equalized = mapIntensityWithCdf(cdfInfo, luminance) / 255;
+    const r = src[i] / 255;
+    const g = src[i + 1] / 255;
+    const b = src[i + 2] / 255;
+    const { h, s } = rgbToHsl(r, g, b);
+    const { r: nr, g: ng, b: nb } = hslToRgb(h, s, equalized);
+    const [dr, dg, db] = denormalizeRgb(nr, ng, nb);
+
+    dst[i] = dr;
+    dst[i + 1] = dg;
+    dst[i + 2] = db;
+    dst[i + 3] = src[i + 3];
+  }
+
+  return out;
+};
+
+const createBinaryMask = (imageData, options = {}) => {
+  const weights = options.weights ?? DEFAULT_LUMINANCE_WEIGHTS;
+  const threshold = resolveThresholdValue(imageData, options, weights);
+  const alphaThreshold = clamp(Math.round(options.alphaThreshold ?? 0), 0, 255);
+  const invert = Boolean(options.invert);
+  const buffer = extractLuminanceBuffer(imageData, weights);
+  const { data } = imageData;
+  const mask = new Uint8Array(buffer.length);
+
+  for (let i = 0; i < buffer.length; i += 1) {
+    const meetsThreshold = buffer[i] >= threshold;
+    const alpha = data[i * 4 + 3];
+    let active = invert ? !meetsThreshold : meetsThreshold;
+    if (alpha <= alphaThreshold) {
+      active = false;
+    }
+    mask[i] = active ? 1 : 0;
+  }
+
+  return mask;
+};
+
+const binaryMaskToImageData = (mask, imageData, options = {}) => {
+  const { width, height, data: src } = imageData;
+  const out = new ImageData(width, height);
+  const dst = out.data;
+  const [fr, fg, fb] = resolveColor(options.foreground ?? options.foregroundColor, 255);
+  const [br, bg, bb] = resolveColor(options.background ?? options.backgroundColor, 0);
+  const preserveAlpha = options.preserveAlpha ?? true;
+  const fgAlpha = resolveAlpha(options.foregroundAlpha, 255);
+  const bgAlpha = resolveAlpha(options.backgroundAlpha, 0);
+
+  for (let i = 0, j = 0; i < dst.length; i += 4, j += 1) {
+    const active = mask[j] === 1;
+    if (active) {
+      dst[i] = fr;
+      dst[i + 1] = fg;
+      dst[i + 2] = fb;
+      dst[i + 3] = preserveAlpha ? src[i + 3] : fgAlpha;
+    } else {
+      dst[i] = br;
+      dst[i + 1] = bg;
+      dst[i + 2] = bb;
+      dst[i + 3] = preserveAlpha ? 0 : bgAlpha;
+    }
+  }
+
+  return out;
+};
+
+/**
+ * 二値化処理を適用する。
+ * 入力: ImageData としきい値パラメータ
+ * 出力: 二値化された ImageData
+ */
+export const applyThreshold = (imageData, options = {}) => {
+  const mask = createBinaryMask(imageData, options);
+  return binaryMaskToImageData(mask, imageData, options);
+};
+
+const resolveStructuringElement = (options = {}) => {
+  if (options.element) {
+    const element = options.element;
+    if (Array.isArray(element)) {
+      if (!Array.isArray(element[0])) {
+        throw new Error('Structuring element array must be two-dimensional.');
+      }
+
+      const height = element.length;
+      const width = element[0].length;
+      if (!element.every((row) => row.length === width)) {
+        throw new Error('Structuring element rows must be equally sized.');
+      }
+      if (width % 2 === 0 || height % 2 === 0) {
+        throw new Error('Structuring element dimensions must be odd.');
+      }
+
+      const data = new Uint8Array(width * height);
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          data[y * width + x] = element[y][x] ? 1 : 0;
+        }
+      }
+
+      return { width, height, data };
+    }
+
+    if (
+      typeof element === 'object' &&
+      element !== null &&
+      Number.isInteger(element.width) &&
+      Number.isInteger(element.height) &&
+      (Array.isArray(element.data) || ArrayBuffer.isView(element.data))
+    ) {
+      const { width, height, data } = element;
+      if (width % 2 === 0 || height % 2 === 0) {
+        throw new Error('Structuring element dimensions must be odd.');
+      }
+      if (data.length !== width * height) {
+        throw new Error('Structuring element data length mismatch.');
+      }
+
+      const flat = new Uint8Array(width * height);
+      for (let i = 0; i < data.length; i += 1) {
+        flat[i] = data[i] ? 1 : 0;
+      }
+
+      return { width, height, data: flat };
+    }
+
+    throw new Error('Unsupported structuring element format.');
+  }
+
+  const size = Math.max(1, Math.floor(options.size ?? 3));
+  if (size % 2 === 0) {
+    throw new Error('Structuring element size must be odd.');
+  }
+
+  const width = size;
+  const height = size;
+  const data = new Uint8Array(width * height);
+  data.fill(1);
+
+  return { width, height, data };
+};
+
+const runMorphologyIteration = (src, width, height, kernel, operation, dest) => {
+  const { width: kWidth, height: kHeight, data: kData } = kernel;
+  const halfW = Math.floor(kWidth / 2);
+  const halfH = Math.floor(kHeight / 2);
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let value = operation === 'erosion' ? 1 : 0;
+      let done = false;
+
+      for (let ky = 0; ky < kHeight && !done; ky += 1) {
+        for (let kx = 0; kx < kWidth; kx += 1) {
+          const weight = kData[ky * kWidth + kx];
+          if (!weight) {
+            continue;
+          }
+
+          const sampleX = x + (kx - halfW);
+          const sampleY = y + (ky - halfH);
+
+          if (operation === 'erosion') {
+            if (
+              sampleX < 0 ||
+              sampleX >= width ||
+              sampleY < 0 ||
+              sampleY >= height ||
+              src[sampleY * width + sampleX] === 0
+            ) {
+              value = 0;
+              done = true;
+              break;
+            }
+          } else if (operation === 'dilation') {
+            if (
+              sampleX >= 0 &&
+              sampleX < width &&
+              sampleY >= 0 &&
+              sampleY < height &&
+              src[sampleY * width + sampleX] === 1
+            ) {
+              value = 1;
+              done = true;
+              break;
+            }
+          }
+        }
+      }
+
+      dest[y * width + x] = value;
+    }
+  }
+};
+
+const runMorphology = (mask, width, height, kernel, operation, iterations) => {
+  const total = width * height;
+  let src = mask;
+  let dest = new Uint8Array(total);
+
+  for (let i = 0; i < iterations; i += 1) {
+    runMorphologyIteration(src, width, height, kernel, operation, dest);
+    if (i < iterations - 1) {
+      src = dest;
+      dest = new Uint8Array(total);
+    }
+  }
+
+  return dest;
+};
+
+const applyMorphologyPipeline = (imageData, operations, options = {}) => {
+  const { width, height } = imageData;
+  const kernel = resolveStructuringElement(options);
+  const iterations = Math.max(1, Math.floor(options.iterations ?? 1));
+  let mask = options.mask;
+
+  if (mask) {
+    if (!(mask instanceof Uint8Array) || mask.length !== width * height) {
+      throw new Error('Provided mask must be a Uint8Array matching the image dimensions.');
+    }
+  } else {
+    mask = createBinaryMask(imageData, options);
+  }
+
+  for (const operation of operations) {
+    mask = runMorphology(mask, width, height, kernel, operation, iterations);
+  }
+
+  return binaryMaskToImageData(mask, imageData, options);
+};
+
+/**
+ * 膨張処理を適用する。
+ */
+export const applyDilation = (imageData, options = {}) =>
+  applyMorphologyPipeline(imageData, ['dilation'], options);
+
+/**
+ * 収縮処理を適用する。
+ */
+export const applyErosion = (imageData, options = {}) =>
+  applyMorphologyPipeline(imageData, ['erosion'], options);
+
+/**
+ * オープニング（収縮→膨張）を適用する。
+ */
+export const applyMorphologicalOpening = (imageData, options = {}) =>
+  applyMorphologyPipeline(imageData, ['erosion', 'dilation'], options);
+
+/**
+ * クロージング（膨張→収縮）を適用する。
+ */
+export const applyMorphologicalClosing = (imageData, options = {}) =>
+  applyMorphologyPipeline(imageData, ['dilation', 'erosion'], options);

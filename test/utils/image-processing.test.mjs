@@ -10,7 +10,15 @@ import {
   applySobelOperator,
   applyPrewittOperator,
   applyLaplacianOperator,
+  computeHistogram,
+  applyHistogramEqualization,
+  applyThreshold,
+  applyDilation,
+  applyErosion,
+  applyMorphologicalOpening,
+  applyMorphologicalClosing,
 } from '../../src/utils/image-processing.js';
+import { rgbToHsl } from '../../src/utils/color-space.js';
 
 if (typeof ImageData === 'undefined') {
   globalThis.ImageData = class ImageData {
@@ -226,4 +234,188 @@ test('applyLaplacianOperator highlights transitions in intensity', () => {
 
   assert(band.every((value) => value >= 30));
   assert(outer.every((value) => value <= 5));
+});
+
+test('computeHistogram tallies luminance and channel occurrences', () => {
+  const data = new Uint8ClampedArray([
+    10, 20, 30, 255,
+    200, 150, 100, 128,
+  ]);
+  const image = new ImageData(data, 2, 1);
+
+  const redHistogram = computeHistogram(image, { channel: 'red' });
+  assert.equal(redHistogram[10], 1);
+  assert.equal(redHistogram[200], 1);
+  assert.equal(redHistogram.reduce((acc, value) => acc + value, 0), 2);
+
+  const luminanceHistogram = computeHistogram(image);
+  assert.equal(luminanceHistogram.reduce((acc, value) => acc + value, 0), 2);
+});
+
+test('applyHistogramEqualization redistributes grayscale intensities', () => {
+  const source = createImageData(4, 1, [10, 50, 90, 130]);
+  const equalized = applyHistogramEqualization(source);
+  const values = toGrayArray(equalized);
+
+  assert.equal(Math.min(...values), 0);
+  assert.equal(Math.max(...values), 255);
+  for (let i = 1; i < values.length; i += 1) {
+    assert(values[i] > values[i - 1]);
+  }
+});
+
+test('applyHistogramEqualization preserves hue when operating on luminance', () => {
+  const data = new Uint8ClampedArray([
+    50, 20, 20, 255,
+    120, 60, 60, 255,
+    180, 90, 90, 255,
+    220, 120, 120, 255,
+  ]);
+  const image = new ImageData(data, 2, 2);
+
+  const luminanceEqualised = applyHistogramEqualization(image, { mode: 'luminance' });
+  const lumData = luminanceEqualised.data;
+  const originalSecond = rgbToHsl(120 / 255, 60 / 255, 60 / 255);
+  const resultSecond = rgbToHsl(lumData[4] / 255, lumData[5] / 255, lumData[6] / 255);
+  approx(resultSecond.h, originalSecond.h, 0.001);
+  approx(resultSecond.s, originalSecond.s, 0.02);
+
+  const originalThird = rgbToHsl(180 / 255, 90 / 255, 90 / 255);
+  const resultThird = rgbToHsl(lumData[8] / 255, lumData[9] / 255, lumData[10] / 255);
+  approx(resultThird.h, originalThird.h, 0.001);
+  approx(resultThird.s, originalThird.s, 0.02);
+
+  assert.equal(lumData[3], 255);
+  assert.equal(lumData[7], 255);
+  assert.equal(lumData[11], 255);
+  assert.equal(lumData[15], 255);
+
+  const rgbEqualised = applyHistogramEqualization(image, { mode: 'rgb' });
+  const reds = [rgbEqualised.data[0], rgbEqualised.data[4], rgbEqualised.data[8], rgbEqualised.data[12]];
+  const greens = [rgbEqualised.data[1], rgbEqualised.data[5], rgbEqualised.data[9], rgbEqualised.data[13]];
+  const blues = [rgbEqualised.data[2], rgbEqualised.data[6], rgbEqualised.data[10], rgbEqualised.data[14]];
+  assert.equal(Math.min(...reds), 0);
+  assert.equal(Math.max(...reds), 255);
+  assert.equal(Math.min(...greens), 0);
+  assert.equal(Math.max(...greens), 255);
+  assert.equal(Math.min(...blues), 0);
+  assert.equal(Math.max(...blues), 255);
+  for (let i = 1; i < reds.length; i += 1) {
+    assert(reds[i] > reds[i - 1]);
+    assert(greens[i] > greens[i - 1]);
+    assert(blues[i] > blues[i - 1]);
+  }
+});
+
+test('applyThreshold supports manual and Otsu methods', () => {
+  const source = createImageData(4, 1, [10, 150, 180, 250]);
+  source.data[3] = 128;
+
+  const manual = applyThreshold(source, { threshold: 160 });
+  assert.deepEqual(toGrayArray(manual), [0, 0, 255, 255]);
+  assert.deepEqual(toAlphaArray(manual), [0, 0, 255, 255]);
+
+  const tinted = applyThreshold(source, {
+    threshold: 160,
+    foreground: [0, 255, 0],
+    background: 32,
+    preserveAlpha: false,
+  });
+  const tintedData = tinted.data;
+  assert.deepEqual(Array.from(tintedData.slice(0, 4)), [32, 32, 32, 0]);
+  assert.deepEqual(Array.from(tintedData.slice(8, 12)), [0, 255, 0, 255]);
+
+  const otsuSource = createImageData(4, 1, [0, 0, 255, 255]);
+  const otsu = applyThreshold(otsuSource, { method: 'otsu' });
+  assert.deepEqual(toGrayArray(otsu), [0, 0, 255, 255]);
+});
+
+const collectActiveIndices = (imageData) => {
+  const values = toGrayArray(imageData);
+  const active = [];
+  for (let i = 0; i < values.length; i += 1) {
+    if (values[i] === 255) {
+      active.push(i);
+    }
+  }
+  return active;
+};
+
+test('applyDilation expands active pixels according to the structuring element', () => {
+  const width = 5;
+  const height = 5;
+  const values = new Array(width * height).fill(0);
+  const centreIndex = Math.floor(height / 2) * width + Math.floor(width / 2);
+  values[centreIndex] = 255;
+  const source = createImageData(width, height, values);
+
+  const dilated = applyDilation(source);
+  const active = collectActiveIndices(dilated);
+
+  const expected = [];
+  for (let y = 1; y <= 3; y += 1) {
+    for (let x = 1; x <= 3; x += 1) {
+      expected.push(y * width + x);
+    }
+  }
+
+  assert.deepEqual(active.sort((a, b) => a - b), expected);
+});
+
+test('applyErosion shrinks regions that cannot contain the structuring element', () => {
+  const width = 5;
+  const height = 5;
+  const values = new Array(width * height).fill(0);
+  for (let y = 1; y <= 3; y += 1) {
+    for (let x = 1; x <= 3; x += 1) {
+      values[y * width + x] = 255;
+    }
+  }
+  const source = createImageData(width, height, values);
+
+  const eroded = applyErosion(source);
+  const active = collectActiveIndices(eroded);
+
+  const centreIndex = Math.floor(height / 2) * width + Math.floor(width / 2);
+  assert.deepEqual(active, [centreIndex]);
+});
+
+test('applyMorphologicalOpening removes isolated noise while preserving shapes', () => {
+  const width = 5;
+  const height = 5;
+  const values = new Array(width * height).fill(0);
+  values[0] = 255; // isolated noise pixel
+  for (let y = 1; y <= 3; y += 1) {
+    for (let x = 1; x <= 3; x += 1) {
+      values[y * width + x] = 255;
+    }
+  }
+  const source = createImageData(width, height, values);
+
+  const opened = applyMorphologicalOpening(source);
+  const active = collectActiveIndices(opened);
+
+  assert(!active.includes(0));
+  assert(active.includes(Math.floor(height / 2) * width + Math.floor(width / 2)));
+  assert.equal(active.length, 9);
+});
+
+test('applyMorphologicalClosing fills narrow gaps within shapes', () => {
+  const width = 5;
+  const height = 5;
+  const values = new Array(width * height).fill(0);
+  for (let y = 1; y <= 3; y += 1) {
+    for (let x = 1; x <= 3; x += 1) {
+      values[y * width + x] = 255;
+    }
+  }
+  const holeIndex = Math.floor(height / 2) * width + Math.floor(width / 2);
+  values[holeIndex] = 0;
+  const source = createImageData(width, height, values);
+
+  const closed = applyMorphologicalClosing(source);
+  const active = collectActiveIndices(closed);
+
+  assert(active.includes(holeIndex));
+  assert.equal(active.length, 9);
 });
