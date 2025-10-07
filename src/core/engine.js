@@ -1,5 +1,4 @@
 import { layers, activeLayer, bmp, renderLayers } from './layer.js';
-import { clamp } from '../utils/math.js';
 import { getDevicePixelRatio, resizeCanvasToDisplaySize } from '../utils/canvas-helpers.js';
 import { cancelTextEditing, getActiveEditor } from '../managers/text-editor.js';
 import { openImageFile } from '../io/index.js';
@@ -292,8 +291,7 @@ export class Engine {
       if (this.isPanning && this.lastS) {
         const dx = e.clientX - this.lastS.x,
           dy = e.clientY - this.lastS.y;
-        this.vp.panX += dx;
-        this.vp.panY += dy;
+        this.vp.panBy(dx, dy);
         this.lastS = { x: e.clientX, y: e.clientY };
         this.requestRepaint();
         this.updateCursorInfo(p);
@@ -327,12 +325,8 @@ export class Engine {
         const rect = base.getBoundingClientRect();
         const sx = e.clientX - rect.left,
           sy = e.clientY - rect.top;
-        const before = this.vp.screenToImage(sx, sy);
         const factor = e.deltaY > 0 ? 0.9 : 1.1;
-        this.vp.zoom = clamp(this.vp.zoom * factor, 0.1, 32);
-        const after = this.vp.imageToScreen(before.x, before.y);
-        this.vp.panX += sx - after.x;
-        this.vp.panY += sy - after.y;
+        this.vp.zoomAt(sx, sy, factor);
         this.requestRepaint();
       },
       { passive: false }
