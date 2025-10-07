@@ -1,4 +1,4 @@
-function makeChalkPastel(store) {
+export function makeChalkPastel(store) {
   const id = 'chalk-pastel';
 
   // ランタイム状態
@@ -419,5 +419,3 @@ function makeChalkPastel(store) {
     return out;
   }
 }
-
-window.makeChalkPastel = makeChalkPastel;

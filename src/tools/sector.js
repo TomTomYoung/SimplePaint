@@ -1,4 +1,4 @@
-      function makeSector(store) {
+export function makeSector(store) {
         const id = 'sector';
         let stage = 0,
           cx = 0,

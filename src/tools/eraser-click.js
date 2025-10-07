@@ -1,4 +1,4 @@
-      function makeEraserClick(store) {
+export function makeEraserClick(store) {
         const id = 'eraser-click';
         let drawing = false,
           last = null;

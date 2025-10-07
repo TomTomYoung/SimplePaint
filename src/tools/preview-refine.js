@@ -1,5 +1,5 @@
 // 二段
-function makePreviewRefine(store) {
+export function makePreviewRefine(store) {
   const id = 'preview-refine';
   let pts = [];
   let drawing = false;

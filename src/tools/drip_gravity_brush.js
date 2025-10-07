@@ -18,7 +18,7 @@
  * 再描画通知：移動セグメントごとに expandPendingRectByRect を呼ぶ（帯AABB）
  * 注意：時間積分は半陰的（速度の指数減衰 + 限界dt分割）で安定化
  */
-function makeDripGravityBrush(store) {
+export function makeDripGravityBrush(store) {
   const id = 'drip-gravity';
 
   let drawing = false;
@@ -245,5 +245,3 @@ function makeDripGravityBrush(store) {
 
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeDripGravityBrush = makeDripGravityBrush;

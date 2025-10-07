@@ -17,7 +17,7 @@
  *   dwellSpeed       : 停止判定用速度 px/s（既定 12）
  *   bleedStrength    : にじみ強度 0..0.5（既定 0.2）
  */
-function makeTimeAwareBrush(store) {
+export function makeTimeAwareBrush(store) {
   const id = 'time-aware';
 
   let drawing = false;
@@ -226,5 +226,3 @@ function makeTimeAwareBrush(store) {
     };
   }
 }
-
-window.makeTimeAwareBrush = makeTimeAwareBrush;

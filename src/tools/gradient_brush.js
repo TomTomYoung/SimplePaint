@@ -1,4 +1,4 @@
-function makeGradientBrush(store) {
+export function makeGradientBrush(store) {
   const id = 'gradient-brush';
 
   let drawing = false;
@@ -395,5 +395,3 @@ function makeGradientBrush(store) {
     return out;
   }
 }
-
-window.makeGradientBrush = makeGradientBrush;

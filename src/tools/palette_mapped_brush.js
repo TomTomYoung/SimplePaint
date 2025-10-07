@@ -13,7 +13,7 @@
  *   useDither:   boolean     （既定 true）
  *   noise:       0..0.2      （誤差拡散のランダム化量, 既定 0.03）
  */
-function makePaletteMappedBrush(store) {
+export function makePaletteMappedBrush(store) {
   const id = 'palette-mapped';
 
   let drawing = false;
@@ -326,5 +326,3 @@ function makePaletteMappedBrush(store) {
   }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? v : v); }
 }
-
-window.makePaletteMappedBrush = makePaletteMappedBrush;

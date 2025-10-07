@@ -1,4 +1,4 @@
-function makeAirbrush(store) {
+export function makeAirbrush(store) {
   const id = 'airbrush';
   let drawing = false;
   let last = null;

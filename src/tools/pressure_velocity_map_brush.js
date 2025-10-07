@@ -21,7 +21,7 @@
  * 再描画通知：スタンプ AABB を統合し、pointerup で一括通知。
  * 注意：過度な幅揺れを避けるために EMA を強めに設定すること。
  */
-function makePressureVelocityMapBrush(store) {
+export function makePressureVelocityMapBrush(store) {
   const id = 'pvel-map';
 
   let drawing = false;
@@ -229,5 +229,3 @@ function makePressureVelocityMapBrush(store) {
     };
   }
 }
-
-window.makePressureVelocityMapBrush = makePressureVelocityMapBrush;

@@ -1,4 +1,4 @@
-function makeAaLineBrush(store) {
+export function makeAaLineBrush(store) {
   const id = 'aa-line-brush';
 
   let drawing = false;
@@ -244,5 +244,3 @@ function makeAaLineBrush(store) {
 
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeAaLineBrush = makeAaLineBrush;

@@ -23,7 +23,7 @@
  * - マップとキャンバスの解像度が異なる場合は最近傍/簡易バイリニアでサンプリングします
  * - 変調が強すぎるとノイズ化するため、αと幅の係数は安全域でクリップしています
  */
-function makeHeightNormalAwareBrush(store) {
+export function makeHeightNormalAwareBrush(store) {
   const id = 'height-normal';
 
   let drawing = false;
@@ -319,5 +319,3 @@ function makeHeightNormalAwareBrush(store) {
     };
   }
 }
-
-window.makeHeightNormalAwareBrush = makeHeightNormalAwareBrush;

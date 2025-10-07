@@ -1,4 +1,4 @@
-function makeHatching(store) {
+export function makeHatching(store) {
   const id = 'hatching';
   let drawing = false;
   let pts = [];
@@ -235,5 +235,3 @@ function makeHatching(store) {
     return out;
   }
 }
-
-window.makeHatching = makeHatching;

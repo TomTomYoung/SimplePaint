@@ -1,4 +1,4 @@
-      function makeEraser(store) {
+export function makeEraser(store) {
         const id = 'eraser';
         let drawing = false,
           last = null;

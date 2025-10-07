@@ -26,7 +26,7 @@
  *   depthVersion     : number（深度の変更検知用）
  *   stencilVersion   : number（ステンシルの変更検知用）
  */
-function makeDepthAwareBrush(store) {
+export function makeDepthAwareBrush(store) {
   const id = 'depth-aware';
 
   let drawing = false;
@@ -421,5 +421,3 @@ function makeDepthAwareBrush(store) {
   }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeDepthAwareBrush = makeDepthAwareBrush;

@@ -9,15 +9,9 @@ import { DOMManager } from './managers/dom-manager.js';
 import { Viewport } from './core/viewport.js';
 import { createStore, defaultState } from './core/store.js';
 import { EventBus } from './core/event-bus.js';
+import { registerDefaultTools } from './tools/registry.js';
 import { AdjustmentManager } from './managers/adjustment-manager.js';
 import { cancelTextEditing, getActiveEditor } from './managers/text-editor.js';
-import { makeEyedropper } from './tools/eyedropper.js';
-import { makeBucket } from './tools/bucket.js';
-import { makeShape } from './tools/shape.js';
-import { makeTextTool } from './tools/text-tool.js';
-import { makeCatmull } from './tools/catmull.js';
-import { makeBSpline } from './tools/bspline.js';
-import { makeNURBS } from './tools/nurbs.js';
 
 export class PaintApp {
   constructor() {
@@ -40,24 +34,7 @@ export class PaintApp {
   }
 
   registerTools() {
-    this.engine.register(makeSelectRect());
-    this.engine.register(makePencil(this.store));
-    this.engine.register(makePencilClick(this.store));
-    this.engine.register(makeBrush(this.store));
-    this.engine.register(makeMinimal(this.store));
-    this.engine.register(makeSmooth(this.store));
-    this.engine.register(makeTextureBrush(this.store));
-    this.engine.register(makeTessellatedStroke(this.store));
-    this.engine.register(makeSdfStroke(this.store));
-    this.engine.register(makeWatercolor(this.store));
-    this.engine.register(makePreviewRefine(this.store));
-    this.engine.register(makeVectorKeep(this.store));
-    this.engine.register(makeCalligraphy(this.store));
-    this.engine.register(makeRibbon(this.store));
-    this.engine.register(makeBristle(this.store));
-    this.engine.register(makeAirbrush(this.store));
-    this.engine.register(makeScatter(this.store));
-    this.engine.register(makeSmudge(this.store));
+    registerDefaultTools(this.engine, this.store);
     this.store.setToolState('smudge', {
       radius: 16,
       strength: 0.5,
@@ -65,57 +42,6 @@ export class PaintApp {
       angle: 0,
       spacingRatio: 0.5,
     });
-    this.engine.register(makeAaLineBrush(this.store));
-    this.engine.register(makePixelBrush(this.store));
-    this.engine.register(makeBlurBrush(this.store));
-    this.engine.register(makeEdgeAwarePaint(this.store));
-    this.engine.register(makeNoiseDisplaced(this.store));
-    this.engine.register(makeChalkPastel(this.store));
-    this.engine.register(makeCurvatureAdaptiveBrush(this.store));
-    this.engine.register(makeDepthAwareBrush(this.store));
-    this.engine.register(makeDistanceStampedBrush(this.store));
-    this.engine.register(makeDripGravityBrush(this.store));
-    this.engine.register(makeFlowGuidedBrush(this.store));
-    this.engine.register(makeGlyphBrush(this.store));
-    this.engine.register(makeGpuInstancedStampBrush(this.store));
-    this.engine.register(makeGradientBrush(this.store));
-    this.engine.register(makeGranulationBrush(this.store));
-    this.engine.register(makeHalftoneDitherBrush(this.store));
-    this.engine.register(makeHatching(this.store));
-    this.engine.register(makeHdrLinearPipelineBrush(this.store));
-    this.engine.register(makeHeightNormalAwareBrush(this.store));
-    this.engine.register(makeMaskDrivenBrush(this.store));
-    this.engine.register(makeMetaBrush(this.store));
-    this.engine.register(makeOnImageWarp(this.store));
-    this.engine.register(makeOutlineStrokeToFill(this.store));
-    this.engine.register(makePaletteMappedBrush(this.store));
-    this.engine.register(makePatternArtBrush(this.store));
-    this.engine.register(makePredictiveBrush(this.store));
-    this.engine.register(makePressureVelocityMapBrush(this.store));
-    this.engine.register(makeSnapGridBrush(this.store));
-    this.engine.register(makeStampBlendModesBrush(this.store));
-    this.engine.register(makeStrokeBoilBrush(this.store));
-    this.engine.register(makeSymmetryMirror(this.store));
-    this.engine.register(makeTimeAwareBrush(this.store));
-    this.engine.register(makeVectorizationBrush(this.store));
-    this.engine.register(makeEraser(this.store));
-    this.engine.register(makeEraserClick(this.store));
-    this.engine.register(makeEyedropper(this.store));
-    this.engine.register(makeBucket(this.store));
-    this.engine.register(makeShape("line", this.store));
-    this.engine.register(makeShape("rect", this.store));
-    this.engine.register(makeShape("ellipse", this.store));
-    this.engine.register(makeQuadratic(this.store));
-    this.engine.register(makeCubic(this.store));
-    this.engine.register(makeArc(this.store));
-    this.engine.register(makeSector(this.store));
-    this.engine.register(makeCatmull(this.store));
-    this.engine.register(makeBSpline(this.store));
-    this.engine.register(makeNURBS(this.store));
-    this.engine.register(makeEllipse2(this.store));
-    this.engine.register(makeFreehand(this.store));
-    this.engine.register(makeFreehandClick(this.store));
-    this.engine.register(makeTextTool(this.store));
   }
 
   initUI() {

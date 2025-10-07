@@ -1,4 +1,4 @@
-      function makeQuadratic(store) {
+export function makeQuadratic(store) {
         const id = 'quad';
         let stage = 0,
           p0 = null,

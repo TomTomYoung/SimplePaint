@@ -1,4 +1,4 @@
-function makeSmooth(store) {
+export function makeSmooth(store) {
   const id = 'smooth';
   let pts = [];
   let drawing = false;

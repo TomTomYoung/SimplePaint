@@ -1,4 +1,4 @@
-function makeBlurBrush(store) {
+export function makeBlurBrush(store) {
   const id = 'blur-brush';
 
   let drawing = false;
@@ -353,5 +353,3 @@ function makeBlurBrush(store) {
     return out;
   }
 }
-
-window.makeBlurBrush = makeBlurBrush;

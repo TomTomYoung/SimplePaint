@@ -4,7 +4,7 @@
  * - 仕上がったベクタは store へ保存（後編集しやすい構造）
  * - 再描画通知は最終ベクタの AABB のみ
  */
-function makeVectorizationBrush(store) {
+export function makeVectorizationBrush(store) {
   const id = 'vectorization';
 
   let drawing = false;
@@ -256,5 +256,3 @@ function makeVectorizationBrush(store) {
   }
   function clampNum(v, lo, hi) { v = +v; if (!Number.isFinite(v)) v = lo; return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeVectorizationBrush = makeVectorizationBrush;

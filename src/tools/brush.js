@@ -112,7 +112,7 @@
 //   };
 // }
 
-function makeBrush(store) {
+export function makeBrush(store) {
   const id = "brush";
   let drawing = false;
   let last = null;

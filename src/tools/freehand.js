@@ -1,4 +1,4 @@
-      function makeFreehand(store) {
+export function makeFreehand(store) {
         const id = 'freehand';
         let pts = [],
           drawing = false;

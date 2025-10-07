@@ -1,5 +1,5 @@
 // Simple bristle brush: draws multiple thin strokes with random offsets
-function makeBristle(store) {
+export function makeBristle(store) {
   const id = 'bristle';
   let drawing = false;
   let last = null;

@@ -1,4 +1,4 @@
-function makeSmudge(store) {
+export function makeSmudge(store) {
   const id = 'smudge';
 
   let drawing = false;
@@ -271,5 +271,3 @@ function makeSmudge(store) {
     };
   }
 }
-
-window.makeSmudge = makeSmudge;

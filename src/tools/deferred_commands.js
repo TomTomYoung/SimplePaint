@@ -21,7 +21,7 @@
  *   // rAFタイミングで自動 flush（最大遅延 1 フレーム）
  *   // 必要なら手動で eng.flushNow()
  */
-function makeDeferredCommands(targetCtx, opts = {}) {
+export function makeDeferredCommands(targetCtx, opts = {}) {
   const id = 'deferred-commands';
 
   // ========= 設定 =========
@@ -226,9 +226,6 @@ function makeDeferredCommands(targetCtx, opts = {}) {
 
   return eng;
 }
-
-window.makeDeferredCommands = makeDeferredCommands;
-
 /* =======================================================================================
  * 参考ツール：Deferred・距離主導スタンプ
  * - プレビューは octx に即時描画
@@ -236,7 +233,7 @@ window.makeDeferredCommands = makeDeferredCommands;
  * - AABB はエンジン側で集約（eng の onDirty 経由でタイルレンダラへ）
  * =======================================================================================
  */
-function makeDeferredDistanceStampBrush(store, deferred) {
+export function makeDeferredDistanceStampBrush(store, deferred) {
   const id = 'deferred-distance-stamped';
   let drawing = false, last = null, acc = 0;
 
@@ -327,5 +324,3 @@ function makeDeferredDistanceStampBrush(store, deferred) {
   }
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 }
-
-window.makeDeferredDistanceStampBrush = makeDeferredDistanceStampBrush;

@@ -1,4 +1,4 @@
-function makeRopeStabilizer(store) {
+export function makeRopeStabilizer(store) {
   const id = 'rope-stabilizer';
 
   // ===== 内部状態 =====
@@ -312,5 +312,3 @@ function makeRopeStabilizer(store) {
     return out;
   }
 }
-
-window.makeRopeStabilizer = makeRopeStabilizer;

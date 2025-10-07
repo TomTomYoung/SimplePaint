@@ -1,4 +1,4 @@
-function makeNoiseDisplaced(store) {
+export function makeNoiseDisplaced(store) {
   const id = 'noise-displaced';
   let drawing = false;
   let pts = [];
@@ -273,5 +273,3 @@ function makeNoiseDisplaced(store) {
     ctx.restore();
   }
 }
-
-window.makeNoiseDisplaced = makeNoiseDisplaced;

@@ -1,4 +1,4 @@
-function makeEdgeAwarePaint(store) {
+export function makeEdgeAwarePaint(store) {
   const id = 'edge-aware-paint';
 
   let drawing = false;
@@ -423,5 +423,3 @@ function makeEdgeAwarePaint(store) {
     return out;
   }
 }
-
-window.makeEdgeAwarePaint = makeEdgeAwarePaint;

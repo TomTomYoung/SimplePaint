@@ -1,4 +1,4 @@
-function makeMinimal(store) {
+export function makeMinimal(store) {
   const id = 'minimal';
   let drawing = false;
   let prev = null;

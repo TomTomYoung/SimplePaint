@@ -1,4 +1,4 @@
-function makePixelBrush(store) {
+export function makePixelBrush(store) {
   const id = 'pixel-brush';
 
   let drawing = false;
@@ -178,5 +178,3 @@ function makePixelBrush(store) {
     return v.toString(16).padStart(2, '0');
   }
 }
-
-window.makePixelBrush = makePixelBrush;

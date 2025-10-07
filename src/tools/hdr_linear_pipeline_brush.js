@@ -1,4 +1,4 @@
-function makeHdrLinearPipelineBrush(store) {
+export function makeHdrLinearPipelineBrush(store) {
   const id = 'hdr-linear';
 
   // ========= ランタイム状態 =========
@@ -294,5 +294,3 @@ function makeHdrLinearPipelineBrush(store) {
     };
   }
 }
-
-window.makeHdrLinearPipelineBrush = makeHdrLinearPipelineBrush;

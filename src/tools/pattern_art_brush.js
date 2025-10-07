@@ -1,4 +1,4 @@
-function makePatternArtBrush(store) {
+export function makePatternArtBrush(store) {
   const id = 'pattern-art-brush';
 
   let drawing = false;
@@ -313,5 +313,3 @@ function makePatternArtBrush(store) {
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
   function mod(a, n) { return ((a % n) + n) % n; }
 }
-
-window.makePatternArtBrush = makePatternArtBrush;

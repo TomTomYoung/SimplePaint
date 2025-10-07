@@ -1,4 +1,4 @@
-      function makeSelectRect() {
+export function makeSelectRect() {
         let dragging = false,
           moving = false,
           start = null,

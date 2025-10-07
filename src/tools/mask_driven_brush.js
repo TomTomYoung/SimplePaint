@@ -21,7 +21,7 @@
  *   - マスクとキャンバスの解像度が異なる場合、内部でキャンバス解像度へリサンプル（バイリニア）
  *   - 合成は sRGB 直近似（高忠実度が必要なら線形合成に差し替え可）
  */
-function makeMaskDrivenBrush(store) {
+export function makeMaskDrivenBrush(store) {
   const id = 'mask-driven';
 
   let drawing = false;
@@ -396,5 +396,3 @@ function makeMaskDrivenBrush(store) {
     };
   }
 }
-
-window.makeMaskDrivenBrush = makeMaskDrivenBrush;

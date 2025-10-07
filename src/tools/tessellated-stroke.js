@@ -1,4 +1,4 @@
-function makeTessellatedStroke(store) {
+export function makeTessellatedStroke(store) {
   const id = 'tess-stroke';
   let drawing = false;
   const pts = [];
@@ -163,5 +163,3 @@ function makeTessellatedStroke(store) {
     ctx.restore();
   }
 }
-
-window.makeTessellatedStroke = makeTessellatedStroke;

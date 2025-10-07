@@ -6,7 +6,7 @@
  * 既存ツールは ctx に対して直接描画し、描画範囲を eng.expandPendingRectByRect(...) で通知してください。
  * 本エンジンは rAF で 1 フレームに統合して該当タイルのみを表示側へ反映します。
  */
-function makeTileRenderer(viewCanvas, opts = {}) {
+export function makeTileRenderer(viewCanvas, opts = {}) {
   const id = 'tile-renderer';
 
   // ===== 表示 / バック（描画先） =====
@@ -205,5 +205,3 @@ function makeTileRenderer(viewCanvas, opts = {}) {
 // // onPointerUp:
 // tool.onPointerUp(eng.ctx, ev, eng);
 // // rAF により必要タイルだけが表示キャンバスへ反映される
-
-window.makeTileRenderer = makeTileRenderer;

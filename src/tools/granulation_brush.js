@@ -9,7 +9,7 @@
  *  - 数値爆発を避けるため、D/E/沈積はクリップ＆正規化。
  *  - 粒径はノイズ周波数で表現（1/粒径 ≒ 空間周波数）。
  */
-function makeGranulationBrush(store) {
+export function makeGranulationBrush(store) {
   const id = 'granulation';
 
   // ---- ランタイム状態 ----
@@ -304,5 +304,3 @@ function makeGranulationBrush(store) {
     };
   }
 }
-
-window.makeGranulationBrush = makeGranulationBrush;
