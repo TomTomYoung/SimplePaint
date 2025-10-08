@@ -1,4 +1,4 @@
-import { cancelTextEditing, createTextEditor } from '../main.js';
+import { cancelTextEditing, createTextEditor } from '../../main.js';
 
 export function makeTextTool(store) {
   return {
