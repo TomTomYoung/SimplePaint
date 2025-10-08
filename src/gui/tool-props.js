@@ -132,53 +132,65 @@ export function initToolPropsPanel(store, engine) {
   const render = (id) => {
     const defs = toolPropDefs[id] || [];
     body.innerHTML = '';
-    defs.forEach((d) => {
-      const wrap = document.createElement('div');
-      wrap.className = 'prop-item';
-      const label = document.createElement('label');
-      label.textContent = d.label;
-      label.style.display = 'block';
-      let input;
-      if (d.type === 'select') {
-        input = document.createElement('select');
-        d.options.forEach((o) => {
-          const opt = document.createElement('option');
-          opt.value = o.value;
-          opt.textContent = o.label;
-          input.appendChild(opt);
-        });
-      } else {
-        input = document.createElement('input');
-        input.type = d.type;
-        if (d.min !== undefined) input.min = d.min;
-        if (d.max !== undefined) input.max = d.max;
-        if (d.step !== undefined) input.step = d.step;
-      }
-      const state = store.getToolState(id);
-      const val = state[d.name] ?? d.default;
-      if (d.type === 'checkbox') input.checked = !!val; else input.value = val;
-      const evt = d.type === 'checkbox' ? 'change' : 'input';
-      input.addEventListener(evt, () => {
-        const v = d.type === 'checkbox' ? input.checked : (d.type === 'number' ? parseFloat(input.value) : input.value);
-        store.setToolState(id, { [d.name]: v });
-        if (d.name === 'antialias') engine?.requestRepaint?.();
-        if (id === 'text') {
-          const ed = getActiveEditor();
-          if (ed) {
-            if (d.name === 'fontFamily') ed.style.fontFamily = v;
-            if (d.name === 'fontSize') {
-              ed.style.fontSize = v + 'px';
-              ed.style.lineHeight = Math.round(v * 1.4) + 'px';
-            }
-            if (d.name === 'primaryColor') ed.style.color = v;
-          }
+
+    if (defs.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'prop-empty';
+      empty.textContent = 'このツールに設定はありません';
+      body.appendChild(empty);
+    } else {
+      defs.forEach((d) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'prop-item';
+        const label = document.createElement('label');
+        label.textContent = d.label;
+        label.style.display = 'block';
+        let input;
+        if (d.type === 'select') {
+          input = document.createElement('select');
+          d.options.forEach((o) => {
+            const opt = document.createElement('option');
+            opt.value = o.value;
+            opt.textContent = o.label;
+            input.appendChild(opt);
+          });
+        } else {
+          input = document.createElement('input');
+          input.type = d.type;
+          if (d.min !== undefined) input.min = d.min;
+          if (d.max !== undefined) input.max = d.max;
+          if (d.step !== undefined) input.step = d.step;
         }
+        const state = store.getToolState(id);
+        const val = state[d.name] ?? d.default;
+        if (d.type === 'checkbox') input.checked = !!val; else input.value = val;
+        const evt = d.type === 'checkbox' ? 'change' : 'input';
+        input.addEventListener(evt, () => {
+          const v = d.type === 'checkbox'
+            ? input.checked
+            : (d.type === 'number' ? parseFloat(input.value) : input.value);
+          store.setToolState(id, { [d.name]: v });
+          if (d.name === 'antialias') engine?.requestRepaint?.();
+          if (id === 'text') {
+            const ed = getActiveEditor();
+            if (ed) {
+              if (d.name === 'fontFamily') ed.style.fontFamily = v;
+              if (d.name === 'fontSize') {
+                ed.style.fontSize = v + 'px';
+                ed.style.lineHeight = Math.round(v * 1.4) + 'px';
+              }
+              if (d.name === 'primaryColor') ed.style.color = v;
+            }
+          }
+        });
+        wrap.appendChild(label);
+        wrap.appendChild(input);
+        body.appendChild(wrap);
       });
-      wrap.appendChild(label);
-      wrap.appendChild(input);
-      body.appendChild(wrap);
-    });
-    panel.style.display = defs.length ? 'block' : 'none';
+    }
+
+    panel.style.display = 'flex';
+    panel.classList.toggle('no-tool-props', defs.length === 0);
   };
 
   render(store.getState().toolId);
