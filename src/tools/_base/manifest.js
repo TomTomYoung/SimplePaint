@@ -1,3 +1,10 @@
+/**
+ * @typedef {import('../../types/tool.js').ToolFactory} ToolFactory
+ * @typedef {import('../../types/tool.js').ToolManifest} ToolManifest
+ * @typedef {import('../../types/tool.js').ToolManifestEntry} ToolManifestEntry
+ * @typedef {import('../../types/tool.js').ToolManifestCategory} ToolManifestCategory
+ */
+
 import { makeSelectRect } from '../selection/select-rect.js';
 
 // Drawing tools
@@ -81,10 +88,21 @@ import { makeEyedropper } from '../fill/eyedropper.js';
 // Text
 import { makeTextTool } from '../text/text-tool.js';
 
+/**
+ * @param {string} id
+ * @param {ToolFactory} factory
+ * @returns {ToolManifestEntry}
+ */
 function createToolEntry(id, factory) {
   return Object.freeze({ id, factory });
 }
 
+/**
+ * @param {string} id
+ * @param {string} label
+ * @param {readonly ToolManifestEntry[]} tools
+ * @returns {ToolManifestCategory}
+ */
 function createCategory(id, label, tools) {
   return Object.freeze({
     id,
@@ -100,6 +118,7 @@ function createCategory(id, label, tools) {
   });
 }
 
+/** @type {ToolManifest} */
 export const DEFAULT_TOOL_MANIFEST = Object.freeze([
   createCategory('selection', 'Selection tools', [
     createToolEntry('select-rect', () => makeSelectRect()),
@@ -189,16 +208,28 @@ export const DEFAULT_TOOL_MANIFEST = Object.freeze([
   ]),
 ]);
 
+/**
+ * @param {ToolManifest} [manifest=DEFAULT_TOOL_MANIFEST]
+ * @returns {readonly ToolManifestEntry[]}
+ */
 export function flattenToolManifest(manifest = DEFAULT_TOOL_MANIFEST) {
   return manifest.flatMap((category) => category.tools);
 }
 
+/**
+ * @param {ToolManifest} [manifest=DEFAULT_TOOL_MANIFEST]
+ * @returns {readonly string[]}
+ */
 export function collectToolIds(manifest = DEFAULT_TOOL_MANIFEST) {
   return flattenToolManifest(manifest).map((tool) => tool.id);
 }
 
 export const DEFAULT_TOOL_IDS = Object.freeze(collectToolIds());
 
+/**
+ * @param {ToolManifest} [manifest=DEFAULT_TOOL_MANIFEST]
+ * @returns {Map<string, ToolManifestEntry>}
+ */
 export function createToolIndex(manifest = DEFAULT_TOOL_MANIFEST) {
   const index = new Map();
   manifest.forEach((category) => {
@@ -212,6 +243,11 @@ export function createToolIndex(manifest = DEFAULT_TOOL_MANIFEST) {
   return index;
 }
 
+/**
+ * @param {string} id
+ * @param {ToolManifest} [manifest=DEFAULT_TOOL_MANIFEST]
+ * @returns {ToolManifestEntry|null}
+ */
 export function getToolEntryById(id, manifest = DEFAULT_TOOL_MANIFEST) {
   if (!id) {
     return null;
@@ -219,6 +255,11 @@ export function getToolEntryById(id, manifest = DEFAULT_TOOL_MANIFEST) {
   return createToolIndex(manifest).get(id) ?? null;
 }
 
+/**
+ * @param {string} id
+ * @param {ToolManifest} [manifest=DEFAULT_TOOL_MANIFEST]
+ * @returns {ToolManifestCategory|null}
+ */
 export function getToolCategoryForId(id, manifest = DEFAULT_TOOL_MANIFEST) {
   if (!id) {
     return null;

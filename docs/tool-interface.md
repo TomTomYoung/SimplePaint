@@ -2,6 +2,14 @@
 
 This document summarises how painting tools are structured in SimplePaint after the toolkit was reorganised into category folders.
 
+The runtime now ships with shared JSDoc typedefs under [`src/types/tool.js`](../src/types/tool.js).  Importing these definitions
+into your modules ensures consistent IntelliSense and helps editors validate the shape of the manifest and tool handlers.
+
+```js
+/** @typedef {import('../types/tool.js').ToolFactory} ToolFactory */
+/** @typedef {import('../types/tool.js').ToolPointerEvent} ToolPointerEvent */
+```
+
 ## Factory pattern
 
 Every tool module exports a `make*` factory that receives the shared [`Store`](../src/core/store.js) instance.  The factory returns a plain object describing the behaviour of a tool.  Tools are registered from [`registerDefaultTools`](../src/tools/_base/registry.js), which calls each factory with the store and hands the result to [`Engine.register`](../src/core/engine.js).
