@@ -5,84 +5,93 @@ This guide explains how to build a custom tool for SimplePaint using the manifes
 ## 1. Project Setup
 
 1. Create a new file inside the correct category under `src/tools/`. For example, `src/tools/drawing/spray.js`.
-2. Export a factory function that returns the tool lifecycle handlers.
+2. Export a factory function that receives the shared `Store` instance and returns the tool lifecycle handlers.
 
 ```javascript
 // src/tools/drawing/spray.js
 import { sampleGaussian } from '../../utils/math/random.js';
 
-export default function createSprayTool(context) {
-  const points = [];
+export function makeSpray(store) {
+  const id = 'spray';
+  let drawing = false;
+
+  function stamp(ctx, x, y) {
+    const settings = store.getToolState(id);
+    const radius = settings.brushSize ?? 12;
+    for (let i = 0; i < 24; i += 1) {
+      const [dx, dy] = sampleGaussian(0, radius);
+      ctx.fillRect(x + dx, y + dy, 1, 1);
+    }
+  }
 
   return {
-    id: 'spray',
+    id,
     cursor: 'crosshair',
-    onPointerDown(event, engine) {
-      points.length = 0;
-      this.onPointerMove(event, engine);
+    onPointerDown(ctx, event, engine) {
+      drawing = true;
+      engine.clearSelection();
+      const settings = store.getToolState(id);
+      engine.expandPendingRect(event.img.x, event.img.y, settings.brushSize ?? 12);
+      stamp(ctx, event.img.x, event.img.y);
     },
-    onPointerMove(event, engine) {
-      const { canvasCtx } = engine.getContexts();
-      for (let i = 0; i < 16; i += 1) {
-        const [dx, dy] = sampleGaussian(0, 12);
-        canvasCtx.fillRect(event.x + dx, event.y + dy, 1, 1);
-      }
+    onPointerMove(ctx, event, engine) {
+      if (!drawing) return;
+      const settings = store.getToolState(id);
+      engine.expandPendingRect(event.img.x, event.img.y, settings.brushSize ?? 12);
+      stamp(ctx, event.img.x, event.img.y);
     },
-    onPointerUp() {},
-    drawPreview(overlayCtx) {
-      overlayCtx.strokeStyle = 'rgba(255,255,255,0.3)';
-      overlayCtx.strokeRect(context.pointer.x - 12, context.pointer.y - 12, 24, 24);
+    onPointerUp() {
+      drawing = false;
     },
+    drawPreview() {},
   };
 }
 ```
 
 ## 2. Registering the Tool
 
-Add the tool to the manifest and registry. The manifest controls ordering, while the registry provides the actual factory.
+Add the tool to the manifest passed into the registry. The default manifest is frozen, so create a new manifest that includes your entry and provide it to `registerDefaultTools` during boot.
 
 ```javascript
-// src/tools/_base/manifest.js
-import { createCategory, createToolEntry } from './manifest-helpers.js';
-import createSprayTool from '../drawing/spray.js';
+// src/app.js (or wherever you configure bootstrapping)
+import { DEFAULT_TOOL_MANIFEST } from './tools/_base/manifest.js';
+import { registerDefaultTools } from './tools/_base/registry.js';
+import { makeSpray } from './tools/drawing/spray.js';
 
-export const DEFAULT_TOOL_MANIFEST = [
-  // ...existing categories
-  createCategory('drawing', 'Drawing tools', [
-    createToolEntry('pencil'),
-    createToolEntry('brush'),
-    createToolEntry('spray'), // new entry
-  ]),
-];
+const sprayEntry = Object.freeze({
+  id: 'spray',
+  factory: makeSpray,
+  categoryId: 'drawing',
+});
 
-// src/tools/_base/registry.js
-import { registerTool } from './registry-core.js';
-import createSprayTool from '../drawing/spray.js';
+const manifestWithSpray = Object.freeze(
+  DEFAULT_TOOL_MANIFEST.map((category) =>
+    category.id === 'drawing'
+      ? Object.freeze({
+          ...category,
+          tools: Object.freeze([...category.tools, sprayEntry]),
+        })
+      : category,
+  ),
+);
 
-registerTool('spray', createSprayTool);
+registerDefaultTools(engine, store, manifestWithSpray);
 ```
 
 ## 3. Tool Context
 
-The factory receives a `context` object containing helpers:
-
-- `store` – shared global state.
-- `viewport` – coordinate transforms.
-- `history` – undo/redo integration.
-- `eventBus` – publish/subscribe to application events.
-
-Use these helpers instead of importing modules directly when possible; this keeps tools portable.
+The factory receives the shared `Store` instance. Use the store to read and persist settings and call methods on the `Engine` instance that is supplied to every lifecycle handler.
 
 ## 4. State Management
 
 - Use `store.getState()` to read reactive data.
-- Use `store.setState()` to update slices. Group related changes to avoid redundant renders.
+- Use `store.set(updates)` to update slices. Group related changes to avoid redundant renders.
 - Use `store.watch(selector, callback)` for derived state such as layer opacity or viewport zoom.
 
 ## 5. Drawing Strategy
 
 - Prefer drawing into offscreen buffers for complex brushes, then compositing onto the main canvas.
-- When painting directly, wrap operations in `engine.beginStroke()` / `engine.endStroke()` if available to ensure correct history snapshots.
+- When painting directly, wrap operations in `engine.beginStrokeSnapshot()` / `engine.finishStrokeToHistory()` to ensure correct history snapshots.
 - Provide a `drawPreview` function for hover outlines or overlays.
 
 ## 6. Performance Tips
@@ -97,6 +106,6 @@ Add unit or integration tests under `test/tools/` that simulate pointer events a
 
 ## 8. Distribution
 
-Third-party tool bundles should export a function that receives the engine context and registers tools via `registerTool`. Document required assets and configuration in your README.
+Third-party tool bundles should export a function that receives the engine context and registers tools by calling `engine.register` or by supplying a manifest to `registerDefaultTools`. Document required assets and configuration in your README.
 
 For more background on the runtime, review the [Architecture Overview](./architecture.md) and [API Reference](./API.md).
