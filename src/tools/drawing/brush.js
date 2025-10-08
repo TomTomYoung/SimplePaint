@@ -128,9 +128,13 @@ export function makeBrush(store) {
       last = { ...ev.img };
 
       const s = store.getToolState(id);
+      const opacity = Number.isFinite(s.opacity)
+        ? Math.min(Math.max(s.opacity, 0), 1)
+        : 1;
       ctx.save();
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
+      ctx.globalAlpha = opacity;
       ctx.strokeStyle = s.primaryColor;
       ctx.lineWidth = s.brushSize;
       ctx.beginPath();
@@ -151,10 +155,14 @@ export function makeBrush(store) {
       if (!drawing || !last) return;
       const p = { ...ev.img };
       const s = store.getToolState(id);
+      const opacity = Number.isFinite(s.opacity)
+        ? Math.min(Math.max(s.opacity, 0), 1)
+        : 1;
 
       ctx.save();
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
+      ctx.globalAlpha = opacity;
       ctx.strokeStyle = s.primaryColor;
       ctx.lineWidth = s.brushSize;
       ctx.beginPath();
