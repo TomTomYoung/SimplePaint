@@ -1,5 +1,16 @@
 import { getActiveEditor } from '../managers/text-editor.js';
 
+const DEFAULT_TOOL_PALETTE = Object.freeze([
+  '#000000',
+  '#ffffff',
+  '#ff6b6b',
+  '#ffa94d',
+  '#ffd43b',
+  '#94d82d',
+  '#4dabf7',
+  '#845ef7',
+]);
+
 const strokeProps = [
   { name: 'brushSize', label: '線幅', type: 'range', min: 1, max: 64, step: 1, default: 4 },
   { name: 'primaryColor', label: '線色', type: 'color', default: '#000000' },
@@ -123,6 +134,159 @@ export const toolPropDefs = {
   eyedropper: [],
 };
 
+const ensurePalette = (value) => {
+  if (!Array.isArray(value)) {
+    return [...DEFAULT_TOOL_PALETTE];
+  }
+  const normalized = value
+    .map((entry) => {
+      if (typeof entry === 'string') return entry.trim();
+      if (entry && typeof entry === 'object' && typeof entry.color === 'string') {
+        return entry.color.trim();
+      }
+      return '';
+    })
+    .filter((entry) => entry.length > 0);
+  return normalized.length > 0 ? normalized : [...DEFAULT_TOOL_PALETTE];
+};
+
+const parsePaletteInput = (value) => {
+  let parsed;
+  try {
+    parsed = JSON.parse(value);
+  } catch (error) {
+    throw new Error('JSONの解析に失敗しました');
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error('配列形式のJSONを入力してください');
+  }
+  const normalized = parsed
+    .map((entry) => {
+      if (typeof entry === 'string') return entry.trim();
+      if (entry && typeof entry === 'object' && typeof entry.color === 'string') {
+        return entry.color.trim();
+      }
+      return '';
+    })
+    .filter((entry) => entry.length > 0);
+  if (normalized.length === 0) {
+    throw new Error('1色以上の色を指定してください');
+  }
+  return normalized;
+};
+
+const appendPaletteSection = (container, store, id, state) => {
+  const palette = ensurePalette(state?.palette);
+  const paletteSection = document.createElement('div');
+  paletteSection.className = 'prop-item prop-palette-section';
+
+  const label = document.createElement('label');
+  label.textContent = 'パレット';
+  label.style.display = 'block';
+  paletteSection.appendChild(label);
+
+  const hint = document.createElement('div');
+  hint.className = 'palette-hint';
+  hint.textContent = '左クリック: 色を使用 / 右クリック: 現在色で更新';
+  paletteSection.appendChild(hint);
+
+  const swatchGrid = document.createElement('div');
+  swatchGrid.className = 'palette-swatches';
+  palette.forEach((color, index) => {
+    const swatch = document.createElement('button');
+    swatch.type = 'button';
+    swatch.className = 'palette-swatch';
+    swatch.style.backgroundColor = color;
+    swatch.dataset.index = String(index);
+    swatch.dataset.color = color;
+    swatch.title = `${color}\n左クリック: 色を使用 / 右クリック: 現在色で更新`;
+    swatch.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      const swatchColor = swatch.dataset.color;
+      if (typeof swatchColor === 'string') {
+        store.setToolState(id, { primaryColor: swatchColor });
+      }
+    });
+    swatch.addEventListener('contextmenu', (evt) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+      const currentState = store.getToolState(id);
+      const currentPalette = ensurePalette(currentState.palette);
+      const primaryColor =
+        typeof currentState.primaryColor === 'string' && currentState.primaryColor.trim()
+          ? currentState.primaryColor.trim()
+          : currentPalette[index] ?? palette[0] ?? '#000000';
+      const nextPalette = currentPalette.slice();
+      nextPalette[index] = primaryColor;
+      store.setToolState(id, { palette: nextPalette });
+    });
+    swatchGrid.appendChild(swatch);
+  });
+  paletteSection.appendChild(swatchGrid);
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'palette-json';
+  textarea.value = JSON.stringify(palette, null, 2);
+  textarea.rows = Math.min(8, Math.max(2, palette.length));
+  textarea.setAttribute('aria-label', 'パレットJSON');
+  textarea.spellcheck = false;
+  textarea.addEventListener('input', () => {
+    textarea.classList.remove('error');
+    textarea.title = '';
+  });
+  paletteSection.appendChild(textarea);
+
+  const actionRow = document.createElement('div');
+  actionRow.className = 'palette-actions';
+
+  const applyBtn = document.createElement('button');
+  applyBtn.type = 'button';
+  applyBtn.textContent = 'JSON適用';
+  applyBtn.addEventListener('click', () => {
+    try {
+      const normalized = parsePaletteInput(textarea.value);
+      store.setToolState(id, { palette: normalized });
+      textarea.value = JSON.stringify(normalized, null, 2);
+      textarea.classList.remove('error');
+      textarea.title = '';
+    } catch (error) {
+      textarea.classList.add('error');
+      textarea.title = error?.message ?? 'JSONの解析に失敗しました';
+    }
+  });
+  actionRow.appendChild(applyBtn);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.textContent = 'JSONコピー';
+  copyBtn.addEventListener('click', async () => {
+    const original = copyBtn.textContent;
+    const clipboard = navigator.clipboard;
+    const canWrite = clipboard && typeof clipboard.writeText === 'function';
+    if (!canWrite) {
+      copyBtn.textContent = 'コピー不可';
+      setTimeout(() => {
+        copyBtn.textContent = original;
+      }, 1200);
+      return;
+    }
+    try {
+      await clipboard.writeText(textarea.value);
+      copyBtn.textContent = 'コピー完了';
+    } catch (error) {
+      copyBtn.textContent = 'コピー失敗';
+    }
+    setTimeout(() => {
+      copyBtn.textContent = original;
+    }, 1200);
+  });
+  actionRow.appendChild(copyBtn);
+
+  paletteSection.appendChild(actionRow);
+
+  container.appendChild(paletteSection);
+};
+
 export function initToolPropsPanel(store, engine) {
   const panel = document.getElementById('leftPanel');
   if (!panel) return;
@@ -131,66 +295,68 @@ export function initToolPropsPanel(store, engine) {
 
   const render = (id) => {
     const defs = toolPropDefs[id] || [];
+    const state = store.getToolState(id);
     body.innerHTML = '';
 
     if (defs.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'prop-empty';
-      empty.textContent = 'このツールに設定はありません';
-      body.appendChild(empty);
-    } else {
-      defs.forEach((d) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'prop-item';
-        const label = document.createElement('label');
-        label.textContent = d.label;
-        label.style.display = 'block';
-        let input;
-        if (d.type === 'select') {
-          input = document.createElement('select');
-          d.options.forEach((o) => {
-            const opt = document.createElement('option');
-            opt.value = o.value;
-            opt.textContent = o.label;
-            input.appendChild(opt);
-          });
-        } else {
-          input = document.createElement('input');
-          input.type = d.type;
-          if (d.min !== undefined) input.min = d.min;
-          if (d.max !== undefined) input.max = d.max;
-          if (d.step !== undefined) input.step = d.step;
-        }
-        const state = store.getToolState(id);
-        const val = state[d.name] ?? d.default;
-        if (d.type === 'checkbox') input.checked = !!val; else input.value = val;
-        const evt = d.type === 'checkbox' ? 'change' : 'input';
-        input.addEventListener(evt, () => {
-          const v = d.type === 'checkbox'
-            ? input.checked
-            : (d.type === 'number' ? parseFloat(input.value) : input.value);
-          store.setToolState(id, { [d.name]: v });
-          if (d.name === 'antialias') engine?.requestRepaint?.();
-          if (id === 'text') {
-            const ed = getActiveEditor();
-            if (ed) {
-              if (d.name === 'fontFamily') ed.style.fontFamily = v;
-              if (d.name === 'fontSize') {
-                ed.style.fontSize = v + 'px';
-                ed.style.lineHeight = Math.round(v * 1.4) + 'px';
-              }
-              if (d.name === 'primaryColor') ed.style.color = v;
-            }
-          }
-        });
-        wrap.appendChild(label);
-        wrap.appendChild(input);
-        body.appendChild(wrap);
-      });
+      const note = document.createElement('div');
+      note.className = 'prop-empty-note';
+      note.textContent = 'このツールに固有の設定はありません（パレットのみ）';
+      body.appendChild(note);
     }
 
+    defs.forEach((d) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'prop-item';
+      const label = document.createElement('label');
+      label.textContent = d.label;
+      label.style.display = 'block';
+      let input;
+      if (d.type === 'select') {
+        input = document.createElement('select');
+        d.options.forEach((o) => {
+          const opt = document.createElement('option');
+          opt.value = o.value;
+          opt.textContent = o.label;
+          input.appendChild(opt);
+        });
+      } else {
+        input = document.createElement('input');
+        input.type = d.type;
+        if (d.min !== undefined) input.min = d.min;
+        if (d.max !== undefined) input.max = d.max;
+        if (d.step !== undefined) input.step = d.step;
+      }
+      const val = state[d.name] ?? d.default;
+      if (d.type === 'checkbox') input.checked = !!val; else input.value = val;
+      const evt = d.type === 'checkbox' ? 'change' : 'input';
+      input.addEventListener(evt, () => {
+        const v = d.type === 'checkbox'
+          ? input.checked
+          : (d.type === 'number' ? parseFloat(input.value) : input.value);
+        store.setToolState(id, { [d.name]: v });
+        if (d.name === 'antialias') engine?.requestRepaint?.();
+        if (id === 'text') {
+          const ed = getActiveEditor();
+          if (ed) {
+            if (d.name === 'fontFamily') ed.style.fontFamily = v;
+            if (d.name === 'fontSize') {
+              ed.style.fontSize = v + 'px';
+              ed.style.lineHeight = Math.round(v * 1.4) + 'px';
+            }
+            if (d.name === 'primaryColor') ed.style.color = v;
+          }
+        }
+      });
+      wrap.appendChild(label);
+      wrap.appendChild(input);
+      body.appendChild(wrap);
+    });
+
+    appendPaletteSection(body, store, id, state);
+
     panel.style.display = 'flex';
-    panel.classList.toggle('no-tool-props', defs.length === 0);
+    panel.classList.remove('no-tool-props');
   };
 
   render(store.getState().toolId);
