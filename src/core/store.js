@@ -228,4 +228,14 @@ export const toolDefaults = Object.freeze({
   penAngle: 45,
   kappa: 2,
   w_min: 1,
+  palette: Object.freeze([
+    '#000000',
+    '#ffffff',
+    '#ff6b6b',
+    '#ffa94d',
+    '#ffd43b',
+    '#94d82d',
+    '#4dabf7',
+    '#845ef7',
+  ]),
 });

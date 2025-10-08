@@ -135,6 +135,78 @@ footer {
   line-height: 1.5;
 }
 
+.prop-empty-note {
+  color: #666;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.prop-palette-section {
+  margin-top: 12px;
+}
+
+.palette-hint {
+  color: #777;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.palette-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.palette-swatch {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  transition: transform 0.12s ease;
+}
+
+.palette-swatch:hover {
+  transform: scale(1.05);
+}
+
+.palette-swatch:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 2px;
+}
+
+.palette-json {
+  width: 100%;
+  min-height: 72px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  resize: vertical;
+}
+
+.palette-json.error {
+  border-color: #c62828;
+  background: #ffebee;
+}
+
+.palette-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.palette-actions button {
+  min-width: 0;
+  padding: 4px 10px;
+}
+
 #leftPanel {
   border-right: 1px solid #ddd;
 }
