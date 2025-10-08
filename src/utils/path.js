@@ -7,6 +7,8 @@ import { closestPointOnSegment } from './geometry.js';
 
 const EPSILON = 1e-9;
 
+const DEFAULT_DEGREE = 3;
+
 const clonePoint = (point) => ({ x: point.x, y: point.y });
 
 const clonePoints = (points) => points.map(clonePoint);
@@ -35,6 +37,142 @@ const getPointAtIndex = (points, index, closed) => {
 const positiveModulo = (value, modulus) => {
   const result = value % modulus;
   return result < 0 ? result + modulus : result;
+};
+
+const findKnotDomain = (knots, degree) => {
+  if (!Array.isArray(knots) || knots.length === 0) {
+    throw new Error('knots must be a non-empty array');
+  }
+  if (!Number.isInteger(degree) || degree < 0) {
+    throw new Error('degree must be a non-negative integer');
+  }
+  if (knots.length < degree + 2) {
+    throw new Error('invalid knot vector for the supplied degree');
+  }
+  const domainStart = knots[degree];
+  const domainEnd = knots[knots.length - degree - 1];
+  if (!Number.isFinite(domainStart) || !Number.isFinite(domainEnd)) {
+    throw new Error('knot vector contains non-finite values');
+  }
+  if (domainEnd < domainStart) {
+    throw new Error('knot vector domain is invalid');
+  }
+  return { start: domainStart, end: domainEnd };
+};
+
+const clampToDomain = (value, domainStart, domainEnd) => {
+  if (!Number.isFinite(value)) {
+    throw new Error('parameter must be a finite number');
+  }
+  if (value <= domainStart) return domainStart;
+  if (value >= domainEnd) return domainEnd;
+  return value;
+};
+
+const validateRationalSplineInput = (points, weights, knots, degree) => {
+  if (!Array.isArray(points) || points.length === 0) {
+    throw new Error('points must be a non-empty array');
+  }
+  if (!Array.isArray(weights) || weights.length !== points.length) {
+    throw new Error('weights must be an array matching points length');
+  }
+  if (!Array.isArray(knots)) {
+    throw new Error('knots must be an array');
+  }
+  if (!Number.isInteger(degree) || degree < 1) {
+    throw new Error('degree must be a positive integer');
+  }
+  if (points.length < degree + 1) {
+    throw new Error('not enough control points for the supplied degree');
+  }
+  if (knots.length !== points.length + degree + 1) {
+    throw new Error('knot vector length does not match points and degree');
+  }
+  const { start, end } = findKnotDomain(knots, degree);
+  return { domainStart: start, domainEnd: end };
+};
+
+const findKnotSpan = (count, degree, u, knots) => {
+  if (u === knots[count + 1]) return count;
+  let low = degree;
+  let high = count + 1;
+  let mid = Math.floor((low + high) / 2);
+  while (u < knots[mid] || u >= knots[mid + 1]) {
+    if (u < knots[mid]) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+    mid = Math.floor((low + high) / 2);
+  }
+  return mid;
+};
+
+const basisFunctions = (span, u, degree, knots) => {
+  const N = new Array(degree + 1).fill(0);
+  const left = new Array(degree + 1).fill(0);
+  const right = new Array(degree + 1).fill(0);
+  N[0] = 1;
+  for (let j = 1; j <= degree; j++) {
+    left[j] = u - knots[span + 1 - j];
+    right[j] = knots[span + j] - u;
+    let saved = 0;
+    for (let r = 0; r < j; r++) {
+      const denom = right[r + 1] + left[j - r];
+      const term = denom !== 0 ? N[r] / denom : 0;
+      const temp = term * right[r + 1];
+      N[r] = saved + temp;
+      saved = term * left[j - r];
+    }
+    N[j] = saved;
+  }
+  return N;
+};
+
+const evaluateWeightedCombination = (points, weights, basis, span, degree) => {
+  let sumX = 0;
+  let sumY = 0;
+  let sumW = 0;
+  for (let i = 0; i <= degree; i++) {
+    const index = span - degree + i;
+    const weight = weights[index] ?? 1;
+    const coeff = basis[i] * weight;
+    sumX += points[index].x * coeff;
+    sumY += points[index].y * coeff;
+    sumW += coeff;
+  }
+  return { sumX, sumY, sumW };
+};
+
+const safeNormalise = (dx, dy) => {
+  const length = Math.hypot(dx, dy);
+  if (length <= EPSILON) {
+    return { x: 0, y: 0 };
+  }
+  return { x: dx / length, y: dy / length };
+};
+
+const evaluateRationalHomogeneous = (
+  points,
+  weights,
+  knots,
+  degree,
+  u,
+  domainStart,
+  domainEnd,
+) => {
+  if (points.length === 1) {
+    const point = clonePoint(points[0]);
+    return { point, weight: weights[0] ?? 1, clamped: domainStart };
+  }
+  const clamped = clampToDomain(u, domainStart, domainEnd);
+  const span = findKnotSpan(points.length - 1, degree, clamped, knots);
+  const basis = basisFunctions(span, clamped, degree, knots);
+  const { sumX, sumY, sumW } = evaluateWeightedCombination(points, weights, basis, span, degree);
+  if (!Number.isFinite(sumW) || Math.abs(sumW) <= EPSILON) {
+    throw new Error('rational combination resulted in zero weight');
+  }
+  return { point: { x: sumX / sumW, y: sumY / sumW }, weight: sumW, clamped };
 };
 
 const catmullRomIncrement = (ti, pa, pb, alpha) => {
@@ -193,6 +331,102 @@ export function uniformCubicBSplineTangent(p0, p1, p2, p3, t) {
     return { x: 0, y: 0 };
   }
   return { x: derivative.x / length, y: derivative.y / length };
+}
+
+/**
+ * Evaluate a non-uniform rational B-spline at the provided parameter.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {number[]} weights
+ * @param {number[]} knots
+ * @param {number} u
+ * @param {{degree?:number}} [options]
+ * @returns {{x:number,y:number}}
+ */
+export function evaluateRationalBSpline(points, weights, knots, u, { degree = DEFAULT_DEGREE } = {}) {
+  const { domainStart, domainEnd } = validateRationalSplineInput(points, weights, knots, degree);
+  const { point } = evaluateRationalHomogeneous(points, weights, knots, degree, u, domainStart, domainEnd);
+  return point;
+}
+
+/**
+ * Compute a unit tangent direction for a rational B-spline using a centred finite difference.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {number[]} weights
+ * @param {number[]} knots
+ * @param {number} u
+ * @param {{degree?:number,deltaScale?:number}} [options]
+ * @returns {{x:number,y:number}}
+ */
+export function rationalBSplineTangent(
+  points,
+  weights,
+  knots,
+  u,
+  { degree = DEFAULT_DEGREE, deltaScale = 1e-4 } = {},
+) {
+  const { domainStart, domainEnd } = validateRationalSplineInput(points, weights, knots, degree);
+  const domainRange = Math.max(domainEnd - domainStart, EPSILON);
+  const step = Math.max(deltaScale, 1e-6) * domainRange;
+  let prev = clampToDomain(u - step, domainStart, domainEnd);
+  let next = clampToDomain(u + step, domainStart, domainEnd);
+  if (prev === next) {
+    if (next < domainEnd) {
+      next = clampToDomain(next + step, domainStart, domainEnd);
+    }
+    if (prev === next && prev > domainStart) {
+      prev = clampToDomain(prev - step, domainStart, domainEnd);
+    }
+    if (prev === next) {
+      return { x: 0, y: 0 };
+    }
+  }
+  const start = evaluateRationalHomogeneous(points, weights, knots, degree, prev, domainStart, domainEnd).point;
+  const end = evaluateRationalHomogeneous(points, weights, knots, degree, next, domainStart, domainEnd).point;
+  return safeNormalise(end.x - start.x, end.y - start.y);
+}
+
+/**
+ * Sample a rational B-spline curve at evenly spaced parameter intervals.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {number[]} weights
+ * @param {number[]} knots
+ * @param {{degree?:number,segments?:number,includeEndpoints?:boolean}} [options]
+ * @returns {Array<{x:number,y:number}>}
+ */
+export function sampleRationalBSpline(
+  points,
+  weights,
+  knots,
+  { degree = DEFAULT_DEGREE, segments = 32, includeEndpoints = true } = {},
+) {
+  const { domainStart, domainEnd } = validateRationalSplineInput(points, weights, knots, degree);
+  if (segments <= 0 || !Number.isFinite(segments)) {
+    throw new Error('segments must be a positive number');
+  }
+  if (points.length === 1) {
+    return [clonePoint(points[0])];
+  }
+  const segmentCount = Math.max(1, Math.round(segments));
+  const count = includeEndpoints ? segmentCount + 1 : segmentCount;
+  const samples = [];
+  const step = (domainEnd - domainStart) / segmentCount;
+  for (let i = 0; i < count; i++) {
+    const u = includeEndpoints ? domainStart + step * i : domainStart + step * (i + 0.5);
+    const { point } = evaluateRationalHomogeneous(points, weights, knots, degree, u, domainStart, domainEnd);
+    samples.push(point);
+  }
+  if (includeEndpoints && samples.length > 0) {
+    samples[count - 1] = evaluateRationalHomogeneous(
+      points,
+      weights,
+      knots,
+      degree,
+      domainEnd,
+      domainStart,
+      domainEnd,
+    ).point;
+  }
+  return samples;
 }
 
 /**

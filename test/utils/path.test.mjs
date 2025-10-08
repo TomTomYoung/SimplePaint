@@ -18,6 +18,9 @@ import {
   uniformCubicBSplineTangent,
   sampleUniformBSpline,
   uniformBSplineToBezierSegments,
+  evaluateRationalBSpline,
+  rationalBSplineTangent,
+  sampleRationalBSpline,
 } from '../../src/utils/path.js';
 
 import { evaluateCubicBezier } from '../../src/utils/bezier.js';
@@ -27,6 +30,12 @@ const approxEqual = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
 const assertPointAlmostEqual = (actual, expected, eps = 1e-6) => {
   assert.ok(approxEqual(actual.x, expected.x, eps), `expected x≈${expected.x} but got ${actual.x}`);
   assert.ok(approxEqual(actual.y, expected.y, eps), `expected y≈${expected.y} but got ${actual.y}`);
+};
+
+const safeDirection = ({ x, y }) => {
+  const length = Math.hypot(x, y);
+  if (length === 0) return { x: 0, y: 0 };
+  return { x: x / length, y: y / length };
 };
 
 const uniformCatmullRom = (p0, p1, p2, p3, t) => {
@@ -304,6 +313,73 @@ test('uniformBSplineToBezierSegments matches B-spline evaluation per segment', (
       assertPointAlmostEqual(bezPoint, splinePoint, 1e-6);
     }
   }
+});
+
+test('evaluateRationalBSpline matches the analytic quarter-circle representation', () => {
+  const control = [
+    { x: 1, y: 0 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 },
+  ];
+  const weights = [1, Math.SQRT1_2, 1];
+  const knots = [0, 0, 0, 1, 1, 1];
+
+  const start = evaluateRationalBSpline(control, weights, knots, 0, { degree: 2 });
+  assertPointAlmostEqual(start, { x: 1, y: 0 });
+
+  const end = evaluateRationalBSpline(control, weights, knots, 1, { degree: 2 });
+  assertPointAlmostEqual(end, { x: 0, y: 1 });
+
+  const mid = evaluateRationalBSpline(control, weights, knots, 0.5, { degree: 2 });
+  assertPointAlmostEqual(mid, { x: Math.SQRT1_2, y: Math.SQRT1_2 }, 1e-6);
+});
+
+test('rationalBSplineTangent returns unit-length directions along the curve', () => {
+  const control = [
+    { x: 1, y: 0 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 },
+  ];
+  const weights = [1, Math.SQRT1_2, 1];
+  const knots = [0, 0, 0, 1, 1, 1];
+
+  const tangentStart = rationalBSplineTangent(control, weights, knots, 0, { degree: 2 });
+  assertPointAlmostEqual(tangentStart, { x: 0, y: 1 }, 5e-3);
+  assert.ok(approxEqual(Math.hypot(tangentStart.x, tangentStart.y), 1, 1e-6));
+
+  const tangentMid = rationalBSplineTangent(control, weights, knots, 0.5, { degree: 2 });
+  const expectedMid = safeDirection({ x: -Math.SQRT1_2, y: Math.SQRT1_2 });
+  assertPointAlmostEqual(tangentMid, expectedMid, 5e-3);
+});
+
+test('sampleRationalBSpline respects endpoint inclusion and segment counts', () => {
+  const control = [
+    { x: 1, y: 0 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 },
+  ];
+  const weights = [1, Math.SQRT1_2, 1];
+  const knots = [0, 0, 0, 1, 1, 1];
+
+  const samples = sampleRationalBSpline(control, weights, knots, { degree: 2, segments: 4 });
+  assert.equal(samples.length, 5);
+  assertPointAlmostEqual(samples[0], { x: 1, y: 0 });
+  assertPointAlmostEqual(samples.at(-1), { x: 0, y: 1 });
+
+  const midpoint = samples[2];
+  assert.ok(midpoint.x < samples[1].x);
+  assert.ok(midpoint.y > samples[1].y);
+
+  const offsetSamples = sampleRationalBSpline(control, weights, knots, {
+    degree: 2,
+    segments: 3,
+    includeEndpoints: false,
+  });
+  assert.equal(offsetSamples.length, 3);
+  offsetSamples.forEach((pt) => {
+    assert.ok(pt.x < 1);
+    assert.ok(pt.y > 0);
+  });
 });
 
 test('simplifyDouglasPeucker reduces redundant points for open and closed paths', () => {
