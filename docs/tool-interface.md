@@ -28,6 +28,16 @@ export function makePencil(store) {
 
 Factories may close over helper functions or caches.  They should never reuse mutable state across different tools; create fresh state inside the factory body.
 
+### Tool manifest and categories
+
+[`src/tools/_base/manifest.js`](../src/tools/_base/manifest.js) declares the canonical list of built-in tools grouped by category.  Each entry stores the tool identifier and the factory used to instantiate it.  The manifest is frozen at load time so tests and editor panels can rely on a stable structure.  Helper utilities exported alongside the manifest include:
+
+- `flattenToolManifest(manifest)` — returns a flat array of tool entries while preserving category membership metadata.
+- `collectToolIds(manifest)` — returns an array of identifiers, useful for checking uniqueness.
+- `DEFAULT_TOOL_IDS` — frozen array of all shipped tool ids.
+
+[`registerDefaultTools`](../src/tools/_base/registry.js) simply flattens the manifest, instantiates each factory, and passes the resulting tool objects to the engine.  Consumers that only need the instantiated tool objects (for example previewing tool metadata in a panel) can call `createDefaultTools(store)` to obtain the same array without registering them on an engine instance.
+
 ## Required properties
 
 All tool objects **must** define the following members:
