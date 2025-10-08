@@ -1,5 +1,6 @@
 import { nurbs, computeAABB } from '../../utils/geometry/index.js';
 import { engine } from '../../main.js';
+import { applyStrokeStyle } from '../../utils/stroke-style.js';
 
 export function makeNURBS(store) {
   const id = 'nurbs';
@@ -22,6 +23,7 @@ export function makeNURBS(store) {
     ctx.save();
     ctx.lineWidth = s.brushSize;
     ctx.strokeStyle = s.primaryColor;
+    applyStrokeStyle(ctx, s);
     ctx.beginPath();
     ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
     for (let i = 1; i < cr.length; i++) {
@@ -81,6 +83,7 @@ export function makeNURBS(store) {
       octx.save();
       octx.lineWidth = s.brushSize;
       octx.strokeStyle = s.primaryColor;
+      applyStrokeStyle(octx, s);
 
       const need = 4;
       if (pts.length >= need) {

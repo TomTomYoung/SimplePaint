@@ -1,3 +1,5 @@
+import { applyStrokeStyle } from '../../utils/stroke-style.js';
+
 export function makeSector(store) {
         const id = 'sector';
         let stage = 0,
@@ -24,15 +26,14 @@ export function makeSector(store) {
               const s = store.getToolState(id);
               ctx.save();
               ctx.lineWidth = s.brushSize;
-              ctx.fillStyle = store.getToolState(id).fillOn
-                ? s.secondaryColor
-                : 'transparent';
+              ctx.fillStyle = s.secondaryColor;
               ctx.strokeStyle = s.primaryColor;
+              applyStrokeStyle(ctx, s);
               ctx.beginPath();
               ctx.moveTo(cx, cy);
               ctx.arc(cx, cy, r, start, end);
               ctx.closePath();
-              if (store.getToolState(id).fillOn) ctx.fill();
+              if (s.fillOn) ctx.fill();
               ctx.stroke();
               ctx.restore();
               eng.expandPendingRectByRect(
@@ -56,10 +57,18 @@ export function makeSector(store) {
               octx.save();
               octx.lineWidth = s.brushSize;
               octx.strokeStyle = s.primaryColor;
+              applyStrokeStyle(octx, s);
               octx.beginPath();
               octx.moveTo(cx, cy);
               octx.arc(cx, cy, r, start, end);
               octx.closePath();
+              if (s.fillOn) {
+                octx.save();
+                octx.globalAlpha = 0.2;
+                octx.fillStyle = s.secondaryColor;
+                octx.fill();
+                octx.restore();
+              }
               octx.stroke();
               octx.restore();
             }
