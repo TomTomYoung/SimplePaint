@@ -125,6 +125,76 @@ export function evaluateCatmullRom(p0, p1, p2, p3, t, { alpha = 0.5 } = {}) {
   return evaluateCatmullRomSegment(p0, p1, p2, p3, t, clampedAlpha);
 }
 
+function evaluateUniformCubicBSplineSegment(p0, p1, p2, p3, t) {
+  const clamped = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0));
+  const tt = clamped * clamped;
+  const ttt = tt * clamped;
+  const b0 = (-ttt + 3 * tt - 3 * clamped + 1) / 6;
+  const b1 = (3 * ttt - 6 * tt + 4) / 6;
+  const b2 = (-3 * ttt + 3 * tt + 3 * clamped + 1) / 6;
+  const b3 = ttt / 6;
+  return {
+    x: b0 * p0.x + b1 * p1.x + b2 * p2.x + b3 * p3.x,
+    y: b0 * p0.y + b1 * p1.y + b2 * p2.y + b3 * p3.y,
+  };
+}
+
+function uniformCubicBSplineDerivative(p0, p1, p2, p3, t) {
+  const clamped = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0));
+  const tt = clamped * clamped;
+  const db0 = (-tt + 2 * clamped - 1) / 2;
+  const db1 = (1.5 * tt - 2 * clamped);
+  const db2 = (-1.5 * tt + clamped + 0.5);
+  const db3 = 0.5 * tt;
+  return {
+    x: db0 * p0.x + db1 * p1.x + db2 * p2.x + db3 * p3.x,
+    y: db0 * p0.y + db1 * p1.y + db2 * p2.y + db3 * p3.y,
+  };
+}
+
+/**
+ * Evaluate a uniform cubic B-spline segment defined by four control points.
+ * @param {{x:number,y:number}} p0
+ * @param {{x:number,y:number}} p1
+ * @param {{x:number,y:number}} p2
+ * @param {{x:number,y:number}} p3
+ * @param {number} t Normalised parameter in [0,1]
+ * @returns {{x:number,y:number}}
+ */
+export function evaluateUniformCubicBSpline(p0, p1, p2, p3, t) {
+  if (!Number.isFinite(t)) {
+    throw new Error('t must be a finite number');
+  }
+  if (t <= 0) {
+    return evaluateUniformCubicBSplineSegment(p0, p1, p2, p3, 0);
+  }
+  if (t >= 1) {
+    return evaluateUniformCubicBSplineSegment(p0, p1, p2, p3, 1);
+  }
+  return evaluateUniformCubicBSplineSegment(p0, p1, p2, p3, t);
+}
+
+/**
+ * Compute the unit tangent for a uniform cubic B-spline segment.
+ * @param {{x:number,y:number}} p0
+ * @param {{x:number,y:number}} p1
+ * @param {{x:number,y:number}} p2
+ * @param {{x:number,y:number}} p3
+ * @param {number} t Normalised parameter in [0,1]
+ * @returns {{x:number,y:number}}
+ */
+export function uniformCubicBSplineTangent(p0, p1, p2, p3, t) {
+  if (!Number.isFinite(t)) {
+    throw new Error('t must be a finite number');
+  }
+  const derivative = uniformCubicBSplineDerivative(p0, p1, p2, p3, t);
+  const length = Math.hypot(derivative.x, derivative.y);
+  if (length <= EPSILON) {
+    return { x: 0, y: 0 };
+  }
+  return { x: derivative.x / length, y: derivative.y / length };
+}
+
 /**
  * Pre-compute cumulative arc-lengths for a polyline or polygon.
  * @param {Array<{x:number,y:number}>} points
@@ -540,6 +610,106 @@ export function chaikinSmooth(points, iterations = 1, { closed = false, preserve
   }
 
   return current;
+}
+
+/**
+ * Sample a uniform cubic B-spline defined by the provided control points.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {number} [segmentsPerCurve=8]
+ * @param {{closed?:boolean}} [options]
+ * @returns {Array<{x:number,y:number}>}
+ */
+export function sampleUniformBSpline(points, segmentsPerCurve = 8, { closed = false } = {}) {
+  const count = points.length;
+  if (count === 0) return [];
+  if (!closed && count < 4) {
+    return clonePoints(points);
+  }
+  if (closed && count < 2) {
+    return [];
+  }
+
+  const segments = Math.max(1, Math.floor(segmentsPerCurve));
+  const segmentCount = closed ? count : count - 3;
+  if (segmentCount <= 0) {
+    return clonePoints(points);
+  }
+
+  const samples = [];
+  for (let i = 0; i < segmentCount; i++) {
+    const p0 = getPointAtIndex(points, i, closed);
+    const p1 = getPointAtIndex(points, i + 1, closed);
+    const p2 = getPointAtIndex(points, i + 2, closed);
+    const p3 = getPointAtIndex(points, i + 3, closed);
+    if (!p0 || !p1 || !p2 || !p3) continue;
+
+    if (i === 0) {
+      pushUniquePoint(samples, evaluateUniformCubicBSplineSegment(p0, p1, p2, p3, 0));
+    }
+
+    for (let step = 1; step <= segments; step++) {
+      const t = step / segments;
+      const sample = evaluateUniformCubicBSplineSegment(p0, p1, p2, p3, t);
+      pushUniquePoint(samples, sample);
+    }
+  }
+
+  if (closed && samples.length && !pointsApproximatelyEqual(samples[0], samples.at(-1))) {
+    samples.push(clonePoint(samples[0]));
+  }
+
+  return samples;
+}
+
+/**
+ * Convert a uniform cubic B-spline into equivalent cubic Bézier segments.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {{closed?:boolean}} [options]
+ * @returns {Array<[{{x:number,y:number}},{{x:number,y:number}},{{x:number,y:number}},{{x:number,y:number}}]>}
+ */
+export function uniformBSplineToBezierSegments(points, { closed = false } = {}) {
+  const count = points.length;
+  if (!closed && count < 4) {
+    return [];
+  }
+  if (closed && count < 2) {
+    return [];
+  }
+
+  const segmentCount = closed ? count : count - 3;
+  if (segmentCount <= 0) {
+    return [];
+  }
+
+  const segments = [];
+  for (let i = 0; i < segmentCount; i++) {
+    const p0 = getPointAtIndex(points, i, closed);
+    const p1 = getPointAtIndex(points, i + 1, closed);
+    const p2 = getPointAtIndex(points, i + 2, closed);
+    const p3 = getPointAtIndex(points, i + 3, closed);
+    if (!p0 || !p1 || !p2 || !p3) continue;
+
+    const bez0 = {
+      x: (p0.x + 4 * p1.x + p2.x) / 6,
+      y: (p0.y + 4 * p1.y + p2.y) / 6,
+    };
+    const bez1 = {
+      x: (4 * p1.x + 2 * p2.x) / 6,
+      y: (4 * p1.y + 2 * p2.y) / 6,
+    };
+    const bez2 = {
+      x: (2 * p1.x + 4 * p2.x) / 6,
+      y: (2 * p1.y + 4 * p2.y) / 6,
+    };
+    const bez3 = {
+      x: (p1.x + 4 * p2.x + p3.x) / 6,
+      y: (p1.y + 4 * p2.y + p3.y) / 6,
+    };
+
+    segments.push([bez0, bez1, bez2, bez3]);
+  }
+
+  return segments;
 }
 
 function douglasPeucker(points, toleranceSquared) {

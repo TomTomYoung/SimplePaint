@@ -14,6 +14,10 @@ import {
   sampleCatmullRom,
   evaluateCatmullRom,
   catmullRomToBezierSegments,
+  evaluateUniformCubicBSpline,
+  uniformCubicBSplineTangent,
+  sampleUniformBSpline,
+  uniformBSplineToBezierSegments,
 } from '../../src/utils/path.js';
 
 import { evaluateCubicBezier } from '../../src/utils/bezier.js';
@@ -197,6 +201,109 @@ test('chaikinSmooth handles closed paths without duplicating the start point', (
   const smoothed = chaikinSmooth(square, 1, { closed: true });
   assert.ok(smoothed.length === square.length * 2);
   assert.notDeepEqual(smoothed[0], smoothed.at(-1));
+});
+
+const uniformBSplineBasis = (p0, p1, p2, p3, t) => {
+  const tt = t * t;
+  const ttt = tt * t;
+  const b0 = (-ttt + 3 * tt - 3 * t + 1) / 6;
+  const b1 = (3 * ttt - 6 * tt + 4) / 6;
+  const b2 = (-3 * ttt + 3 * tt + 3 * t + 1) / 6;
+  const b3 = ttt / 6;
+  return {
+    x: b0 * p0.x + b1 * p1.x + b2 * p2.x + b3 * p3.x,
+    y: b0 * p0.y + b1 * p1.y + b2 * p2.y + b3 * p3.y,
+  };
+};
+
+test('evaluateUniformCubicBSpline matches the analytic basis evaluation', () => {
+  const p0 = { x: 0, y: 0 };
+  const p1 = { x: 1, y: 2 };
+  const p2 = { x: 3, y: 3 };
+  const p3 = { x: 4, y: 0 };
+
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+    const expected = uniformBSplineBasis(p0, p1, p2, p3, t);
+    const actual = evaluateUniformCubicBSpline(p0, p1, p2, p3, t);
+    assertPointAlmostEqual(actual, expected);
+  }
+});
+
+test('uniformCubicBSplineTangent aligns with finite difference estimates', () => {
+  const control = [
+    { x: 0, y: 0 },
+    { x: 1, y: 2 },
+    { x: 2, y: 3 },
+    { x: 4, y: 1 },
+  ];
+  const delta = 1e-3;
+
+  for (const t of [0.1, 0.4, 0.8]) {
+    const tangent = uniformCubicBSplineTangent(...control, t);
+    const prev = evaluateUniformCubicBSpline(...control, Math.max(0, t - delta));
+    const next = evaluateUniformCubicBSpline(...control, Math.min(1, t + delta));
+    const vx = next.x - prev.x;
+    const vy = next.y - prev.y;
+    const length = Math.hypot(vx, vy);
+    const approx = length > 0 ? { x: vx / length, y: vy / length } : { x: 0, y: 0 };
+    assertPointAlmostEqual(tangent, approx, 5e-3);
+  }
+});
+
+test('sampleUniformBSpline returns smooth samples for open and closed curves', () => {
+  const open = [
+    { x: 0, y: 0 },
+    { x: 1, y: 2 },
+    { x: 3, y: 3 },
+    { x: 4, y: 1 },
+    { x: 6, y: 0 },
+  ];
+  const openSamples = sampleUniformBSpline(open, 4);
+  const expectedOpen = (open.length - 3) * 4 + 1;
+  assert.equal(openSamples.length, expectedOpen);
+  assertPointAlmostEqual(openSamples[0], evaluateUniformCubicBSpline(open[0], open[1], open[2], open[3], 0));
+  assertPointAlmostEqual(
+    openSamples.at(-1),
+    evaluateUniformCubicBSpline(open.at(-4), open.at(-3), open.at(-2), open.at(-1), 1),
+  );
+
+  const closed = [
+    { x: 0, y: 0 },
+    { x: 2, y: 0 },
+    { x: 2, y: 2 },
+    { x: 0, y: 2 },
+  ];
+  const closedSamples = sampleUniformBSpline(closed, 3, { closed: true });
+  const expectedClosed = closed.length * 3 + 1;
+  assert.equal(closedSamples.length, expectedClosed);
+  assertPointAlmostEqual(closedSamples[0], closedSamples.at(-1));
+});
+
+test('uniformBSplineToBezierSegments matches B-spline evaluation per segment', () => {
+  const points = [
+    { x: 0, y: 0 },
+    { x: 1, y: 2 },
+    { x: 3, y: 3 },
+    { x: 4, y: 1 },
+    { x: 5, y: -1 },
+    { x: 7, y: 0 },
+  ];
+
+  const segments = uniformBSplineToBezierSegments(points);
+  assert.equal(segments.length, points.length - 3);
+
+  for (let i = 0; i < segments.length; i++) {
+    const bez = segments[i];
+    const p0 = points[i];
+    const p1 = points[i + 1];
+    const p2 = points[i + 2];
+    const p3 = points[i + 3];
+    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+      const splinePoint = evaluateUniformCubicBSpline(p0, p1, p2, p3, t);
+      const bezPoint = evaluateCubicBezier(...bez, t);
+      assertPointAlmostEqual(bezPoint, splinePoint, 1e-6);
+    }
+  }
 });
 
 test('simplifyDouglasPeucker reduces redundant points for open and closed paths', () => {
