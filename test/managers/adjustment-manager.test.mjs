@@ -108,6 +108,16 @@ function createDocumentEnvironment() {
   };
 }
 
+function resetMockCanvas(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRectCalls = [];
+  ctx.drawImageCalls = [];
+  ctx.getImageDataCalls = [];
+  ctx.putImageDataCalls = [];
+  ctx.imageData = null;
+  return ctx;
+}
+
 function resetAdjustmentControls(values = {}) {
   const defaults = {
     brightness: '0',
@@ -175,7 +185,7 @@ test('updatePreview prefers floating selection and requests repaint', () => {
   const floatCanvas = createMockCanvas('float');
   floatCanvas.width = 8;
   floatCanvas.height = 6;
-  floatCanvas.getContext('2d').imageData = new ImageData(8, 6);
+  resetMockCanvas(floatCanvas).imageData = new ImageData(8, 6);
   const engine = {
     selection: {
       floatCanvas,
@@ -206,6 +216,66 @@ test('updatePreview prefers floating selection and requests repaint', () => {
   assert.equal(repaintCalls, 1);
 });
 
+test('updatePreview draws from base bitmap when selection lacks float canvas', () => {
+  resetAdjustmentControls({
+    brightness: '25',
+    contrast: '10',
+  });
+
+  const engine = {
+    selection: {
+      rect: { x: 2, y: 3, w: 4, h: 3 },
+    },
+    filterPreview: null,
+    requestRepaint: () => {},
+  };
+
+  const manager = new AdjustmentManager(engine, [], 0);
+  layerModule.bmp.width = 12;
+  layerModule.bmp.height = 8;
+  resetMockCanvas(layerModule.bmp).imageData = new ImageData(12, 8);
+
+  const createdCanvases = [];
+  const originalCreateElement = document.createElement;
+  document.createElement = function patchedCreateElement(tag) {
+    const element = originalCreateElement.call(this, tag);
+    if (tag === 'canvas') {
+      createdCanvases.push(element);
+    }
+    return element;
+  };
+
+  try {
+    manager.updatePreview();
+  } finally {
+    document.createElement = originalCreateElement;
+  }
+
+  const sourceCanvas = createdCanvases[0];
+  const resultCanvas = createdCanvases.at(-1);
+
+  assert.ok(sourceCanvas);
+  assert.ok(resultCanvas);
+  assert.notStrictEqual(sourceCanvas, resultCanvas);
+  assert.strictEqual(sourceCanvas.width, 4);
+  assert.strictEqual(sourceCanvas.height, 3);
+  assert.strictEqual(resultCanvas.width, 4);
+  assert.strictEqual(resultCanvas.height, 3);
+
+  const srcCtx = sourceCanvas.getContext('2d');
+  assert.deepEqual(srcCtx.drawImageCalls, [[layerModule.bmp, 2, 3, 4, 3, 0, 0, 4, 3]]);
+  assert.equal(srcCtx.getImageDataCalls.length, 1);
+
+  const bmpContext = layerModule.bmp.getContext('2d');
+  assert.equal(bmpContext.drawImageCalls.length, 0);
+  assert.equal(bmpContext.getImageDataCalls.length, 0);
+  assert.deepEqual(engine.filterPreview, {
+    canvas: engine.filterPreview.canvas,
+    x: 2,
+    y: 3,
+  });
+});
+
 test('applyFilter commits preview to the active layer and records history', () => {
   resetAdjustmentControls();
 
@@ -232,7 +302,7 @@ test('applyFilter commits preview to the active layer and records history', () =
   const manager = new AdjustmentManager(engine, layersRef, 0);
   layerModule.bmp.width = 5;
   layerModule.bmp.height = 7;
-  layerModule.bmp.getContext('2d').imageData = new ImageData(5, 7);
+  resetMockCanvas(layerModule.bmp).imageData = new ImageData(5, 7);
   manager.updatePreview();
 
   assert.deepEqual(engine.filterPreview, {
@@ -264,4 +334,84 @@ test('applyFilter commits preview to the active layer and records history', () =
   assert.deepEqual(pushedPatch.rect, { x: 0, y: 0, w: 5, h: 7 });
   assert.strictEqual(pushedPatch.before, ctx.getImageDataCalls[0].result);
   assert.strictEqual(pushedPatch.after, ctx.getImageDataCalls[1].result);
+});
+
+test('applyFilter replaces floating selection buffer without history entry', () => {
+  resetAdjustmentControls({ invert: true });
+
+  let repaintCalls = 0;
+  const floatCanvas = createMockCanvas('float');
+  floatCanvas.width = 6;
+  floatCanvas.height = 6;
+  resetMockCanvas(floatCanvas).imageData = new ImageData(6, 6);
+
+  const engine = {
+    selection: {
+      floatCanvas,
+      pos: { x: 4, y: 5 },
+    },
+    filterPreview: null,
+    requestRepaint() {
+      repaintCalls += 1;
+    },
+    beginStrokeSnapshot: () => {
+      throw new Error('should not snapshot floating selection');
+    },
+    history: {
+      pushPatch() {
+        throw new Error('should not push history for floating selection');
+      },
+    },
+  };
+
+  const manager = new AdjustmentManager(engine, [], 0);
+  manager.updatePreview();
+
+  const previewCanvas = engine.filterPreview.canvas;
+  assert.ok(previewCanvas);
+
+  manager.applyFilter();
+
+  assert.strictEqual(engine.selection.floatCanvas, previewCanvas);
+  assert.strictEqual(engine.filterPreview, null);
+  assert.equal(repaintCalls, 2);
+});
+
+test('clearPreview removes preview canvas and triggers repaint', () => {
+  resetAdjustmentControls();
+
+  let repaintCalls = 0;
+  const engine = {
+    selection: null,
+    filterPreview: { canvas: createMockCanvas('existing'), x: 0, y: 0 },
+    requestRepaint() {
+      repaintCalls += 1;
+    },
+  };
+
+  const manager = new AdjustmentManager(engine, [], 0);
+
+  manager.clearPreview();
+
+  assert.strictEqual(engine.filterPreview, null);
+  assert.equal(repaintCalls, 1);
+});
+
+test('startPreview delegates to updatePreview', () => {
+  resetAdjustmentControls();
+
+  let updated = 0;
+  const engine = {
+    selection: null,
+    filterPreview: null,
+    requestRepaint() {},
+  };
+  const manager = new AdjustmentManager(engine, [], 0);
+  manager.updatePreview = () => {
+    updated += 1;
+  };
+
+  manager.startPreview();
+
+  assert.equal(updated, 1);
 });
