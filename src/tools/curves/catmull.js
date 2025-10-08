@@ -1,6 +1,6 @@
-import { catmullRomSpline, computeAABB } from '../utils/geometry.js';
-import { bctx } from '../core/layer.js';
-import { engine } from '../main.js';
+import { catmullRomSpline, computeAABB } from '../../utils/geometry.js';
+import { bctx } from '../../core/layer.js';
+import { engine } from '../../main.js';
 
 export function makeCatmull(store) {
   const id = 'catmull';

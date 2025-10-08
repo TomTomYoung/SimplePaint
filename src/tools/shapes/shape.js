@@ -1,4 +1,4 @@
-import { drawEllipsePath } from '../utils/drawing.js';
+import { drawEllipsePath } from '../../utils/drawing.js';
 
 export function makeShape(kind, store) {
   let drawing = false,
