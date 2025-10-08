@@ -19,6 +19,15 @@ const nowFmt = () => new Date().toLocaleTimeString();
 
 function handleAutosaveStatus(event) {
   switch (event.type) {
+    case 'saving':
+      updateAutosaveBadge('AutoSave: 保存中…');
+      break;
+    case 'paused':
+      updateAutosaveBadge('AutoSave: 一時停止');
+      break;
+    case 'resumed':
+      updateAutosaveBadge('AutoSave: 再開');
+      break;
     case 'saved':
       updateAutosaveBadge('AutoSave: ' + nowFmt());
       break;
@@ -61,6 +70,8 @@ function ensureAutosaveController() {
     applySnapshot: (snapshot) =>
       applySnapshotToDocument({ engine, fitToScreen, image: snapshot }),
     onStatus: handleAutosaveStatus,
+    eventBus: engine?.eventBus,
+    eventNames: ['store:updated'],
   });
   autosaveController.start();
   return autosaveController;
@@ -102,7 +113,7 @@ export function initIO(eng, fitFunc) {
   });
 
   window.addEventListener('beforeunload', () => {
-    saveSession();
+    ensureAutosaveController().flush();
   });
 }
 
