@@ -22,7 +22,7 @@ import {
   lchToLab,
   rgbToLch,
   lchToRgb,
-} from '../../src/utils/color-space.js';
+} from '../../src/utils/color/space.js';
 
 const approx = (actual, expected, epsilon = 1e-6) => {
   assert.ok(

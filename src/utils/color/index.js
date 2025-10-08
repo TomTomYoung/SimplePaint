@@ -34,3 +34,26 @@ export const hexToRgb = (hex) => {
 };
 
 export const rgbaToString = (r, g, b, a = 1) => `rgba(${r}, ${g}, ${b}, ${a})`;
+
+export {
+  normalizeRgb,
+  denormalizeRgb,
+  normalizeAlpha,
+  denormalizeAlpha,
+  rgbToHsv,
+  hsvToRgb,
+  rgbToHsl,
+  hslToRgb,
+  srgbToLinear,
+  linearToSrgb,
+  rgbToXyz,
+  xyzToRgb,
+  xyzToLab,
+  labToXyz,
+  rgbToLab,
+  labToRgb,
+  labToLch,
+  lchToLab,
+  rgbToLch,
+  lchToRgb,
+} from './space.js';

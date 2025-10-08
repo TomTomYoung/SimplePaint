@@ -10,7 +10,7 @@ import {
   distanceToSegment,
   segmentIntersection,
   pointInPolygon,
-} from '../../src/utils/geometry.js';
+} from '../../src/utils/geometry/index.js';
 
 const approxEqual = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
 

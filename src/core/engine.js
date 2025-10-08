@@ -1,5 +1,5 @@
 import { layers, activeLayer, bmp, renderLayers } from './layer.js';
-import { getDevicePixelRatio, resizeCanvasToDisplaySize } from '../utils/canvas-helpers.js';
+import { getDevicePixelRatio, resizeCanvasToDisplaySize } from '../utils/canvas/index.js';
 import { cancelTextEditing, getActiveEditor } from '../managers/text-editor.js';
 import { openImageFile } from '../io/index.js';
 import { updateStatus, updateZoom } from '../gui/statusbar.js';

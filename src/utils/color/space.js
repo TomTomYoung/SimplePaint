@@ -3,7 +3,7 @@
  * 入力: 0〜1 の RGB/HSV 値
  * 出力: 変換後の色成分
  */
-import { clamp01 } from './math.js';
+import { clamp01 } from '../math/index.js';
 
 const clampUnit = (value) => clamp01(value);
 

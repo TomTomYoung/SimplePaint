@@ -17,8 +17,8 @@ import {
   applyErosion,
   applyMorphologicalOpening,
   applyMorphologicalClosing,
-} from '../../src/utils/image-processing.js';
-import { rgbToHsl } from '../../src/utils/color-space.js';
+} from '../../src/utils/image/processing.js';
+import { rgbToHsl } from '../../src/utils/color/space.js';
 
 if (typeof ImageData === 'undefined') {
   globalThis.ImageData = class ImageData {

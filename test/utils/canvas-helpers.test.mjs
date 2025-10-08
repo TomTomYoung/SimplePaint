@@ -10,7 +10,7 @@ import {
   computeContainFit,
   computeCoverFit,
   clearCanvas,
-} from '../../src/utils/canvas-helpers.js';
+} from '../../src/utils/canvas/index.js';
 
 test('getDevicePixelRatio falls back to 1 when window is unavailable', () => {
   delete globalThis.window;
