@@ -83,6 +83,12 @@ This document describes the public modules exposed by the SimplePaint runtime. I
 
 See [tool-interface.md](./tool-interface.md) for the contract that custom tools must satisfy.
 
+### `src/types/tool.js`
+- **`ToolPointerEvent`** – normalised payload passed to tool pointer handlers.
+- **`Tool`** – structural contract for tool objects registered with the engine.
+- **`ToolFactory`** – factory signature used by the manifest and registry helpers.
+- **`ToolManifest` / `ToolManifestEntry` / `ToolManifestCategory`** – data structures describing the manifest and category layout.
+
 ## Extensibility Hooks
 
 - **Tool registration** – call `registerDefaultTools(engine, store, manifest)` with a manifest that includes your custom entries, or manually `engine.register` the tool object returned by your factory.

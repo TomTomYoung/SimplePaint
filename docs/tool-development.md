@@ -11,6 +11,10 @@ This guide explains how to build a custom tool for SimplePaint using the manifes
 // src/tools/drawing/spray.js
 import { sampleGaussian } from '../../utils/math/random.js';
 
+/** @typedef {import('../../types/tool.js').ToolFactory} ToolFactory */
+/** @typedef {import('../../types/tool.js').ToolPointerEvent} ToolPointerEvent */
+
+/** @type {ToolFactory} */
 export function makeSpray(store) {
   const id = 'spray';
   let drawing = false;
@@ -27,6 +31,7 @@ export function makeSpray(store) {
   return {
     id,
     cursor: 'crosshair',
+    /** @param {ToolPointerEvent} event */
     onPointerDown(ctx, event, engine) {
       drawing = true;
       engine.clearSelection();
@@ -34,6 +39,7 @@ export function makeSpray(store) {
       engine.expandPendingRect(event.img.x, event.img.y, settings.brushSize ?? 12);
       stamp(ctx, event.img.x, event.img.y);
     },
+    /** @param {ToolPointerEvent} event */
     onPointerMove(ctx, event, engine) {
       if (!drawing) return;
       const settings = store.getToolState(id);
@@ -81,6 +87,16 @@ registerDefaultTools(engine, store, manifestWithSpray);
 ## 3. Tool Context
 
 The factory receives the shared `Store` instance. Use the store to read and persist settings and call methods on the `Engine` instance that is supplied to every lifecycle handler.
+
+Pointer handlers receive a [`ToolPointerEvent`](../src/types/tool.js) which normalises DOM pointer events:
+
+- `event.sx` / `event.sy` – screen-space coordinates relative to the canvas element.
+- `event.img` – `{ x, y }` coordinates mapped into image space through the viewport.
+- `event.button` / `event.detail` – pointer button index and click count.
+- `event.shift`, `event.ctrl`, `event.alt` – modifier state flags (`ctrl` includes `meta` on macOS).
+- `event.pressure` – stylus pressure value in the range `[0, 1]`.
+- `event.pointerId` – stable identifier for pointer capture logic.
+- `event.type` – original DOM pointer event type.
 
 ## 4. State Management
 
