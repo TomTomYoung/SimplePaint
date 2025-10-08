@@ -1,3 +1,5 @@
+import { applyStrokeStyle } from '../../utils/stroke-style.js';
+
 export function makeQuadratic(store) {
         const id = 'quad';
         let stage = 0,
@@ -21,6 +23,7 @@ export function makeQuadratic(store) {
               ctx.save();
               ctx.lineWidth = s.brushSize;
               ctx.strokeStyle = s.primaryColor;
+              applyStrokeStyle(ctx, s);
               ctx.beginPath();
               ctx.moveTo(p0.x + 0.5, p0.y + 0.5);
               ctx.quadraticCurveTo(
@@ -57,6 +60,7 @@ export function makeQuadratic(store) {
               octx.save();
               octx.lineWidth = s.brushSize;
               octx.strokeStyle = s.primaryColor;
+              applyStrokeStyle(octx, s);
               octx.beginPath();
               octx.moveTo(p0.x + 0.5, p0.y + 0.5);
               octx.quadraticCurveTo(

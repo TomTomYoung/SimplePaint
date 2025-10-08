@@ -1,6 +1,7 @@
 import { catmullRomSpline, computeAABB } from '../../utils/geometry/index.js';
 import { bctx } from '../../core/layer.js';
 import { engine } from '../../main.js';
+import { applyStrokeStyle } from '../../utils/stroke-style.js';
 
 export function makeCatmull(store) {
   const id = 'catmull';
@@ -21,6 +22,7 @@ export function makeCatmull(store) {
     ctx.save();
     ctx.lineWidth = s.brushSize;
     ctx.strokeStyle = s.primaryColor;
+    applyStrokeStyle(ctx, s);
     ctx.beginPath();
     ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
     for (let i = 1; i < cr.length; i++)
@@ -71,9 +73,11 @@ export function makeCatmull(store) {
     drawPreview(octx) {
       if (pts.length > 1) {
         const cr = catmullRomSpline(pts);
+        const state = store.getToolState(id);
         octx.save();
-        octx.lineWidth = store.getToolState(id).brushSize;
-        octx.strokeStyle = store.getToolState(id).primaryColor;
+        octx.lineWidth = state.brushSize;
+        octx.strokeStyle = state.primaryColor;
+        applyStrokeStyle(octx, state);
         octx.beginPath();
         octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
         for (let i = 1; i < cr.length; i++)

@@ -1,4 +1,31 @@
 import { drawEllipsePath } from '../../utils/drawing.js';
+import { applyStrokeStyle } from '../../utils/stroke-style.js';
+
+const clampCornerRadius = (value, width, height) => {
+  const maxRadius = Math.max(0, Math.min(width, height) / 2);
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  return Math.min(numeric, maxRadius);
+};
+
+const beginRoundedRectPath = (ctx, x, y, w, h, radius) => {
+  if (radius <= 0) {
+    ctx.rect(x, y, w, h);
+    return;
+  }
+  const r = Math.min(radius, Math.min(w, h) / 2);
+  const x2 = x + w;
+  const y2 = y + h;
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x2 - r, y);
+  ctx.quadraticCurveTo(x2, y, x2, y + r);
+  ctx.lineTo(x2, y2 - r);
+  ctx.quadraticCurveTo(x2, y2, x2 - r, y2);
+  ctx.lineTo(x + r, y2);
+  ctx.quadraticCurveTo(x, y2, x, y2 - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+};
 
 export function makeShape(kind, store) {
   let drawing = false,
@@ -64,10 +91,13 @@ export function makeShape(kind, store) {
         fillColor = state.secondaryColor;
       const lineWidth = state.brushSize,
         fillOn = state.fillOn;
+      const dashPattern = state.dashPattern;
+      const capStyle = state.capStyle;
       ctx.save();
-      ctx.imageSmoothingEnabled = store.getToolState(kind).antialias;
+      ctx.imageSmoothingEnabled = !!state.antialias;
       ctx.lineWidth = lineWidth;
       ctx.strokeStyle = strokeColor;
+      applyStrokeStyle(ctx, { dashPattern, capStyle });
       ctx.fillStyle = fillColor;
       if (kind === 'line') {
         ctx.beginPath();
@@ -85,8 +115,15 @@ export function makeShape(kind, store) {
           y = Math.min(s.y, cur.y),
           w = Math.abs(cur.x - s.x),
           h = Math.abs(cur.y - s.y);
-        if (fillOn) ctx.fillRect(x, y, w, h);
-        ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+        const radius = clampCornerRadius(state.cornerRadius, w, h);
+        if (fillOn) {
+          ctx.beginPath();
+          beginRoundedRectPath(ctx, x, y, w, h, radius);
+          ctx.fill();
+        }
+        ctx.beginPath();
+        beginRoundedRectPath(ctx, x + 0.5, y + 0.5, w, h, radius);
+        ctx.stroke();
         eng.expandPendingRectByRect(
           x - lineWidth,
           y - lineWidth,

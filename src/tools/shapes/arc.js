@@ -1,3 +1,5 @@
+import { applyStrokeStyle } from '../../utils/stroke-style.js';
+
 export function makeArc(store) {
         const id = 'arc';
         let stage = 0,
@@ -25,6 +27,7 @@ export function makeArc(store) {
               ctx.save();
               ctx.lineWidth = s.brushSize;
               ctx.strokeStyle = s.primaryColor;
+              applyStrokeStyle(ctx, s);
               ctx.beginPath();
               ctx.arc(cx, cy, r, start, end);
               ctx.stroke();
@@ -52,6 +55,7 @@ export function makeArc(store) {
               octx.save();
               octx.lineWidth = s.brushSize;
               octx.strokeStyle = s.primaryColor;
+              applyStrokeStyle(octx, s);
               octx.beginPath();
               octx.arc(cx, cy, r, start, end);
               octx.stroke();

@@ -1,3 +1,5 @@
+import { applyStrokeStyle } from '../../utils/stroke-style.js';
+
 export function makeCubic(store) {
         const id = 'cubic';
         let stage = 0,
@@ -25,6 +27,7 @@ export function makeCubic(store) {
               ctx.save();
               ctx.lineWidth = s.brushSize;
               ctx.strokeStyle = s.primaryColor;
+              applyStrokeStyle(ctx, s);
               ctx.beginPath();
               ctx.moveTo(p0.x + 0.5, p0.y + 0.5);
               ctx.bezierCurveTo(
@@ -66,6 +69,7 @@ export function makeCubic(store) {
             octx.save();
             octx.lineWidth = s.brushSize;
             octx.strokeStyle = s.primaryColor;
+            applyStrokeStyle(octx, s);
             if (stage === 1 && p0 && p1) {
               octx.beginPath();
               octx.moveTo(p0.x + 0.5, p0.y + 0.5);
