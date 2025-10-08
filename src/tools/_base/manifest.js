@@ -198,3 +198,35 @@ export function collectToolIds(manifest = DEFAULT_TOOL_MANIFEST) {
 }
 
 export const DEFAULT_TOOL_IDS = Object.freeze(collectToolIds());
+
+export function createToolIndex(manifest = DEFAULT_TOOL_MANIFEST) {
+  const index = new Map();
+  manifest.forEach((category) => {
+    category.tools.forEach((entry) => {
+      if (index.has(entry.id)) {
+        throw new Error(`Duplicate tool id detected in manifest: ${entry.id}`);
+      }
+      index.set(entry.id, entry);
+    });
+  });
+  return index;
+}
+
+export function getToolEntryById(id, manifest = DEFAULT_TOOL_MANIFEST) {
+  if (!id) {
+    return null;
+  }
+  return createToolIndex(manifest).get(id) ?? null;
+}
+
+export function getToolCategoryForId(id, manifest = DEFAULT_TOOL_MANIFEST) {
+  if (!id) {
+    return null;
+  }
+  for (const category of manifest) {
+    if (category.tools.some((entry) => entry.id === id)) {
+      return category;
+    }
+  }
+  return null;
+}

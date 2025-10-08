@@ -35,6 +35,9 @@ Factories may close over helper functions or caches.  They should never reuse mu
 - `flattenToolManifest(manifest)` — returns a flat array of tool entries while preserving category membership metadata.
 - `collectToolIds(manifest)` — returns an array of identifiers, useful for checking uniqueness.
 - `DEFAULT_TOOL_IDS` — frozen array of all shipped tool ids.
+- `createToolIndex(manifest)` — returns a `Map` keyed by tool id, throwing if duplicates are encountered.
+- `getToolEntryById(id, manifest)` — fetches the manifest entry for a given id or `null` if it does not exist.
+- `getToolCategoryForId(id, manifest)` — returns the category record that contains the tool, useful for grouping UI widgets.
 
 [`registerDefaultTools`](../src/tools/_base/registry.js) simply flattens the manifest, instantiates each factory, and passes the resulting tool objects to the engine.  Consumers that only need the instantiated tool objects (for example previewing tool metadata in a panel) can call `createDefaultTools(store)` to obtain the same array without registering them on an engine instance.
 
