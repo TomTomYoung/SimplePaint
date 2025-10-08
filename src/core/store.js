@@ -220,6 +220,7 @@ export const toolDefaults = Object.freeze({
   secondaryColor: '#ffffff',
   fillOn: true,
   antialias: false,
+  opacity: 1,
   nurbsWeight: 1,
   fontFamily: 'system-ui, sans-serif',
   fontSize: 24,
