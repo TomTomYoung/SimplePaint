@@ -9,6 +9,8 @@ const EPSILON = 1e-9;
 
 const clonePoint = (point) => ({ x: point.x, y: point.y });
 
+const clonePoints = (points) => points.map(clonePoint);
+
 const positiveModulo = (value, modulus) => {
   const result = value % modulus;
   return result < 0 ? result + modulus : result;
@@ -40,6 +42,25 @@ export function computeArcLengthTable(points, { closed = false } = {}) {
   }
 
   return { total, lengths, closed };
+}
+
+function splitSegment(a, b) {
+  return {
+    q: {
+      x: 0.75 * a.x + 0.25 * b.x,
+      y: 0.75 * a.y + 0.25 * b.y,
+    },
+    r: {
+      x: 0.25 * a.x + 0.75 * b.x,
+      y: 0.25 * a.y + 0.75 * b.y,
+    },
+  };
+}
+
+function normalizeVector(x, y) {
+  const length = Math.hypot(x, y);
+  if (length <= EPSILON) return null;
+  return { x: x / length, y: y / length };
 }
 
 function sampleAlong(points, table, distance) {
@@ -270,6 +291,200 @@ export function resampleByCount(points, count, { closed = false, includeLast = f
     samples.push(clonePoint(samples[0]));
   }
   return samples;
+}
+
+/**
+ * Apply Chaikin smoothing to the provided path.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {number} [iterations=1]
+ * @param {{closed?:boolean,preserveEnds?:boolean}} [options]
+ * @returns {Array<{x:number,y:number}>}
+ */
+export function chaikinSmooth(points, iterations = 1, { closed = false, preserveEnds = true } = {}) {
+  if (!points.length) return [];
+  if (points.length === 1) return [clonePoint(points[0])];
+
+  const count = Math.max(0, Math.floor(iterations));
+  if (count === 0) {
+    return clonePoints(points);
+  }
+
+  let current = clonePoints(points);
+  for (let iter = 0; iter < count; iter++) {
+    if (current.length < 2) break;
+    const next = [];
+
+    if (closed) {
+      const segmentCount = current.length;
+      for (let i = 0; i < segmentCount; i++) {
+        const a = current[i];
+        const b = current[(i + 1) % segmentCount];
+        const { q, r } = splitSegment(a, b);
+        next.push(q, r);
+      }
+    } else {
+      const limit = current.length - 1;
+      if (preserveEnds) {
+        next.push(clonePoint(current[0]));
+      }
+      for (let i = 0; i < limit; i++) {
+        const { q, r } = splitSegment(current[i], current[i + 1]);
+        next.push(q, r);
+      }
+      if (preserveEnds) {
+        next.push(clonePoint(current[current.length - 1]));
+      }
+    }
+
+    current = next;
+  }
+
+  return current;
+}
+
+function douglasPeucker(points, toleranceSquared) {
+  const n = points.length;
+  if (n <= 2) {
+    return points.map(clonePoint);
+  }
+
+  const keep = new Array(n).fill(false);
+  keep[0] = true;
+  keep[n - 1] = true;
+
+  const stack = [[0, n - 1]];
+  while (stack.length) {
+    const [start, end] = stack.pop();
+    let maxDist = -1;
+    let maxIndex = -1;
+
+    const startPoint = points[start];
+    const endPoint = points[end];
+    const dx = endPoint.x - startPoint.x;
+    const dy = endPoint.y - startPoint.y;
+    const denom = dx * dx + dy * dy;
+
+    for (let i = start + 1; i < end; i++) {
+      const p = points[i];
+      let distSquared;
+      if (denom <= EPSILON) {
+        const vx = p.x - startPoint.x;
+        const vy = p.y - startPoint.y;
+        distSquared = vx * vx + vy * vy;
+      } else {
+        const t = ((p.x - startPoint.x) * dx + (p.y - startPoint.y) * dy) / denom;
+        const projX = startPoint.x + t * dx;
+        const projY = startPoint.y + t * dy;
+        const vx = p.x - projX;
+        const vy = p.y - projY;
+        distSquared = vx * vx + vy * vy;
+      }
+      if (distSquared > maxDist) {
+        maxDist = distSquared;
+        maxIndex = i;
+      }
+    }
+
+    if (maxDist > toleranceSquared && maxIndex !== -1) {
+      keep[maxIndex] = true;
+      stack.push([start, maxIndex], [maxIndex, end]);
+    }
+  }
+
+  return points.filter((_, index) => keep[index]).map(clonePoint);
+}
+
+/**
+ * Simplify a polyline or polygon using the Douglas–Peucker algorithm.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {number} tolerance
+ * @param {{closed?:boolean}} [options]
+ * @returns {Array<{x:number,y:number}>}
+ */
+export function simplifyDouglasPeucker(points, tolerance = 1, { closed = false } = {}) {
+  if (points.length === 0) return [];
+  if (tolerance <= 0 || points.length <= 2) {
+    return clonePoints(points);
+  }
+
+  const tolSq = tolerance * tolerance;
+
+  if (!closed) {
+    return douglasPeucker(points, tolSq);
+  }
+
+  if (points.length <= 3) {
+    return clonePoints(points);
+  }
+
+  const extended = clonePoints(points);
+  extended.push(clonePoint(points[0]));
+  const simplified = douglasPeucker(extended, tolSq);
+  if (simplified.length > 1 && simplified.at(-1).x === simplified[0].x && simplified.at(-1).y === simplified[0].y) {
+    simplified.pop();
+  }
+  return simplified;
+}
+
+/**
+ * Compute per-vertex tangents and left normals for the provided path.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {{closed?:boolean}} [options]
+ * @returns {Array<{tangent:{x:number,y:number},normal:{x:number,y:number}}>} tangents are unit-length
+ */
+export function computePathNormals(points, { closed = false } = {}) {
+  const count = points.length;
+  if (count === 0) return [];
+  if (count === 1) {
+    return [
+      {
+        tangent: { x: 1, y: 0 },
+        normal: { x: 0, y: 1 },
+      },
+    ];
+  }
+
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    const current = points[i];
+    const prevIndex = i === 0 ? (closed ? (count - 1) : i) : i - 1;
+    const nextIndex = i === count - 1 ? (closed ? 0 : i) : i + 1;
+    const prev = points[prevIndex];
+    const next = points[nextIndex];
+
+    let prevDir = normalizeVector(current.x - prev.x, current.y - prev.y);
+    let nextDir = normalizeVector(next.x - current.x, next.y - current.y);
+
+    if (!closed) {
+      if (i === 0) {
+        prevDir = nextDir ?? prevDir;
+      }
+      if (i === count - 1) {
+        nextDir = prevDir ?? nextDir;
+      }
+    }
+
+    let tangent = null;
+    if (prevDir && nextDir) {
+      const tx = prevDir.x + nextDir.x;
+      const ty = prevDir.y + nextDir.y;
+      tangent = normalizeVector(tx, ty);
+      if (!tangent) {
+        tangent = normalizeVector(nextDir.x, nextDir.y) ?? normalizeVector(prevDir.x, prevDir.y);
+      }
+    } else {
+      tangent = prevDir ?? nextDir;
+    }
+
+    if (!tangent) {
+      tangent = { x: 1, y: 0 };
+    }
+
+    const normal = { x: -tangent.y, y: tangent.x };
+    result.push({ tangent, normal });
+  }
+
+  return result;
 }
 
 /**

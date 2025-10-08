@@ -8,6 +8,9 @@ import {
   resampleBySpacing,
   resampleByCount,
   closestPointOnPath,
+  chaikinSmooth,
+  simplifyDouglasPeucker,
+  computePathNormals,
 } from '../../src/utils/path.js';
 
 const approxEqual = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
@@ -146,4 +149,89 @@ test('closestPointOnPath returns the nearest point with arc-length metadata', ()
   const projectedLoop = closestPointOnPath({ x: 2, y: -1 }, loop, { closed: true });
   assertPointAlmostEqual(projectedLoop.point, { x: 2, y: 0 });
   assert.equal(projectedLoop.index, 0);
+});
+
+test('chaikinSmooth preserves endpoints when requested and supports multiple iterations', () => {
+  const zigzag = [
+    { x: 0, y: 0 },
+    { x: 1, y: 1 },
+    { x: 2, y: -1 },
+    { x: 3, y: 0 },
+  ];
+  const once = chaikinSmooth(zigzag);
+  assertPointAlmostEqual(once[0], zigzag[0]);
+  assertPointAlmostEqual(once.at(-1), zigzag.at(-1));
+  assert.equal(once.length, 2 * (zigzag.length - 1) + 2);
+
+  const twice = chaikinSmooth(zigzag, 2);
+  assertPointAlmostEqual(twice[0], zigzag[0]);
+  assertPointAlmostEqual(twice.at(-1), zigzag.at(-1));
+  assert.ok(twice.length > once.length);
+});
+
+test('chaikinSmooth handles closed paths without duplicating the start point', () => {
+  const square = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 },
+  ];
+  const smoothed = chaikinSmooth(square, 1, { closed: true });
+  assert.ok(smoothed.length === square.length * 2);
+  assert.notDeepEqual(smoothed[0], smoothed.at(-1));
+});
+
+test('simplifyDouglasPeucker reduces redundant points for open and closed paths', () => {
+  const peakLine = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 2, y: 1 },
+    { x: 3, y: 0 },
+    { x: 4, y: 0 },
+  ];
+  const simplified = simplifyDouglasPeucker(peakLine, 0.5);
+  assert.equal(simplified.length, 3);
+  assertPointAlmostEqual(simplified[0], peakLine[0]);
+  assertPointAlmostEqual(simplified.at(-1), peakLine.at(-1));
+  assertPointAlmostEqual(simplified[1], { x: 2, y: 1 });
+
+  const polygon = [
+    { x: 0, y: 0 },
+    { x: 2, y: 0.1 },
+    { x: 4, y: 0 },
+    { x: 4, y: 4 },
+    { x: 0, y: 4 },
+  ];
+  const simplifiedClosed = simplifyDouglasPeucker(polygon, 0.25, { closed: true });
+  assert.ok(simplifiedClosed.length < polygon.length);
+  assert.notDeepEqual(simplifiedClosed[0], simplifiedClosed.at(-1));
+});
+
+test('computePathNormals returns unit tangents and normals with consistent orientation', () => {
+  const line = [
+    { x: 0, y: 0 },
+    { x: 5, y: 0 },
+  ];
+  const normals = computePathNormals(line);
+  assert.equal(normals.length, line.length);
+  normals.forEach(({ tangent, normal }) => {
+    assert.ok(approxEqual(Math.hypot(tangent.x, tangent.y), 1));
+    assert.ok(approxEqual(Math.hypot(normal.x, normal.y), 1));
+    assert.ok(approxEqual(tangent.x * normal.x + tangent.y * normal.y, 0));
+  });
+  assertPointAlmostEqual(normals[0].normal, { x: 0, y: 1 });
+
+  const square = [
+    { x: 0, y: 0 },
+    { x: 2, y: 0 },
+    { x: 2, y: 2 },
+    { x: 0, y: 2 },
+  ];
+  const closedNormals = computePathNormals(square, { closed: true });
+  assert.equal(closedNormals.length, square.length);
+  closedNormals.forEach(({ tangent, normal }) => {
+    assert.ok(approxEqual(Math.hypot(tangent.x, tangent.y), 1));
+    assert.ok(approxEqual(Math.hypot(normal.x, normal.y), 1));
+  });
+  assert.ok(closedNormals[1].normal.x < 0); // outward facing for CCW square
 });
