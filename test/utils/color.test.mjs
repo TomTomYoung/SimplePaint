@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { toHex, hexToRgb, rgbaToString } from '../../src/utils/color.js';
+import { toHex, hexToRgb, rgbaToString } from '../../src/utils/color/index.js';
 
 test('toHex clamps, rounds and formats rgb components', () => {
   assert.equal(toHex(255, 0, 0), '#ff0000');

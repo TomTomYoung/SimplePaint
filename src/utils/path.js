@@ -3,7 +3,7 @@
  * They operate on simple {x, y} coordinate arrays so tools can reuse them.
  */
 
-import { closestPointOnSegment } from './geometry.js';
+import { closestPointOnSegment } from './geometry/index.js';
 
 const EPSILON = 1e-9;
 

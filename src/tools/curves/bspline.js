@@ -1,5 +1,5 @@
-import { bspline, computeAABB } from '../utils/geometry.js';
-import { engine } from '../main.js';
+import { bspline, computeAABB } from '../../utils/geometry/index.js';
+import { engine } from '../../main.js';
 
 export function makeBSpline(store) {
   const id = 'bspline';
