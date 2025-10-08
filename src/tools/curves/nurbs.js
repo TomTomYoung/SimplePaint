@@ -1,35 +1,37 @@
-import { bspline, computeAABB } from '../utils/geometry.js';
-import { engine } from '../main.js';
+import { nurbs, computeAABB } from '../../utils/geometry.js';
+import { engine } from '../../main.js';
 
-export function makeBSpline(store) {
-  const id = 'bspline';
+export function makeNURBS(store) {
+  const id = 'nurbs';
   let pts = [],
-    fresh = true,
+    ws = [],
     hover = null;
-  const reset = () => {
-    pts = [];
-    fresh = true;
-    hover = null;
-  };
 
   function finalize(ctx, eng) {
-    if (pts.length < 4) {
-      reset();
+    if (pts.length < 4) return;
+    const s = store.getToolState(id);
+    const cr = nurbs(pts, ws);
+    if (!cr.length) {
+      pts = [];
+      ws = [];
+      hover = null;
+      store.setToolState(id, { nurbsWeight: 1 });
       eng.requestRepaint();
       return;
     }
-    const s = store.getToolState(id);
-    const cr = bspline(pts);
     ctx.save();
     ctx.lineWidth = s.brushSize;
     ctx.strokeStyle = s.primaryColor;
     ctx.beginPath();
     ctx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
     for (let i = 1; i < cr.length; i++) {
-      ctx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+      const p = cr[i];
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+      ctx.lineTo(p.x + 0.5, p.y + 0.5);
     }
     ctx.stroke();
     ctx.restore();
+
     const bounds = computeAABB(cr);
     if (bounds) {
       eng.expandPendingRectByRect(
@@ -41,32 +43,34 @@ export function makeBSpline(store) {
     }
     eng.finishStrokeToHistory();
     eng.requestRepaint();
-    reset();
+
+    pts = [];
+    ws = [];
+    hover = null;
+    store.setToolState(id, { nurbsWeight: 1 });
   }
 
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') finalize(engine.ctx, engine);
+  });
+
   return {
-    id: 'bspline',
+    id: 'nurbs',
     cursor: 'crosshair',
     previewRect: null,
-    onEnter(ctx, eng) {
-      finalize(ctx, eng);
-    },
-    cancel() {
-      reset();
-      engine.requestRepaint();
-    },
     onPointerDown(ctx, ev, eng) {
       if (ev.button === 0 && ev.detail === 2) {
         if (pts.length === 0) eng.beginStrokeSnapshot();
         pts.push({ ...ev.img });
+        const w = parseFloat(store.getToolState(id).nurbsWeight);
+        ws.push(Number.isFinite(w) && w > 0 ? w : 1);
         finalize(ctx, eng);
         return;
       }
-      if (fresh) {
-        pts = [];
-        fresh = false;
-      }
+      if (pts.length === 0) eng.beginStrokeSnapshot();
       pts.push({ ...ev.img });
+      const w = parseFloat(store.getToolState(id).nurbsWeight);
+      ws.push(Number.isFinite(w) && w > 0 ? w : 1);
     },
     onPointerMove(ctx, ev) {
       hover = { ...ev.img };
@@ -80,13 +84,16 @@ export function makeBSpline(store) {
 
       const need = 4;
       if (pts.length >= need) {
-        const src = hover ? [...pts, hover] : pts;
-        const cr = bspline(src);
+        const srcPts = hover ? [...pts, hover] : pts;
+        const srcWs = hover ? [...ws, 1] : ws;
+        const cr = nurbs(srcPts, srcWs);
         if (cr.length >= 2) {
           octx.beginPath();
           octx.moveTo(cr[0].x + 0.5, cr[0].y + 0.5);
           for (let i = 1; i < cr.length; i++) {
-            octx.lineTo(cr[i].x + 0.5, cr[i].y + 0.5);
+            const p = cr[i];
+            if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+            octx.lineTo(p.x + 0.5, p.y + 0.5);
           }
           octx.stroke();
         }
