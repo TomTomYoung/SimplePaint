@@ -1,5 +1,5 @@
 import { PaintApp } from './app.js';
-import { toHex } from './utils/color.js';
+import { toHex } from './utils/color/index.js';
 import { drawEllipsePath, floodFill as floodFillImpl } from './utils/drawing.js';
 import {
   cancelTextEditing as cancelTextEdit,

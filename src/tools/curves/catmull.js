@@ -1,4 +1,4 @@
-import { catmullRomSpline, computeAABB } from '../../utils/geometry.js';
+import { catmullRomSpline, computeAABB } from '../../utils/geometry/index.js';
 import { bctx } from '../../core/layer.js';
 import { engine } from '../../main.js';
 

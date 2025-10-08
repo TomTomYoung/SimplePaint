@@ -12,7 +12,7 @@ import {
   radToDeg,
   wrap,
   smoothstep,
-} from '../../src/utils/math.js';
+} from '../../src/utils/math/index.js';
 
 test('clamp constrains values to the provided range', () => {
   assert.equal(clamp(5, 0, 10), 5);

@@ -3,7 +3,7 @@
  * 入力: ImageData / Canvas と調整パラメータ
  * 出力: 調整後の ImageData / Canvas
  */
-import { clamp, clamp01 } from './math.js';
+import { clamp, clamp01 } from '../math/index.js';
 import {
   denormalizeRgb,
   hsvToRgb,
@@ -11,7 +11,7 @@ import {
   rgbToHsv,
   rgbToHsl,
   hslToRgb,
-} from './color-space.js';
+} from '../color-space.js';
 
 const toRadians = (degrees) => (degrees * Math.PI) / 180;
 const HUE_TO_UNIT = 1 / (2 * Math.PI);

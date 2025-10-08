@@ -1,4 +1,4 @@
-import { nurbs, computeAABB } from '../../utils/geometry.js';
+import { nurbs, computeAABB } from '../../utils/geometry/index.js';
 import { engine } from '../../main.js';
 
 export function makeNURBS(store) {

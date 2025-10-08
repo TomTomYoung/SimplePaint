@@ -1,5 +1,5 @@
 import { bmp, bctx } from '../../core/layer.js';
-import { toHex } from '../../utils/color.js';
+import { toHex } from '../../utils/color/index.js';
 
 export function makeEyedropper(store) {
   return {
