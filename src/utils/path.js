@@ -11,10 +11,119 @@ const clonePoint = (point) => ({ x: point.x, y: point.y });
 
 const clonePoints = (points) => points.map(clonePoint);
 
+const pointsApproximatelyEqual = (a, b, eps = EPSILON) =>
+  Math.abs(a.x - b.x) <= eps && Math.abs(a.y - b.y) <= eps;
+
+const pushUniquePoint = (points, point) => {
+  if (!points.length || !pointsApproximatelyEqual(points.at(-1), point)) {
+    points.push(clonePoint(point));
+  }
+};
+
+const getPointAtIndex = (points, index, closed) => {
+  const count = points.length;
+  if (count === 0) return null;
+  if (closed) {
+    const wrapped = positiveModulo(index, count);
+    return points[wrapped];
+  }
+  if (index <= 0) return points[0];
+  if (index >= count - 1) return points[count - 1];
+  return points[index];
+};
+
 const positiveModulo = (value, modulus) => {
   const result = value % modulus;
   return result < 0 ? result + modulus : result;
 };
+
+const catmullRomIncrement = (ti, pa, pb, alpha) => {
+  const dx = pb.x - pa.x;
+  const dy = pb.y - pa.y;
+  const dist = Math.hypot(dx, dy);
+  const increment = dist <= EPSILON ? 1 : Math.pow(dist, alpha);
+  return ti + increment;
+};
+
+const catmullRomLerp = (pa, pb, t, ta, tb) => {
+  const denom = tb - ta;
+  if (Math.abs(denom) <= EPSILON) {
+    return clonePoint(pb);
+  }
+  const ratio = (t - ta) / denom;
+  return {
+    x: pa.x + (pb.x - pa.x) * ratio,
+    y: pa.y + (pb.y - pa.y) * ratio,
+  };
+};
+
+function evaluateCatmullRomSegment(p0, p1, p2, p3, t, alpha) {
+  if (!Number.isFinite(t)) {
+    throw new Error('t must be a finite number');
+  }
+  if (t <= 0) {
+    return clonePoint(p1);
+  }
+  if (t >= 1) {
+    return clonePoint(p2);
+  }
+
+  const a = Math.max(0, Math.min(1, t));
+  const t0 = 0;
+  const t1 = catmullRomIncrement(t0, p0, p1, alpha);
+  const t2 = catmullRomIncrement(t1, p1, p2, alpha);
+  const t3 = catmullRomIncrement(t2, p2, p3, alpha);
+  const tActual = t1 + (t2 - t1) * a;
+
+  const A1 = catmullRomLerp(p0, p1, tActual, t0, t1);
+  const A2 = catmullRomLerp(p1, p2, tActual, t1, t2);
+  const A3 = catmullRomLerp(p2, p3, tActual, t2, t3);
+
+  const B1 = catmullRomLerp(A1, A2, tActual, t0, t2);
+  const B2 = catmullRomLerp(A2, A3, tActual, t1, t3);
+
+  return catmullRomLerp(B1, B2, tActual, t1, t2);
+}
+
+function catmullRomTangent(p0, p1, p2, p3, t, alpha) {
+  const delta = 1e-4;
+  let start = t - delta;
+  let end = t + delta;
+  if (start < 0) {
+    start = 0;
+    end = Math.min(1, start + delta);
+  }
+  if (end > 1) {
+    end = 1;
+    start = Math.max(0, end - delta);
+  }
+  if (Math.abs(end - start) <= EPSILON) {
+    return { x: 0, y: 0 };
+  }
+
+  const a = evaluateCatmullRomSegment(p0, p1, p2, p3, start, alpha);
+  const b = evaluateCatmullRomSegment(p0, p1, p2, p3, end, alpha);
+  const scale = 1 / (end - start);
+  return {
+    x: (b.x - a.x) * scale,
+    y: (b.y - a.y) * scale,
+  };
+}
+
+/**
+ * Evaluate a Catmull–Rom spline segment at a parameter t.
+ * @param {{x:number,y:number}} p0 Previous control point
+ * @param {{x:number,y:number}} p1 Segment start
+ * @param {{x:number,y:number}} p2 Segment end
+ * @param {{x:number,y:number}} p3 Next control point
+ * @param {number} t Normalised parameter in [0,1]
+ * @param {{alpha?:number}} [options]
+ * @returns {{x:number,y:number}}
+ */
+export function evaluateCatmullRom(p0, p1, p2, p3, t, { alpha = 0.5 } = {}) {
+  const clampedAlpha = Number.isFinite(alpha) ? Math.max(0, alpha) : 0.5;
+  return evaluateCatmullRomSegment(p0, p1, p2, p3, t, clampedAlpha);
+}
 
 /**
  * Pre-compute cumulative arc-lengths for a polyline or polygon.
@@ -291,6 +400,97 @@ export function resampleByCount(points, count, { closed = false, includeLast = f
     samples.push(clonePoint(samples[0]));
   }
   return samples;
+}
+
+/**
+ * Sample a Catmull–Rom spline that interpolates the supplied points.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {number} [segmentsPerCurve=8]
+ * @param {{closed?:boolean,alpha?:number}} [options]
+ * @returns {Array<{x:number,y:number}>}
+ */
+export function sampleCatmullRom(points, segmentsPerCurve = 8, { closed = false, alpha = 0.5 } = {}) {
+  const count = points.length;
+  if (count === 0) return [];
+  if (count === 1) return [clonePoint(points[0])];
+
+  const segmentCount = closed ? count : count - 1;
+  if (segmentCount <= 0) {
+    return clonePoints(points);
+  }
+
+  const samples = [];
+  const segments = Math.max(1, Math.floor(segmentsPerCurve));
+  const clampedAlpha = Number.isFinite(alpha) ? Math.max(0, alpha) : 0.5;
+
+  for (let i = 0; i < segmentCount; i++) {
+    const p0 = getPointAtIndex(points, i - 1, closed);
+    const p1 = getPointAtIndex(points, i, closed);
+    const p2 = getPointAtIndex(points, i + 1, closed);
+    const p3 = getPointAtIndex(points, i + 2, closed);
+
+    if (!p0 || !p1 || !p2 || !p3) continue;
+
+    if (i === 0) {
+      pushUniquePoint(samples, p1);
+    }
+
+    for (let step = 1; step <= segments; step++) {
+      const t = step / segments;
+      const sample = evaluateCatmullRomSegment(p0, p1, p2, p3, t, clampedAlpha);
+      pushUniquePoint(samples, sample);
+    }
+  }
+
+  if (closed && samples.length) {
+    pushUniquePoint(samples, samples[0]);
+  }
+
+  return samples;
+}
+
+/**
+ * Convert a Catmull–Rom spline through the provided points into cubic Bézier segments.
+ * @param {Array<{x:number,y:number}>} points
+ * @param {{closed?:boolean,alpha?:number}} [options]
+ * @returns {Array<{p0:{x:number,y:number},p1:{x:number,y:number},p2:{x:number,y:number},p3:{x:number,y:number}}>} 
+ */
+export function catmullRomToBezierSegments(points, { closed = false, alpha = 0.5 } = {}) {
+  const count = points.length;
+  if (count < 2) return [];
+
+  const segmentCount = closed ? count : count - 1;
+  if (segmentCount <= 0) return [];
+
+  const clampedAlpha = Number.isFinite(alpha) ? Math.max(0, alpha) : 0.5;
+  const segments = [];
+
+  for (let i = 0; i < segmentCount; i++) {
+    const p0 = getPointAtIndex(points, i - 1, closed);
+    const p1 = getPointAtIndex(points, i, closed);
+    const p2 = getPointAtIndex(points, i + 1, closed);
+    const p3 = getPointAtIndex(points, i + 2, closed);
+
+    if (!p0 || !p1 || !p2 || !p3) continue;
+
+    const start = clonePoint(p1);
+    const end = clonePoint(p2);
+    const startTangent = catmullRomTangent(p0, p1, p2, p3, 0, clampedAlpha);
+    const endTangent = catmullRomTangent(p0, p1, p2, p3, 1, clampedAlpha);
+
+    const control1 = {
+      x: start.x + startTangent.x / 3,
+      y: start.y + startTangent.y / 3,
+    };
+    const control2 = {
+      x: end.x - endTangent.x / 3,
+      y: end.y - endTangent.y / 3,
+    };
+
+    segments.push({ p0: start, p1: control1, p2: control2, p3: end });
+  }
+
+  return segments;
 }
 
 /**

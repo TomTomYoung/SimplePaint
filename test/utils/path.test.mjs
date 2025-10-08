@@ -11,13 +11,31 @@ import {
   chaikinSmooth,
   simplifyDouglasPeucker,
   computePathNormals,
+  sampleCatmullRom,
+  evaluateCatmullRom,
+  catmullRomToBezierSegments,
 } from '../../src/utils/path.js';
+
+import { evaluateCubicBezier } from '../../src/utils/bezier.js';
 
 const approxEqual = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
 
 const assertPointAlmostEqual = (actual, expected, eps = 1e-6) => {
   assert.ok(approxEqual(actual.x, expected.x, eps), `expected x≈${expected.x} but got ${actual.x}`);
   assert.ok(approxEqual(actual.y, expected.y, eps), `expected y≈${expected.y} but got ${actual.y}`);
+};
+
+const uniformCatmullRom = (p0, p1, p2, p3, t) => {
+  const tt = t * t;
+  const ttt = tt * t;
+  return {
+    x:
+      0.5 *
+      ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * tt + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * ttt),
+    y:
+      0.5 *
+      ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * tt + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * ttt),
+  };
 };
 
 test('computeArcLengthTable returns cumulative distances for open and closed paths', () => {
@@ -234,4 +252,87 @@ test('computePathNormals returns unit tangents and normals with consistent orien
     assert.ok(approxEqual(Math.hypot(normal.x, normal.y), 1));
   });
   assert.ok(closedNormals[1].normal.x < 0); // outward facing for CCW square
+});
+
+test('evaluateCatmullRom matches the uniform formulation when alpha is zero', () => {
+  const points = [
+    { x: 0, y: 0 },
+    { x: 1, y: 1 },
+    { x: 2, y: 1 },
+    { x: 3, y: 0 },
+  ];
+  const samples = [0, 0.25, 0.5, 0.75, 1];
+  for (const t of samples) {
+    const expected = uniformCatmullRom(points[0], points[1], points[2], points[3], t);
+    const actual = evaluateCatmullRom(points[0], points[1], points[2], points[3], t, { alpha: 0 });
+    assertPointAlmostEqual(actual, expected, 1e-6);
+  }
+});
+
+test('sampleCatmullRom densifies open and closed paths', () => {
+  const open = [
+    { x: 0, y: 0 },
+    { x: 2, y: 1 },
+    { x: 4, y: 0 },
+    { x: 6, y: -1 },
+  ];
+  const samples = sampleCatmullRom(open, 4, { alpha: 0 });
+  assert.equal(samples.length, 1 + (open.length - 1) * 4);
+  assertPointAlmostEqual(samples[0], open[0]);
+  assertPointAlmostEqual(samples.at(-1), open.at(-1));
+
+  const expectedMid = uniformCatmullRom(open[0], open[0], open[1], open[2], 0.5);
+  assertPointAlmostEqual(samples[2], expectedMid, 1e-6);
+
+  const closed = [
+    { x: 0, y: 0 },
+    { x: 2, y: 0 },
+    { x: 2, y: 2 },
+    { x: 0, y: 2 },
+  ];
+  const loop = sampleCatmullRom(closed, 3, { closed: true });
+  assert.equal(loop.length, 1 + closed.length * 3);
+  assertPointAlmostEqual(loop[0], closed[0]);
+  assertPointAlmostEqual(loop.at(-1), loop[0]);
+});
+
+test('catmullRomToBezierSegments reproduces Catmull–Rom samples', () => {
+  const control = [
+    { x: 0, y: 0 },
+    { x: 1, y: 2 },
+    { x: 4, y: 3 },
+    { x: 6, y: 0 },
+    { x: 7, y: -1 },
+  ];
+  const alpha = 0.5;
+  const segments = catmullRomToBezierSegments(control, { alpha });
+  assert.equal(segments.length, control.length - 1);
+
+  const getPoint = (idx) => {
+    if (idx < 0) return control[0];
+    if (idx >= control.length) return control.at(-1);
+    return control[idx];
+  };
+
+  segments.forEach((segment, index) => {
+    const p0 = getPoint(index - 1);
+    const p1 = getPoint(index);
+    const p2 = getPoint(index + 1);
+    const p3 = getPoint(index + 2);
+    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+      const expected = evaluateCatmullRom(p0, p1, p2, p3, t, { alpha });
+      const actual = evaluateCubicBezier(segment.p0, segment.p1, segment.p2, segment.p3, t);
+      assertPointAlmostEqual(actual, expected, 1e-3);
+    }
+  });
+
+  const closed = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 1, y: 1 },
+  ];
+  const closedSegments = catmullRomToBezierSegments(closed, { closed: true });
+  assert.equal(closedSegments.length, closed.length);
+  assertPointAlmostEqual(closedSegments[0].p0, closed[0]);
+  assertPointAlmostEqual(closedSegments.at(-1).p3, closed[0]);
 });
