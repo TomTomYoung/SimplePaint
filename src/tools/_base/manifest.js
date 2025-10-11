@@ -63,6 +63,7 @@ import { makePaletteMappedBrush } from '../special/palette_mapped_brush.js';
 import { makePatternArtBrush } from '../special/pattern_art_brush.js';
 
 // Vector utilities
+import { makeVectorTool } from '../vector/vector-tool.js';
 import { makeVectorKeep } from '../vector/vector-keep.js';
 import { makeVectorizationBrush } from '../vector/vectorization_brush.js';
 import { makePathBooleans } from '../vector/path_booleans_v2.js';
@@ -179,6 +180,7 @@ export const DEFAULT_TOOL_MANIFEST = Object.freeze([
     createToolEntry('pattern-art-brush', makePatternArtBrush),
   ]),
   createCategory('vector', 'Vector tools', [
+    createToolEntry('vector-tool', makeVectorTool),
     createToolEntry('vector-keep', makeVectorKeep),
     createToolEntry('vectorization', makeVectorizationBrush),
     createToolEntry('path-bool', makePathBooleans),
