@@ -16,14 +16,16 @@ const DEFAULTS = Object.freeze({
 const MIN_SAMPLE_DISTANCE_SQ = 0.25; // 0.5px
 
 export function makeVectorTool(store) {
-  let pathId = 1;
+  const persisted = store.getToolState(TOOL_ID, DEFAULTS) || {};
+  const initialPaths = normalisePersistedPaths(persisted.vectors);
+  let pathId = Math.max(0, ...initialPaths.map((path) => path.id)) + 1;
   const model = {
     /** @type {VectorPath[]} */
-    paths: [],
+    paths: initialPaths,
     /** @type {DraftPath|null} */
     draft: null,
     /** @type {number|null} */
-    selection: null,
+    selection: initialPaths.length ? initialPaths[initialPaths.length - 1].id : null,
   };
 
   const coordinateProcessor = new CoordinateProcessor(() => getConfig(store));
@@ -159,6 +161,9 @@ export function makeVectorTool(store) {
     },
   };
 
+  tool.previewRect =
+    computeSelectionRect(model) ?? computePathsUnionRect(model.paths) ?? null;
+
   return tool;
 }
 
@@ -175,7 +180,7 @@ function syncVectorsToStore(store, paths) {
     width: path.width,
     points: path.points.map(clonePoint),
   }));
-  store.setToolState(TOOL_ID, { vectors });
+  store.setToolState(TOOL_ID, { vectors }, { defaults: DEFAULTS });
 }
 
 function computeDraftRect(draft) {
@@ -334,6 +339,16 @@ function unionRects(rects) {
     if (r.y + r.h > maxY) maxY = r.y + r.h;
   }
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+function computePathsUnionRect(paths) {
+  if (!paths || !paths.length) return null;
+  const rects = [];
+  for (const path of paths) {
+    const rect = computePathRect(path);
+    if (rect) rects.push(rect);
+  }
+  return unionRects(rects);
 }
 
 /* ========================================================================== */
@@ -542,3 +557,38 @@ class VectorRasterizer {
  * @typedef {{id:number,color:string,width:number,points:{x:number,y:number}[]}} VectorPath
  * @typedef {{id:number,color:string,width:number,points:{x:number,y:number}[]}} DraftPath
  */
+
+function normalisePersistedPaths(vectors) {
+  if (!Array.isArray(vectors)) return [];
+  const out = [];
+  const usedIds = new Set();
+  let nextId = 1;
+
+  for (const entry of vectors) {
+    if (!entry || typeof entry !== 'object') continue;
+    const rawPoints = Array.isArray(entry.points) ? entry.points : [];
+    const points = rawPoints
+      .map((pt) => ({ x: Number(pt?.x), y: Number(pt?.y) }))
+      .filter((pt) => Number.isFinite(pt.x) && Number.isFinite(pt.y));
+    if (!points.length) continue;
+
+    let id = Number(entry.id);
+    if (!Number.isFinite(id) || id <= 0 || usedIds.has(id)) {
+      while (usedIds.has(nextId)) nextId++;
+      id = nextId++;
+    }
+    usedIds.add(id);
+
+    const width = Number(entry.width);
+    const color = typeof entry.color === 'string' ? entry.color : toolDefaults.primaryColor;
+
+    out.push({
+      id,
+      color,
+      width: Number.isFinite(width) && width > 0 ? width : 1,
+      points,
+    });
+  }
+
+  return out;
+}
