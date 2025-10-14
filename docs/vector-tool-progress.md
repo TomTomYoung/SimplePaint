@@ -9,9 +9,10 @@
 - Registered the vector tool in the tool manifest so it appears in the application UI.
 - Added unit tests covering rehydration logic and configuration persistence when new paths are committed.
 - Added anchor hit-testing and drag editing so existing points can be repositioned without creating new paths, including store persistence coverage.
+- Enabled modifier-driven editing gestures: Shift/double-click inserts new anchors on existing segments, and Alt-click removes anchors or deletes paths when they become empty, with corresponding persistence tests.
 
 ## In Progress / TODO
-- Editing tooling still lacks segment insertion/removal, path deletion, and stroke style adjustments beyond anchor repositioning.
+- Editing tooling still lacks dedicated segment subdivision UI affordances, multi-point selection, and stroke style adjustments beyond anchor repositioning.
 - UI wiring for toggling snapping modes, simplification tolerance, rasterise mode, and anchor visibility remains to be built.
 - Undo/redo integration for vector edits beyond rasterisation snapshots still needs validation.
 - SVG export currently emits simple `M/L` path commands; support for curves and shape primitives is pending.

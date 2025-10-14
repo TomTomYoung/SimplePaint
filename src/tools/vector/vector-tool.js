@@ -41,10 +41,58 @@ export function makeVectorTool(store) {
 
     onPointerDown(ctx, ev, eng) {
       const config = getConfig(store);
+      const allowInsertion = ev.shift || ev.detail >= 2;
+      if (allowInsertion) {
+        const segment = hitTestSegment(ev.img, model, config);
+        if (segment) {
+          const path = model.paths.find((candidate) => candidate.id === segment.pathId);
+          if (path) {
+            const insertIndex = segment.insertIndex;
+            const projected = segment.point ?? ev.img;
+            const snapped = coordinateProcessor.process(projected, model.paths, path.points, {
+              disableExistingSnap: true,
+            });
+            path.points.splice(insertIndex, 0, snapped);
+            model.selection = path.id;
+            model.edit = { pathId: path.id, pointIndex: insertIndex, mode: 'insert' };
+            tool.previewRect = computePathRect(path);
+            eng.requestRepaint?.();
+            return;
+          }
+        }
+      }
+
       const hit = hitTestAnchor(ev.img, model, config);
       if (hit) {
-        model.selection = hit.pathId;
-        model.edit = hit;
+        const pathIndex = model.paths.findIndex((candidate) => candidate.id === hit.pathId);
+        const path = pathIndex >= 0 ? model.paths[pathIndex] : null;
+        if (!path) {
+          model.edit = null;
+          return;
+        }
+
+        if (ev.alt) {
+          if (path.points.length > 0) {
+            path.points.splice(hit.pointIndex, 1);
+          }
+          if (path.points.length === 0) {
+            model.paths.splice(pathIndex, 1);
+            model.selection = model.paths.length
+              ? model.paths[Math.min(pathIndex, model.paths.length - 1)].id
+              : null;
+          } else {
+            model.selection = path.id;
+          }
+          model.edit = null;
+          tool.previewRect =
+            computeSelectionRect(model) ?? computePathsUnionRect(model.paths) ?? null;
+          syncVectorsToStore(store, model.paths);
+          eng.requestRepaint?.();
+          return;
+        }
+
+        model.selection = path.id;
+        model.edit = { pathId: hit.pathId, pointIndex: hit.pointIndex, mode: 'move' };
         tool.previewRect = computeSelectionRect(model);
         eng.requestRepaint?.();
         return;
@@ -76,7 +124,7 @@ export function makeVectorTool(store) {
           ev.img,
           model.paths,
           [],
-          { exclude: model.edit },
+          buildEditProcessOptions(model.edit),
         );
         path.points[pointIndex] = snapped;
         tool.previewRect = computePathRect(path);
@@ -99,7 +147,8 @@ export function makeVectorTool(store) {
 
     onPointerUp(ctx, ev, eng) {
       if (model.edit) {
-        const { pathId, pointIndex } = model.edit;
+        const edit = model.edit;
+        const { pathId, pointIndex } = edit;
         const path = model.paths.find((candidate) => candidate.id === pathId);
         model.edit = null;
         if (!path) return;
@@ -108,7 +157,7 @@ export function makeVectorTool(store) {
           ev.img,
           model.paths,
           [],
-          { exclude: { pathId, pointIndex } },
+          buildEditProcessOptions(edit),
         );
         path.points[pointIndex] = snapped;
         tool.previewRect = computePathRect(path);
@@ -271,6 +320,34 @@ function hitTestAnchor(point, model, config) {
   return closest;
 }
 
+function hitTestSegment(point, model, config) {
+  if (!point) return null;
+  const radius = Math.max(1, Number(config?.snapRadius) || 6);
+  const radiusSq = radius * radius;
+  let closest = null;
+  let minDist = Infinity;
+
+  for (const path of model.paths) {
+    const pts = path.points;
+    if (pts.length < 2) continue;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      const distSq = pointToSegmentDistanceSquared(point, a, b);
+      if (distSq <= radiusSq && distSq < minDist) {
+        minDist = distSq;
+        closest = {
+          pathId: path.id,
+          insertIndex: i + 1,
+          point: projectPointOnSegment(point, a, b),
+        };
+      }
+    }
+  }
+
+  return closest;
+}
+
 function computePointsRect(points, width) {
   if (!points || points.length === 0) return null;
   let minX = points[0].x;
@@ -307,6 +384,14 @@ function simplifyPath(points, tolerance) {
     return points ? points.map(clonePoint) : [];
   }
   return douglasPeucker(points, tolerance);
+}
+
+function buildEditProcessOptions(edit) {
+  const exclude = edit ? { pathId: edit.pathId, pointIndex: edit.pointIndex } : undefined;
+  if (edit && edit.mode === 'insert') {
+    return { exclude, disableExistingSnap: true };
+  }
+  return exclude ? { exclude } : {};
 }
 
 function douglasPeucker(points, tolerance) {
@@ -372,6 +457,22 @@ function pointToSegmentDistanceSquared(p, a, b) {
   return dx * dx + dy * dy;
 }
 
+function projectPointOnSegment(p, a, b) {
+  const vx = b.x - a.x;
+  const vy = b.y - a.y;
+  const c2 = vx * vx + vy * vy;
+  if (c2 === 0) return clonePoint(a);
+  const wx = p.x - a.x;
+  const wy = p.y - a.y;
+  let t = (vx * wx + vy * wy) / c2;
+  if (t < 0) t = 0;
+  else if (t > 1) t = 1;
+  return {
+    x: a.x + vx * t,
+    y: a.y + vy * t,
+  };
+}
+
 function exportToSvg(paths) {
   const bounds = unionRects(paths.map(computePathRect).filter(Boolean));
   const width = bounds ? bounds.w : 1;
@@ -435,7 +536,7 @@ class CoordinateProcessor {
     const original = clonePoint(point);
     let snapped = clonePoint(point);
 
-    if (config.snapToExisting) {
+    if (config.snapToExisting && !options.disableExistingSnap) {
       const target = this.findExistingAnchor(point, paths, draftPoints, config, options);
       if (target) {
         snapped = target;
@@ -647,7 +748,7 @@ class VectorRasterizer {
 /**
  * @typedef {{id:number,color:string,width:number,points:{x:number,y:number}[]}} VectorPath
  * @typedef {{id:number,color:string,width:number,points:{x:number,y:number}[]}} DraftPath
- * @typedef {{pathId:number, pointIndex:number}} EditState
+ * @typedef {{pathId:number, pointIndex:number, mode?:'move'|'insert'}} EditState
  */
 
 function normalisePersistedPaths(vectors) {
