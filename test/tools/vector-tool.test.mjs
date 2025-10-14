@@ -125,3 +125,74 @@ test('vector tool allows moving existing anchors without creating new paths', ()
   assert.equal(path.points[0].x, 5);
   assert.equal(path.points[0].y, 6);
 });
+
+test('vector tool removes anchors with alt-click and drops empty paths', () => {
+  const store = createStore({
+    tools: {
+      'vector-tool': {
+        snapToExisting: false,
+        vectors: [
+          {
+            id: 21,
+            color: '#ff0000',
+            width: 2,
+            points: [
+              { x: 0, y: 0 },
+              { x: 10, y: 0 },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  const tool = makeVectorTool(store);
+  tool.onPointerDown(noopCtx, { img: { x: 0, y: 0 }, alt: true }, noopEngine);
+
+  let state = store.getToolState('vector-tool');
+  assert.equal(state.vectors.length, 1);
+  assert.equal(state.vectors[0].points.length, 1);
+  assert.equal(state.vectors[0].points[0].x, 10);
+  assert.equal(state.vectors[0].points[0].y, 0);
+
+  tool.onPointerDown(noopCtx, { img: { x: 10, y: 0 }, alt: true }, noopEngine);
+
+  state = store.getToolState('vector-tool');
+  assert.equal(state.vectors.length, 0);
+});
+
+test('vector tool inserts new anchors on shift-clicked segments', () => {
+  const store = createStore({
+    tools: {
+      'vector-tool': {
+        snapToExisting: false,
+        vectors: [
+          {
+            id: 9,
+            color: '#00ffff',
+            width: 2,
+            points: [
+              { x: 0, y: 0 },
+              { x: 10, y: 0 },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  const tool = makeVectorTool(store);
+
+  tool.onPointerDown(noopCtx, { img: { x: 5, y: 0 }, shift: true }, noopEngine);
+  let snapshot = tool.getVectorsSnapshot();
+  assert.equal(snapshot[0].points.length, 3);
+  tool.onPointerUp(noopCtx, { img: { x: 5, y: 0 } }, noopEngine);
+
+  const state = store.getToolState('vector-tool');
+  assert.equal(state.vectors.length, 1);
+  const [path] = state.vectors;
+  assert.equal(path.points.length, 3);
+  const mid = path.points[1];
+  assert.equal(mid.x, 5);
+  assert.equal(mid.y, 0);
+});
