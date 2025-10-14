@@ -8,9 +8,10 @@
 - Persisted vector paths and configuration through the shared tool store slice so sessions rehydrate previous drawings and maintain settings.
 - Registered the vector tool in the tool manifest so it appears in the application UI.
 - Added unit tests covering rehydration logic and configuration persistence when new paths are committed.
+- Added anchor hit-testing and drag editing so existing points can be repositioned without creating new paths, including store persistence coverage.
 
 ## In Progress / TODO
-- Editing tools for existing paths (moving anchors, deleting segments, adjusting stroke styles) are not yet implemented.
+- Editing tooling still lacks segment insertion/removal, path deletion, and stroke style adjustments beyond anchor repositioning.
 - UI wiring for toggling snapping modes, simplification tolerance, rasterise mode, and anchor visibility remains to be built.
 - Undo/redo integration for vector edits beyond rasterisation snapshots still needs validation.
 - SVG export currently emits simple `M/L` path commands; support for curves and shape primitives is pending.

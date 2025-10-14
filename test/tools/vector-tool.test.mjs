@@ -90,3 +90,38 @@ test('vector tool persists new paths without clobbering stored configuration', (
   assert.equal(typeof stored.id, 'number');
   assert.equal(stored.points.length, 1);
 });
+
+test('vector tool allows moving existing anchors without creating new paths', () => {
+  const store = createStore({
+    tools: {
+      'vector-tool': {
+        snapToExisting: false,
+        vectors: [
+          {
+            id: 12,
+            color: '#00ff00',
+            width: 2,
+            points: [
+              { x: 0, y: 0 },
+              { x: 10, y: 0 },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  const tool = makeVectorTool(store);
+
+  tool.onPointerDown(noopCtx, { img: { x: 0, y: 0 } }, noopEngine);
+  tool.onPointerMove(noopCtx, { img: { x: 5, y: 6 } }, noopEngine);
+  tool.onPointerUp(noopCtx, { img: { x: 5, y: 6 } }, noopEngine);
+
+  const state = store.getToolState('vector-tool');
+  assert.equal(state.vectors.length, 1);
+  const [path] = state.vectors;
+  assert.equal(path.id, 12);
+  assert.equal(path.points.length, 2);
+  assert.equal(path.points[0].x, 5);
+  assert.equal(path.points[0].y, 6);
+});

@@ -26,6 +26,8 @@ export function makeVectorTool(store) {
     draft: null,
     /** @type {number|null} */
     selection: initialPaths.length ? initialPaths[initialPaths.length - 1].id : null,
+    /** @type {EditState|null} */
+    edit: null,
   };
 
   const coordinateProcessor = new CoordinateProcessor(() => getConfig(store));
@@ -39,6 +41,15 @@ export function makeVectorTool(store) {
 
     onPointerDown(ctx, ev, eng) {
       const config = getConfig(store);
+      const hit = hitTestAnchor(ev.img, model, config);
+      if (hit) {
+        model.selection = hit.pathId;
+        model.edit = hit;
+        tool.previewRect = computeSelectionRect(model);
+        eng.requestRepaint?.();
+        return;
+      }
+
       eng.clearSelection?.();
       eng.beginStrokeSnapshot?.();
 
@@ -54,6 +65,25 @@ export function makeVectorTool(store) {
     },
 
     onPointerMove(_ctx, ev, eng) {
+      if (model.edit) {
+        const { pathId, pointIndex } = model.edit;
+        const path = model.paths.find((candidate) => candidate.id === pathId);
+        if (!path) {
+          model.edit = null;
+          return;
+        }
+        const snapped = coordinateProcessor.process(
+          ev.img,
+          model.paths,
+          [],
+          { exclude: model.edit },
+        );
+        path.points[pointIndex] = snapped;
+        tool.previewRect = computePathRect(path);
+        eng.requestRepaint?.();
+        return;
+      }
+
       if (!model.draft) return;
       const candidate = coordinateProcessor.process(ev.img, model.paths, model.draft.points);
       const last = model.draft.points[model.draft.points.length - 1];
@@ -68,6 +98,25 @@ export function makeVectorTool(store) {
     },
 
     onPointerUp(ctx, ev, eng) {
+      if (model.edit) {
+        const { pathId, pointIndex } = model.edit;
+        const path = model.paths.find((candidate) => candidate.id === pathId);
+        model.edit = null;
+        if (!path) return;
+
+        const snapped = coordinateProcessor.process(
+          ev.img,
+          model.paths,
+          [],
+          { exclude: { pathId, pointIndex } },
+        );
+        path.points[pointIndex] = snapped;
+        tool.previewRect = computePathRect(path);
+        syncVectorsToStore(store, model.paths);
+        eng.requestRepaint?.();
+        return;
+      }
+
       if (!model.draft) return;
       const config = getConfig(store);
       const finalPoint = coordinateProcessor.process(ev.img, model.paths, model.draft.points);
@@ -123,6 +172,7 @@ export function makeVectorTool(store) {
 
     cancel() {
       model.draft = null;
+      model.edit = null;
       tool.previewRect = computeSelectionRect(model);
     },
 
@@ -140,6 +190,7 @@ export function makeVectorTool(store) {
       if (clearVectors) {
         model.paths.length = 0;
         model.selection = null;
+        model.edit = null;
         tool.previewRect = null;
         syncVectorsToStore(store, model.paths);
         eng.requestRepaint?.();
@@ -197,6 +248,27 @@ function computeSelectionRect(model) {
   const target = model.paths.find((path) => path.id === model.selection);
   if (!target) return null;
   return computePathRect(target);
+}
+
+function hitTestAnchor(point, model, config) {
+  if (!point) return null;
+  const radius = Math.max(1, Number(config?.snapRadius) || 6);
+  const radiusSq = radius * radius;
+  let closest = null;
+  let minDist = Infinity;
+
+  for (const path of model.paths) {
+    for (let i = 0; i < path.points.length; i++) {
+      const candidate = path.points[i];
+      const distSq = distanceSquared(point, candidate);
+      if (distSq <= radiusSq && distSq < minDist) {
+        minDist = distSq;
+        closest = { pathId: path.id, pointIndex: i };
+      }
+    }
+  }
+
+  return closest;
 }
 
 function computePointsRect(points, width) {
@@ -358,13 +430,13 @@ class CoordinateProcessor {
     this.getConfig = getConfig;
   }
 
-  process(point, paths, draftPoints = []) {
+  process(point, paths, draftPoints = [], options = {}) {
     const config = this.getConfig();
     const original = clonePoint(point);
     let snapped = clonePoint(point);
 
     if (config.snapToExisting) {
-      const target = this.findExistingAnchor(point, paths, draftPoints, config);
+      const target = this.findExistingAnchor(point, paths, draftPoints, config, options);
       if (target) {
         snapped = target;
         return snapped;
@@ -386,26 +458,45 @@ class CoordinateProcessor {
     return snapped;
   }
 
-  findExistingAnchor(point, paths, draftPoints, config) {
+  findExistingAnchor(point, paths, draftPoints, config, options = {}) {
     const radius = Math.max(0, Number(config.snapRadius) || 0);
     if (radius <= 0) return null;
     const radiusSq = radius * radius;
     let closest = null;
     let minDist = Infinity;
 
+    const exclude = options.exclude;
     const testPoints = [];
     if (Array.isArray(draftPoints) && draftPoints.length) {
-      testPoints.push(...draftPoints);
+      draftPoints.forEach((pt, index) => {
+        testPoints.push({
+          pt,
+          source: { type: 'draft', index },
+        });
+      });
     }
     for (const path of paths) {
-      testPoints.push(...path.points);
+      for (let i = 0; i < path.points.length; i++) {
+        testPoints.push({
+          pt: path.points[i],
+          source: { type: 'path', pathId: path.id, index: i },
+        });
+      }
     }
 
     for (const candidate of testPoints) {
-      const distSq = distanceSquared(point, candidate);
+      if (
+        exclude &&
+        candidate.source.type === 'path' &&
+        exclude.pathId === candidate.source.pathId &&
+        exclude.pointIndex === candidate.source.index
+      ) {
+        continue;
+      }
+      const distSq = distanceSquared(point, candidate.pt);
       if (distSq <= radiusSq && distSq < minDist) {
         minDist = distSq;
-        closest = candidate;
+        closest = candidate.pt;
       }
     }
     return closest ? clonePoint(closest) : null;
@@ -556,6 +647,7 @@ class VectorRasterizer {
 /**
  * @typedef {{id:number,color:string,width:number,points:{x:number,y:number}[]}} VectorPath
  * @typedef {{id:number,color:string,width:number,points:{x:number,y:number}[]}} DraftPath
+ * @typedef {{pathId:number, pointIndex:number}} EditState
  */
 
 function normalisePersistedPaths(vectors) {
