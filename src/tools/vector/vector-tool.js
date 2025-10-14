@@ -98,6 +98,24 @@ export function makeVectorTool(store) {
         return;
       }
 
+      const pathHit = hitTestPathStroke(ev.img, model, config);
+      if (pathHit) {
+        const path = model.paths.find((candidate) => candidate.id === pathHit.pathId);
+        if (path) {
+          model.selection = path.id;
+          model.edit = {
+            pathId: path.id,
+            mode: 'translate',
+            origin: clonePoint(ev.img),
+            originalPoints: path.points.map(clonePoint),
+            referenceIndex: clampIndex(pathHit.referenceIndex ?? 0, path.points.length),
+          };
+          tool.previewRect = computePathRect(path);
+          eng.requestRepaint?.();
+          return;
+        }
+      }
+
       eng.clearSelection?.();
       eng.beginStrokeSnapshot?.();
 
@@ -118,6 +136,12 @@ export function makeVectorTool(store) {
         const path = model.paths.find((candidate) => candidate.id === pathId);
         if (!path) {
           model.edit = null;
+          return;
+        }
+        if (model.edit.mode === 'translate') {
+          applyTranslation(model.edit, ev.img, path, coordinateProcessor, model);
+          tool.previewRect = computePathRect(path);
+          eng.requestRepaint?.();
           return;
         }
         const snapped = coordinateProcessor.process(
@@ -150,8 +174,20 @@ export function makeVectorTool(store) {
         const edit = model.edit;
         const { pathId, pointIndex } = edit;
         const path = model.paths.find((candidate) => candidate.id === pathId);
+        if (!path) {
+          model.edit = null;
+          return;
+        }
+        if (edit.mode === 'translate') {
+          applyTranslation(edit, ev.img, path, coordinateProcessor, model);
+          model.edit = null;
+          tool.previewRect = computePathRect(path);
+          syncVectorsToStore(store, model.paths);
+          eng.requestRepaint?.();
+          return;
+        }
+
         model.edit = null;
-        if (!path) return;
 
         const snapped = coordinateProcessor.process(
           ev.img,
@@ -348,6 +384,15 @@ function hitTestSegment(point, model, config) {
   return closest;
 }
 
+function hitTestPathStroke(point, model, config) {
+  const segment = hitTestSegment(point, model, config);
+  if (!segment) return null;
+  return {
+    pathId: segment.pathId,
+    referenceIndex: Math.max(0, (segment.insertIndex ?? 1) - 1),
+  };
+}
+
 function computePointsRect(points, width) {
   if (!points || points.length === 0) return null;
   let minX = points[0].x;
@@ -379,6 +424,11 @@ function clonePoint(pt) {
   return { x: pt.x, y: pt.y };
 }
 
+function clampIndex(index, length) {
+  if (!length) return 0;
+  return Math.max(0, Math.min(index, length - 1));
+}
+
 function simplifyPath(points, tolerance) {
   if (!points || points.length <= 2 || !Number.isFinite(tolerance) || tolerance <= 0) {
     return points ? points.map(clonePoint) : [];
@@ -392,6 +442,31 @@ function buildEditProcessOptions(edit) {
     return { exclude, disableExistingSnap: true };
   }
   return exclude ? { exclude } : {};
+}
+
+function applyTranslation(edit, pointer, path, coordinateProcessor, model) {
+  if (!pointer || !edit || !path) return;
+  const originalPoints = Array.isArray(edit.originalPoints)
+    ? edit.originalPoints
+    : path.points.map(clonePoint);
+  const origin = edit.origin || originalPoints[0] || pointer;
+  const dx = pointer.x - origin.x;
+  const dy = pointer.y - origin.y;
+
+  let delta = { x: dx, y: dy };
+  const referenceIndex = clampIndex(edit.referenceIndex ?? 0, originalPoints.length);
+  const referencePoint = originalPoints[referenceIndex];
+  if (referencePoint) {
+    const candidate = { x: referencePoint.x + dx, y: referencePoint.y + dy };
+    const otherPaths = model.paths.filter((candidatePath) => candidatePath.id !== path.id);
+    const snapped = coordinateProcessor.process(candidate, otherPaths);
+    delta = { x: snapped.x - referencePoint.x, y: snapped.y - referencePoint.y };
+  }
+
+  for (let i = 0; i < path.points.length; i++) {
+    const seed = originalPoints[i] || path.points[i];
+    path.points[i] = { x: seed.x + delta.x, y: seed.y + delta.y };
+  }
 }
 
 function douglasPeucker(points, tolerance) {

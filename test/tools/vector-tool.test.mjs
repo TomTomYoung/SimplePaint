@@ -196,3 +196,43 @@ test('vector tool inserts new anchors on shift-clicked segments', () => {
   assert.equal(mid.x, 5);
   assert.equal(mid.y, 0);
 });
+
+test('vector tool translates whole paths when dragging segments', () => {
+  const store = createStore({
+    tools: {
+      'vector-tool': {
+        snapToExisting: false,
+        snapRadius: 2,
+        vectors: [
+          {
+            id: 42,
+            color: '#f0f',
+            width: 3,
+            points: [
+              { x: 0, y: 0 },
+              { x: 6, y: 0 },
+              { x: 6, y: 4 },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  const tool = makeVectorTool(store);
+
+  tool.onPointerDown(noopCtx, { img: { x: 3, y: 1 } }, noopEngine);
+  tool.onPointerMove(noopCtx, { img: { x: 5, y: 3 } }, noopEngine);
+  tool.onPointerUp(noopCtx, { img: { x: 5, y: 3 } }, noopEngine);
+
+  const state = store.getToolState('vector-tool');
+  assert.equal(state.vectors.length, 1);
+  const [path] = state.vectors;
+  assert.equal(path.id, 42);
+  assert.equal(path.points.length, 3);
+  assert.deepEqual(path.points, [
+    { x: 2, y: 2 },
+    { x: 8, y: 2 },
+    { x: 8, y: 6 },
+  ]);
+});

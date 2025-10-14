@@ -10,6 +10,7 @@
 - Added unit tests covering rehydration logic and configuration persistence when new paths are committed.
 - Added anchor hit-testing and drag editing so existing points can be repositioned without creating new paths, including store persistence coverage.
 - Enabled modifier-driven editing gestures: Shift/double-click inserts new anchors on existing segments, and Alt-click removes anchors or deletes paths when they become empty, with corresponding persistence tests.
+- Added direct path translation by dragging segments so entire shapes can be repositioned while maintaining snapping behaviour, plus unit coverage.
 
 ## In Progress / TODO
 - Editing tooling still lacks dedicated segment subdivision UI affordances, multi-point selection, and stroke style adjustments beyond anchor repositioning.
