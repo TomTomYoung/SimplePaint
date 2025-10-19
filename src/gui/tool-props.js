@@ -1,4 +1,5 @@
 import { getActiveEditor } from '../managers/text-editor.js';
+import { describeShortcutsForTool } from './toolbar.js';
 
 const DEFAULT_TOOL_PALETTE = Object.freeze([
   '#000000',
@@ -876,6 +877,55 @@ const parsePaletteInput = (value) => {
   return normalized;
 };
 
+const collectPointerEventNames = (tool) => {
+  if (!tool || typeof tool !== 'object') {
+    return [];
+  }
+  const events = [];
+  if (typeof tool.onPointerDown === 'function') events.push('pointerdown');
+  if (typeof tool.onPointerMove === 'function') events.push('pointermove');
+  if (typeof tool.onPointerUp === 'function') events.push('pointerup');
+  return events;
+};
+
+const collectKeyUsageDescriptions = (tool, toolId) => {
+  const descriptions = [];
+  const shortcuts = describeShortcutsForTool(toolId);
+  if (shortcuts.length > 0) {
+    descriptions.push(`ショートカット ${shortcuts.join(' / ')}`);
+  }
+  if (tool && typeof tool.onEnter === 'function') {
+    descriptions.push('Enterキー (onEnter)');
+  }
+  if (tool && typeof tool.cancel === 'function') {
+    descriptions.push('Escapeキー (cancel)');
+  }
+  return descriptions;
+};
+
+const createToolMetaSection = (tool, toolId) => {
+  const pointerEvents = collectPointerEventNames(tool);
+  const keyDescriptions = collectKeyUsageDescriptions(tool, toolId);
+  if (pointerEvents.length === 0 && keyDescriptions.length === 0) {
+    return null;
+  }
+  const section = document.createElement('div');
+  section.className = 'tool-meta';
+  if (pointerEvents.length > 0) {
+    const row = document.createElement('div');
+    row.className = 'tool-meta-row';
+    row.textContent = `受け付けイベント: ${pointerEvents.join(' / ')}`;
+    section.appendChild(row);
+  }
+  if (keyDescriptions.length > 0) {
+    const row = document.createElement('div');
+    row.className = 'tool-meta-row';
+    row.textContent = `使用するキー: ${keyDescriptions.join(' / ')}`;
+    section.appendChild(row);
+  }
+  return section;
+};
+
 const appendPaletteSection = (container, store, id, state) => {
   const palette = ensurePalette(state?.palette);
   const paletteSection = document.createElement('div');
@@ -998,6 +1048,12 @@ export function initToolPropsPanel(store, engine) {
     const defs = toolPropDefs[id] || [];
     const state = store.getToolState(id);
     body.innerHTML = '';
+
+    const tool = engine && engine.tools instanceof Map ? engine.tools.get(id) : null;
+    const metaSection = createToolMetaSection(tool, id);
+    if (metaSection) {
+      body.appendChild(metaSection);
+    }
 
     if (defs.length === 0) {
       const note = document.createElement('div');

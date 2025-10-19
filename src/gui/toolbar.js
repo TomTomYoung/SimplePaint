@@ -1,7 +1,81 @@
 // toolbar.js - ツールバー管理モジュール
 
+const PRIMARY_TOOL_SHORTCUTS = Object.freeze({
+  KeyP: 'pencil',
+  KeyB: 'brush',
+  KeyE: 'eraser',
+  KeyT: 'text',
+  KeyM: 'select-rect',
+  KeyI: 'eyedropper',
+  KeyF: 'bucket',
+  KeyL: 'line',
+  KeyR: 'rect',
+  KeyO: 'ellipse',
+  KeyD: 'scatter',
+  KeyG: 'smudge',
+  KeyQ: 'quad',
+  KeyC: 'cubic',
+  KeyA: 'arc',
+  KeyS: 'sector',
+  KeyU: 'catmull',
+  KeyN: 'nurbs',
+  KeyK: 'vector-keep',
+  KeyH: 'freehand',
+  KeyV: 'vectorization',
+});
+
+const SHIFT_TOOL_SHORTCUTS = Object.freeze({
+  KeyP: 'pencil-click',
+  KeyE: 'eraser-click',
+  KeyH: 'freehand-click',
+  KeyV: 'vector-edit',
+});
+
 let toolCallbacks = {};
 let currentTool = null;
+
+const TOOL_SHORTCUT_DESCRIPTIONS = buildToolShortcutDescriptions(
+  PRIMARY_TOOL_SHORTCUTS,
+  SHIFT_TOOL_SHORTCUTS,
+);
+
+function buildToolShortcutDescriptions(primary, shift) {
+  const descriptionMap = new Map();
+  const register = (toolId, text) => {
+    if (!toolId || !text) return;
+    if (!descriptionMap.has(toolId)) {
+      descriptionMap.set(toolId, []);
+    }
+    descriptionMap.get(toolId).push(text);
+  };
+
+  Object.entries(primary).forEach(([code, toolId]) => {
+    register(toolId, codeToDisplayLabel(code));
+  });
+
+  Object.entries(shift).forEach(([code, toolId]) => {
+    register(toolId, `Shift+${codeToDisplayLabel(code)}`);
+  });
+
+  return descriptionMap;
+}
+
+function codeToDisplayLabel(code) {
+  if (code.startsWith('Key')) {
+    return code.slice(3);
+  }
+  if (code.startsWith('Digit')) {
+    return code.slice(5);
+  }
+  switch (code) {
+    case 'Minus':
+      return '-';
+    case 'Equal':
+      return '=';
+    default:
+      return code;
+  }
+}
 
 export function initToolbar() {
   // ツールボタンの初期化
@@ -76,51 +150,24 @@ function initKeyboardShortcuts() {
       return;
     }
 
-    // ツールショートカット
-    const shortcuts = {
-      'KeyP': 'pencil',
-      'KeyB': 'brush',
-      'KeyE': 'eraser',
-      'KeyT': 'text',
-      'KeyM': 'select-rect',
-      'KeyI': 'eyedropper',
-      'KeyF': 'bucket',
-      'KeyL': 'line',
-      'KeyR': 'rect',
-      'KeyO': 'ellipse',
-      'KeyD': 'scatter',
-      'KeyG': 'smudge',
-      'KeyQ': 'quad',
-      'KeyC': 'cubic',
-      'KeyA': 'arc',
-      'KeyS': 'sector',
-      'KeyU': 'catmull',
-      'KeyN': 'nurbs',
-      'KeyK': 'vector-keep',
-      'KeyH': 'freehand',
-      'KeyV': 'vectorization'
-    };
-
     // Shiftキー併用の別ツール
     if (e.shiftKey) {
-      const shiftShortcuts = {
-        'KeyP': 'pencil-click',
-        'KeyE': 'eraser-click',
-        'KeyH': 'freehand-click',
-        'KeyV': 'vector-edit'
-      };
-      if (shiftShortcuts[e.code]) {
+      const shiftTool = SHIFT_TOOL_SHORTCUTS[e.code];
+      if (shiftTool) {
         e.preventDefault();
-        selectTool(shiftShortcuts[e.code]);
+        selectTool(shiftTool);
         return;
       }
     }
 
     // 通常のツールショートカット
-    if (!e.ctrlKey && !e.metaKey && shortcuts[e.code]) {
-      e.preventDefault();
-      selectTool(shortcuts[e.code]);
-      return;
+    if (!e.ctrlKey && !e.metaKey) {
+      const primaryTool = PRIMARY_TOOL_SHORTCUTS[e.code];
+      if (primaryTool) {
+        e.preventDefault();
+        selectTool(primaryTool);
+        return;
+      }
     }
 
     // システムショートカット
@@ -197,6 +244,11 @@ export function selectTool(toolId) {
 
 export function setToolCallbacks(callbacks) {
   toolCallbacks = callbacks;
+}
+
+export function describeShortcutsForTool(toolId) {
+  const entries = TOOL_SHORTCUT_DESCRIPTIONS.get(toolId);
+  return entries ? [...entries] : [];
 }
 
 export function getCurrentTool() {
