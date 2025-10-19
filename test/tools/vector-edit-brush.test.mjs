@@ -71,18 +71,13 @@ function createMockEngine() {
   return {
     repaintCalls: 0,
     beginSnapshots: 0,
-    commitSnapshots: 0,
-    endSnapshots: 0,
+    finishSnapshots: 0,
     expandedRects: [],
     beginStrokeSnapshot() {
       this.beginSnapshots += 1;
     },
-    commitStrokeSnapshot() {
-      this.commitSnapshots += 1;
-      return false;
-    },
-    endStrokeSnapshot() {
-      this.endSnapshots += 1;
+    finishStrokeToHistory() {
+      this.finishSnapshots += 1;
     },
     requestRepaint() {
       this.repaintCalls += 1;
@@ -128,8 +123,7 @@ test('vector edit brush drags shared anchors and updates store continuity', () =
   assert.deepEqual(vector.segments[1].p0, { x: 42, y: 12 });
 
   assert.equal(engine.beginSnapshots, 1);
-  assert.equal(engine.commitSnapshots, 1);
-  assert.equal(engine.endSnapshots, 1);
+  assert.equal(engine.finishSnapshots, 1);
   assert.equal(engine.expandedRects.length, 1);
   const rect = engine.expandedRects[0];
   assert(Number.isFinite(rect.x));
@@ -175,7 +169,7 @@ test('vector edit brush adjusts control handles without disturbing anchors', () 
   assert.deepEqual(vector.segments[0].p0, { x: 0, y: 0 });
   assert.deepEqual(vector.segments[0].p3, { x: 30, y: 0 });
   assert.equal(engine.beginSnapshots, 1);
-  assert.equal(engine.endSnapshots, 1);
+  assert.equal(engine.finishSnapshots, 1);
   assert(engine.repaintCalls >= 2);
 });
 
@@ -200,7 +194,6 @@ test('vector edit brush ignores clicks that miss control points', () => {
   const [vector] = state.vectors;
   assert.deepEqual(vector.segments[0].p0, { x: 0, y: 0 });
   assert.equal(engine.beginSnapshots, 0);
-  assert.equal(engine.commitSnapshots, 0);
-  assert.equal(engine.endSnapshots, 0);
+  assert.equal(engine.finishSnapshots, 0);
   assert(engine.repaintCalls >= 1);
 });

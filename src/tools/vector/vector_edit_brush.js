@@ -108,7 +108,7 @@ export function makeVectorEditBrush(store) {
       selectedPoint = validatePoint(selectedPoint, cachedVectors);
       hoverPoint = validatePoint(hoverPoint, cachedVectors);
 
-      eng.commitStrokeSnapshot?.() || eng.endStrokeSnapshot?.();
+      eng.finishStrokeToHistory?.();
 
       tool.previewRect = affectedRect;
       pointerId = null;
