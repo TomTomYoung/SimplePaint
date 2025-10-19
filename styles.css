@@ -50,6 +50,7 @@ footer {
 #systems,
 #tools,
 #geotools,
+#vectortools,
 #texttools {
   max-height: 60px;
   display: flex;
@@ -91,9 +92,14 @@ footer {
   position: relative;
   background: #f6f6f6;
   overflow: hidden; /* scrollを削除 */
-  display: grid;
-  grid-template-columns: 200px 4px 1fr 4px 250px; /* 左200px、中央可変、右250px */
+  display: flex;
+  align-items: stretch;
   height: 100%;
+  min-height: 0;
+}
+
+#stage > * {
+  min-height: 0;
 }
 
 .side-panel {
@@ -101,6 +107,9 @@ footer {
   border: 1px solid #ddd;
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
+  min-width: 150px;
+  max-width: 500px;
 }
 
 .panel-header {
@@ -224,22 +233,61 @@ footer {
 
 #leftPanel {
   border-right: 1px solid #ddd;
+  width: 200px;
 }
 
 #layerPanel {
   border-left: 1px solid #ddd;
+  width: 250px;
 }
 
 .panel-resizer {
-  background: #ddd;
   cursor: col-resize;
-  width: 4px;
+  flex: 0 0 4px;
+  position: relative;
+  background: transparent;
+  transition: background 0.2s ease;
+  touch-action: none;
+}
+
+.panel-resizer::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 40px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.15);
+  transform: translate(-50%, -50%);
+  transition: background 0.2s ease;
+}
+
+.panel-resizer:hover,
+.panel-resizer.active {
+  background: rgba(100, 150, 255, 0.1);
+}
+
+.panel-resizer:hover::before,
+.panel-resizer.active::before {
+  background: rgba(100, 150, 255, 0.55);
+}
+
+body.panel-resize-active {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.panel-resize-active * {
+  cursor: col-resize !important;
 }
 
 #canvasArea {
   position: relative;
   overflow: scroll; /* スクロールを中央エリアに移動 */
   background: #f6f6f6;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 #canvasArea::-webkit-scrollbar {

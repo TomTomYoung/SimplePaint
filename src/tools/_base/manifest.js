@@ -66,6 +66,7 @@ import { makePatternArtBrush } from '../special/pattern_art_brush.js';
 import { makeVectorTool } from '../vector/vector-tool.js';
 import { makeVectorKeep } from '../vector/vector-keep.js';
 import { makeVectorizationBrush } from '../vector/vectorization_brush.js';
+import { makeVectorEditBrush } from '../vector/vector_edit_brush.js';
 import { makePathBooleans } from '../vector/path_booleans_v2.js';
 import { makeOutlineStrokeToFill } from '../vector/outline_stroke_to_fill.js';
 
@@ -183,6 +184,7 @@ export const DEFAULT_TOOL_MANIFEST = Object.freeze([
     createToolEntry('vector-tool', makeVectorTool),
     createToolEntry('vector-keep', makeVectorKeep),
     createToolEntry('vectorization', makeVectorizationBrush),
+    createToolEntry('vector-edit', makeVectorEditBrush),
     createToolEntry('path-bool', makePathBooleans),
     createToolEntry('outline-stroke-fill', makeOutlineStrokeToFill),
   ]),
