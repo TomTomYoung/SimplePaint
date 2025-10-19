@@ -7,6 +7,7 @@ import {
   isTextEditing,
 } from './managers/text-editor.js';
 import { layers, activeLayer, bmp } from './core/layer.js';
+import { initPanelResize } from './gui/panel-resize.js';
 
 function createEngineStub() {
   const context = {
@@ -54,6 +55,13 @@ let app = null;
 export let engine = createEngineStub();
 
 if (hasDOM()) {
+  const ensureResizeInit = () => initPanelResize();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureResizeInit, { once: true });
+  } else {
+    ensureResizeInit();
+  }
+
   app = new PaintApp();
   engine = app.engine;
 

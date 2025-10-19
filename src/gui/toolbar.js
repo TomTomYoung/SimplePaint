@@ -97,7 +97,8 @@ function initKeyboardShortcuts() {
       'KeyU': 'catmull',
       'KeyN': 'nurbs',
       'KeyK': 'vector-keep',
-      'KeyH': 'freehand'
+      'KeyH': 'freehand',
+      'KeyV': 'vectorization'
     };
 
     // Shiftキー併用の別ツール
@@ -105,7 +106,8 @@ function initKeyboardShortcuts() {
       const shiftShortcuts = {
         'KeyP': 'pencil-click',
         'KeyE': 'eraser-click',
-        'KeyH': 'freehand-click'
+        'KeyH': 'freehand-click',
+        'KeyV': 'vector-edit'
       };
       if (shiftShortcuts[e.code]) {
         e.preventDefault();
