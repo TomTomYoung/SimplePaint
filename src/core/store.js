@@ -1,4 +1,5 @@
 import { EventBus } from './event-bus.js';
+import { createEmptyVectorLayer } from './vector-layer-state.js';
 
 const hasStructuredClone = typeof globalThis.structuredClone === 'function';
 
@@ -207,9 +208,12 @@ export function createStore(initial, eventBus) {
   return new Store(initial, eventBus);
 }
 
+const defaultVectorLayerState = Object.freeze(createEmptyVectorLayer());
+
 export const defaultState = Object.freeze({
   toolId: 'pencil',
   tools: {},
+  vectorLayer: defaultVectorLayerState,
 });
 
 export const toolDefaults = Object.freeze({

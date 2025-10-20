@@ -1,4 +1,13 @@
-import { bmp, clipCanvas, layers, activeLayer, renderLayers, updateLayerList, addLayer } from '../core/layer.js';
+import {
+  bmp,
+  clipCanvas,
+  layers,
+  activeLayer,
+  renderLayers,
+  updateLayerList,
+  addLayer,
+} from '../core/layer.js';
+import { createEmptyVectorLayer, cloneVectorLayer } from '../core/vector-layer-state.js';
 
 function configureLayerDimensions(width, height) {
   layers.forEach((layer) => {
@@ -8,7 +17,14 @@ function configureLayerDimensions(width, height) {
   });
 }
 
-export function createDocument({ engine, fitToScreen, width = 1280, height = 720, backgroundColor = '#ffffff' }) {
+export function createDocument({
+  engine,
+  fitToScreen,
+  width = 1280,
+  height = 720,
+  backgroundColor = '#ffffff',
+  vectorLayer = null,
+} = {}) {
   bmp.width = width;
   bmp.height = height;
   clipCanvas.width = width;
@@ -21,6 +37,11 @@ export function createDocument({ engine, fitToScreen, width = 1280, height = 720
   const ctx = layers[0].getContext('2d');
   ctx.fillStyle = backgroundColor;
   ctx.fillRect(0, 0, width, height);
+
+  if (engine?.store?.set) {
+    const nextLayer = vectorLayer ? cloneVectorLayer(vectorLayer) : createEmptyVectorLayer();
+    engine.store.set({ vectorLayer: nextLayer });
+  }
 
   if (engine?.clearSelection) {
     engine.clearSelection();
@@ -50,12 +71,19 @@ export function positionFloatingSelection(engine, canvas, width, height) {
   engine.requestRepaint();
 }
 
-export function applySnapshotToDocument({ engine, fitToScreen, image }) {
-  const { width, height, dataURL } = image;
+export function applySnapshotToDocument({ engine, fitToScreen, snapshot }) {
+  const { width, height, dataURL, vectorLayer } = snapshot;
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      createDocument({ engine, fitToScreen, width, height, backgroundColor: '#ffffff' });
+      createDocument({
+        engine,
+        fitToScreen,
+        width,
+        height,
+        backgroundColor: '#ffffff',
+        vectorLayer,
+      });
       applyCanvasToActiveLayer(img);
       engine.requestRepaint();
       resolve();

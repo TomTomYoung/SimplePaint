@@ -1,12 +1,18 @@
 import { updateStatus } from '../gui/statusbar.js';
 import { showRestoreButton, updateAutosaveBadge } from '../gui/toolbar.js';
-import { createDocument, applyCanvasToActiveLayer, positionFloatingSelection, applySnapshotToDocument } from './document.js';
+import {
+  createDocument,
+  applyCanvasToActiveLayer,
+  positionFloatingSelection,
+  applySnapshotToDocument,
+} from './document.js';
 import { copySelection, cutSelection, readClipboardItems } from './clipboard-actions.js';
 import { saveDocumentAs, renderDocumentCanvas } from './export-actions.js';
 import { createAutosaveController } from './autosave.js';
 import { createSessionManager } from './session.js';
 import { loadImageFile } from './file-io.js';
 import { bmp } from '../core/layer.js';
+import { cloneVectorLayer } from '../core/vector-layer-state.js';
 
 let engine = null;
 let fitToScreen = () => {};
@@ -60,15 +66,17 @@ function ensureAutosaveController() {
     autosaveInterval: AUTOSAVE_INTERVAL,
     snapshotDocument: async () => {
       const canvas = renderDocumentCanvas();
+      const vectorLayer = cloneVectorLayer(engine?.store?.getState()?.vectorLayer ?? null);
       return {
         dataURL: canvas.toDataURL('image/png'),
         width: bmp.width,
         height: bmp.height,
         ts: Date.now(),
+        vectorLayer,
       };
     },
     applySnapshot: (snapshot) =>
-      applySnapshotToDocument({ engine, fitToScreen, image: snapshot }),
+      applySnapshotToDocument({ engine, fitToScreen, snapshot }),
     onStatus: handleAutosaveStatus,
     eventBus: engine?.eventBus,
     eventNames: ['store:updated'],
