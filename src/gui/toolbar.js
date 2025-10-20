@@ -1,35 +1,11 @@
 // toolbar.js - ツールバー管理モジュール
 
-const PRIMARY_TOOL_SHORTCUTS = Object.freeze({
-  KeyP: 'pencil',
-  KeyB: 'brush',
-  KeyE: 'eraser',
-  KeyT: 'text',
-  KeyM: 'select-rect',
-  KeyI: 'eyedropper',
-  KeyF: 'bucket',
-  KeyL: 'line',
-  KeyR: 'rect',
-  KeyO: 'ellipse',
-  KeyD: 'scatter',
-  KeyG: 'smudge',
-  KeyQ: 'quad',
-  KeyC: 'cubic',
-  KeyA: 'arc',
-  KeyS: 'sector',
-  KeyU: 'catmull',
-  KeyN: 'nurbs',
-  KeyK: 'vector-keep',
-  KeyH: 'freehand',
-  KeyV: 'vectorization',
-});
+import {
+  getPrimaryShortcutTool,
+  getShiftShortcutTool,
+} from './tool-shortcuts.js';
 
-const SHIFT_TOOL_SHORTCUTS = Object.freeze({
-  KeyP: 'pencil-click',
-  KeyE: 'eraser-click',
-  KeyH: 'freehand-click',
-  KeyV: 'vector-edit',
-});
+export { describeShortcutsForTool } from './tool-shortcuts.js';
 
 let toolCallbacks = {};
 let currentTool = null;
@@ -151,8 +127,8 @@ function initKeyboardShortcuts() {
     }
 
     // Shiftキー併用の別ツール
-    if (e.shiftKey) {
-      const shiftTool = SHIFT_TOOL_SHORTCUTS[e.code];
+    if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      const shiftTool = getShiftShortcutTool(e.code);
       if (shiftTool) {
         e.preventDefault();
         selectTool(shiftTool);
@@ -161,8 +137,8 @@ function initKeyboardShortcuts() {
     }
 
     // 通常のツールショートカット
-    if (!e.ctrlKey && !e.metaKey) {
-      const primaryTool = PRIMARY_TOOL_SHORTCUTS[e.code];
+    if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      const primaryTool = getPrimaryShortcutTool(e.code);
       if (primaryTool) {
         e.preventDefault();
         selectTool(primaryTool);
@@ -246,10 +222,6 @@ export function setToolCallbacks(callbacks) {
   toolCallbacks = callbacks;
 }
 
-export function describeShortcutsForTool(toolId) {
-  const entries = TOOL_SHORTCUT_DESCRIPTIONS.get(toolId);
-  return entries ? [...entries] : [];
-}
 
 export function getCurrentTool() {
   return currentTool;

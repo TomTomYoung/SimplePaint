@@ -177,6 +177,27 @@ footer {
   line-height: 1.5;
 }
 
+.tool-meta-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.tool-meta-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.tool-meta-label {
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.tool-meta-value {
+  flex: 1 1 auto;
+}
+
 .tool-meta-row + .tool-meta-row {
   margin-top: 4px;
 }

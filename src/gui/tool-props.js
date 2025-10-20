@@ -1,5 +1,5 @@
 import { getActiveEditor } from '../managers/text-editor.js';
-import { describeShortcutsForTool } from './toolbar.js';
+import { describeShortcutsForTool } from './tool-shortcuts.js';
 
 const DEFAULT_TOOL_PALETTE = Object.freeze([
   '#000000',
@@ -877,6 +877,15 @@ const parsePaletteInput = (value) => {
   return normalized;
 };
 
+const POINTER_EVENT_DESCRIPTIONS = Object.freeze({
+  pointerdown: 'pointerdown（押した瞬間）',
+  pointermove: 'pointermove（移動・ドラッグ中）',
+  pointerup: 'pointerup（離した瞬間）',
+});
+
+const formatPointerEvent = (eventName) =>
+  POINTER_EVENT_DESCRIPTIONS[eventName] ?? eventName;
+
 const collectPointerEventNames = (tool) => {
   if (!tool || typeof tool !== 'object') {
     return [];
@@ -885,22 +894,36 @@ const collectPointerEventNames = (tool) => {
   if (typeof tool.onPointerDown === 'function') events.push('pointerdown');
   if (typeof tool.onPointerMove === 'function') events.push('pointermove');
   if (typeof tool.onPointerUp === 'function') events.push('pointerup');
-  return events;
+  return events.map(formatPointerEvent);
 };
 
 const collectKeyUsageDescriptions = (tool, toolId) => {
   const descriptions = [];
   const shortcuts = describeShortcutsForTool(toolId);
   if (shortcuts.length > 0) {
-    descriptions.push(`ショートカット ${shortcuts.join(' / ')}`);
+    descriptions.push(`ツール切替: ${shortcuts.join(' / ')}`);
   }
   if (tool && typeof tool.onEnter === 'function') {
-    descriptions.push('Enterキー (onEnter)');
+    descriptions.push('Enterキー: 操作を確定（onEnter）');
   }
   if (tool && typeof tool.cancel === 'function') {
-    descriptions.push('Escapeキー (cancel)');
+    descriptions.push('Escapeキー: 操作をキャンセル（cancel）');
   }
   return descriptions;
+};
+
+const createToolMetaRow = (label, value) => {
+  const row = document.createElement('div');
+  row.className = 'tool-meta-row';
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'tool-meta-label';
+  labelSpan.textContent = label;
+  const valueSpan = document.createElement('span');
+  valueSpan.className = 'tool-meta-value';
+  valueSpan.textContent = value;
+  row.appendChild(labelSpan);
+  row.appendChild(valueSpan);
+  return row;
 };
 
 const createToolMetaSection = (tool, toolId) => {
@@ -911,17 +934,15 @@ const createToolMetaSection = (tool, toolId) => {
   }
   const section = document.createElement('div');
   section.className = 'tool-meta';
+  const title = document.createElement('div');
+  title.className = 'tool-meta-title';
+  title.textContent = '操作ガイド';
+  section.appendChild(title);
   if (pointerEvents.length > 0) {
-    const row = document.createElement('div');
-    row.className = 'tool-meta-row';
-    row.textContent = `受け付けイベント: ${pointerEvents.join(' / ')}`;
-    section.appendChild(row);
+    section.appendChild(createToolMetaRow('受け付けイベント', pointerEvents.join(' / ')));
   }
   if (keyDescriptions.length > 0) {
-    const row = document.createElement('div');
-    row.className = 'tool-meta-row';
-    row.textContent = `使用するキー: ${keyDescriptions.join(' / ')}`;
-    section.appendChild(row);
+    section.appendChild(createToolMetaRow('使用するキー', keyDescriptions.join(' / ')));
   }
   return section;
 };
