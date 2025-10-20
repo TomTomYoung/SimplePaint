@@ -1,6 +1,10 @@
 import { applyStrokeStyle } from '../../utils/stroke-style.js';
 import { computeAABB } from '../../utils/geometry/index.js';
-import { appendCurvesToLayer, createEmptyVectorLayer } from '../../core/vector-layer-state.js';
+import {
+  appendCurvesToLayer,
+  cloneVectorCurve,
+  createEmptyVectorLayer,
+} from '../../core/vector-layer-state.js';
 
 const HANDLE_SIZE = 6;
 const HANDLE_PADDING = 8;
@@ -144,6 +148,7 @@ export function createEditableCurveTool(store, options) {
   let editMode = false;
   let modifierState = { ...DEFAULT_MODIFIER_STATE };
   let snapshotStarted = false;
+  let ignoreVectorLayerSync = false;
 
   const getState = () => store.getToolState(id);
 
@@ -201,9 +206,9 @@ export function createEditableCurveTool(store, options) {
   };
 
   const gatherTransferCurves = () => {
-    const curves = committedCurves.map((curve) => cloneCurve(curve));
+    const curves = committedCurves.map((curve) => cloneVectorCurve(curve));
     if (draftCurve.points.length) {
-      curves.push(cloneCurve(draftCurve));
+      curves.push(cloneVectorCurve(draftCurve));
     }
     return curves;
   };
@@ -215,7 +220,11 @@ export function createEditableCurveTool(store, options) {
     }
     const currentLayer = store.getState().vectorLayer ?? createEmptyVectorLayer();
     const nextLayer = appendCurvesToLayer(currentLayer, curves);
-    store.set({ vectorLayer: nextLayer });
+    ignoreVectorLayerSync = true;
+    const updated = store.set({ vectorLayer: nextLayer });
+    if (!updated) {
+      ignoreVectorLayerSync = false;
+    }
     if (clearToolCurves) {
       reset();
     }
@@ -526,6 +535,29 @@ export function createEditableCurveTool(store, options) {
       return transferCurvesToVectorLayer({ ...options });
     },
   };
+
+  const syncCurvesFromVectorLayer = (layer) => {
+    const curves = Array.isArray(layer?.curves) ? layer.curves : [];
+    committedCurves = curves.map((curve) => cloneVectorCurve(curve));
+    draftCurve = createEmptyCurve();
+    hoverPoint = null;
+    dragHandle = null;
+    editMode = false;
+    snapshotStarted = false;
+    updatePreviewRect();
+  };
+
+  store.watch(
+    (state) => state.vectorLayer,
+    (nextLayer) => {
+      if (ignoreVectorLayerSync) {
+        ignoreVectorLayerSync = false;
+        return;
+      }
+      syncCurvesFromVectorLayer(nextLayer);
+    },
+    { immediate: true },
+  );
 
   return tool;
 }
