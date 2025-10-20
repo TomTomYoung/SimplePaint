@@ -15,9 +15,10 @@ export function makeEditableNURBS(store) {
     id,
     minPoints: 4,
     getNewPointWeight: getWeightFromState,
-    computePreviewBounds({ points, hover, weights }) {
-      const previewPoints = hover ? [...points, hover] : [...points];
-      const previewWeights = hover ? [...weights, 1] : [...weights];
+    computePreviewBounds({ points, hover, weights, editMode, dragIndex }) {
+      const includeHover = hover && !editMode && dragIndex < 0;
+      const previewPoints = includeHover ? [...points, hover] : [...points];
+      const previewWeights = includeHover ? [...weights, 1] : [...weights];
       if (previewPoints.length >= 4) {
         return computeAABB(filterFinitePoints(nurbs(previewPoints, previewWeights)));
       }
@@ -25,8 +26,9 @@ export function makeEditableNURBS(store) {
     },
     drawPreview(octx, context, helpers) {
       const { points, hover, dragIndex, state, weights, editMode } = context;
-      const previewPoints = hover ? [...points, hover] : [...points];
-      const previewWeights = hover ? [...weights, 1] : [...weights];
+      const includeHover = hover && !editMode && dragIndex < 0;
+      const previewPoints = includeHover ? [...points, hover] : [...points];
+      const previewWeights = includeHover ? [...weights, 1] : [...weights];
       helpers.drawControlPolygon(octx, previewPoints);
 
       if (previewPoints.length >= 2) {
