@@ -1,5 +1,6 @@
 import { applyStrokeStyle } from '../../utils/stroke-style.js';
 import { computeAABB } from '../../utils/geometry/index.js';
+import { appendCurvesToLayer, createEmptyVectorLayer } from '../../core/vector-layer-state.js';
 
 const HANDLE_SIZE = 6;
 const HANDLE_PADDING = 8;
@@ -199,6 +200,30 @@ export function createEditableCurveTool(store, options) {
     tool.previewRect = null;
   };
 
+  const gatherTransferCurves = () => {
+    const curves = committedCurves.map((curve) => cloneCurve(curve));
+    if (draftCurve.points.length) {
+      curves.push(cloneCurve(draftCurve));
+    }
+    return curves;
+  };
+
+  const transferCurvesToVectorLayer = ({ clearToolCurves = false, engine: eng } = {}) => {
+    const curves = gatherTransferCurves();
+    if (!curves.length) {
+      return false;
+    }
+    const currentLayer = store.getState().vectorLayer ?? createEmptyVectorLayer();
+    const nextLayer = appendCurvesToLayer(currentLayer, curves);
+    store.set({ vectorLayer: nextLayer });
+    if (clearToolCurves) {
+      reset();
+    }
+    updatePreviewRect();
+    eng?.requestRepaint?.();
+    return true;
+  };
+
   const beginSnapshot = (eng) => {
     if (!snapshotStarted) {
       eng.beginStrokeSnapshot?.();
@@ -393,8 +418,14 @@ export function createEditableCurveTool(store, options) {
     id,
     cursor: 'crosshair',
     previewRect: null,
-    cancel() {
-      reset();
+    cancel(_ctx, eng) {
+      hoverPoint = null;
+      dragHandle = null;
+      editMode = false;
+      modifierState = { ...DEFAULT_MODIFIER_STATE };
+      snapshotStarted = false;
+      updatePreviewRect();
+      eng?.requestRepaint?.();
     },
     onEnter(_ctx, eng) {
       updatePreviewRect();
@@ -490,6 +521,9 @@ export function createEditableCurveTool(store, options) {
     },
     burnPending(ctx, eng) {
       finalizeStroke(ctx, eng, { keepCurves: true });
+    },
+    transferCurvesToVectorLayer(options = {}) {
+      return transferCurvesToVectorLayer({ ...options });
     },
   };
 

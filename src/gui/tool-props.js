@@ -838,6 +838,28 @@ export const toolPropDefs = {
 
 const editableCurveActions = Object.freeze([
   {
+    name: 'copyCurvesToVectorLayer',
+    label: 'ベクターレイヤーにコピー',
+    type: 'button',
+    hint: '制御点のコピーをベクターレイヤーに渡し、ツール内の座標は保持します。',
+    handle({ tool, engine }) {
+      if (tool && typeof tool.transferCurvesToVectorLayer === 'function') {
+        tool.transferCurvesToVectorLayer({ engine, clearToolCurves: false });
+      }
+    },
+  },
+  {
+    name: 'moveCurvesToVectorLayer',
+    label: 'ベクターレイヤーに移動',
+    type: 'button',
+    hint: '制御点をベクターレイヤーへ渡し、ツール内の座標を破棄します。',
+    handle({ tool, engine }) {
+      if (tool && typeof tool.transferCurvesToVectorLayer === 'function') {
+        tool.transferCurvesToVectorLayer({ engine, clearToolCurves: true });
+      }
+    },
+  },
+  {
     name: 'finalizeCurves',
     label: '確定',
     type: 'button',
