@@ -1,4 +1,8 @@
-import { updateLayerList as panelUpdateLayerList } from '../gui/panels.js';
+import {
+  updateLayerList as panelUpdateLayerList,
+  updateLayerProperties as panelUpdateLayerProperties,
+} from '../gui/panels.js';
+import { cloneVectorLayer, createEmptyVectorLayer } from './vector-layer-state.js';
 
 export const bmp = document.createElement('canvas');
 export const bctx = bmp.getContext('2d', { willReadFrequently: true });
@@ -7,6 +11,28 @@ const clipCtx = clipCanvas.getContext('2d');
 
 export const layers = [];
 export let activeLayer = 0;
+
+const ensureVectorMetadata = (layer, options = {}) => {
+  if (!layer) return layer;
+  const { type = 'raster', vectorData = null } = options;
+  layer.layerType = type;
+  if (type === 'vector') {
+    layer.vectorData = vectorData ? cloneVectorLayer(vectorData) : createEmptyVectorLayer();
+  } else {
+    layer.vectorData = null;
+  }
+  return layer;
+};
+
+const syncStoreVectorState = (engine) => {
+  if (!engine?.store?.set) return;
+  const layer = layers[activeLayer];
+  if (layer?.layerType === 'vector') {
+    engine.store.set({ vectorLayer: cloneVectorLayer(layer.vectorData ?? null) });
+  } else {
+    engine.store.set({ vectorLayer: createEmptyVectorLayer() });
+  }
+};
 
 export function flattenLayers(ctx) {
   ctx.clearRect(0, 0, bmp.width, bmp.height);
@@ -63,6 +89,7 @@ export function updateLayerList(engine) {
     onMove: (from, to) => moveLayer(from, to, engine)
   };
   panelUpdateLayerList(layers, activeLayer, callbacks);
+  panelUpdateLayerProperties(layers[activeLayer] ?? null);
 }
 
 export function setActiveLayer(i, engine) {
@@ -71,6 +98,11 @@ export function setActiveLayer(i, engine) {
   updateLayerList(engine);
   renderLayers();
   engine.requestRepaint();
+  syncStoreVectorState(engine);
+  engine.eventBus?.emit?.('layer:activeChanged', {
+    index: activeLayer,
+    layer: layers[activeLayer] ?? null,
+  });
 }
 
 export function moveLayer(from, to, engine) {
@@ -101,6 +133,7 @@ export function addLayer(engine) {
   c.opacity = 1;
   c.mode = 'source-over';
   c.clip = false;
+  ensureVectorMetadata(c, { type: 'raster' });
   if (c._id == null)
     c._id =
       crypto && crypto.randomUUID
@@ -108,6 +141,27 @@ export function addLayer(engine) {
         : 'L' + Date.now() + Math.random().toString(16).slice(2);
   if (typeof c.name !== 'string' || !c.name)
     c.name = `Layer ${layers.length + 1}`;
+  const idx = Math.min(activeLayer + 1, layers.length);
+  layers.splice(idx, 0, c);
+  setActiveLayer(idx, engine);
+}
+
+export function addVectorLayer(engine) {
+  const c = document.createElement('canvas');
+  c.width = bmp.width;
+  c.height = bmp.height;
+  c.visible = true;
+  c.opacity = 1;
+  c.mode = 'source-over';
+  c.clip = false;
+  ensureVectorMetadata(c, { type: 'vector' });
+  if (c._id == null)
+    c._id =
+      crypto && crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'L' + Date.now() + Math.random().toString(16).slice(2);
+  if (typeof c.name !== 'string' || !c.name)
+    c.name = `Vector Layer ${layers.length + 1}`;
   const idx = Math.min(activeLayer + 1, layers.length);
   layers.splice(idx, 0, c);
   setActiveLayer(idx, engine);

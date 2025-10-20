@@ -1,9 +1,25 @@
 import { initToolbar, setToolCallbacks } from './gui/toolbar.js';
 import { initToolPropsPanel } from './gui/tool-props.js';
-import { initAdjustPanel, initLayerPanel, setAdjustCallbacks, setLayerCallbacks, initPanelHeaders } from './gui/panels.js';
+import {
+  initAdjustPanel,
+  initLayerPanel,
+  setAdjustCallbacks,
+  setLayerCallbacks,
+  initPanelHeaders,
+  setLayerPropertiesCallbacks,
+  updateLayerProperties,
+} from './gui/panels.js';
 
 import { Engine } from './core/engine.js';
-import { layers, activeLayer, bmp, renderLayers, addLayer, deleteLayer } from './core/layer.js';
+import {
+  layers,
+  activeLayer,
+  bmp,
+  renderLayers,
+  addLayer,
+  deleteLayer,
+  addVectorLayer,
+} from './core/layer.js';
 import { initIO, initDocument, openImageFile, triggerSave, doCopy, doCut, handleClipboardItems, restoreSession, checkSession, saveSessionDebounced } from './io/index.js';
 import { DOMManager } from './managers/dom-manager.js';
 import { Viewport } from './core/viewport.js';
@@ -12,6 +28,7 @@ import { EventBus } from './core/event-bus.js';
 import { registerDefaultTools } from './tools/_base/registry.js';
 import { AdjustmentManager } from './managers/adjustment-manager.js';
 import { cancelTextEditing, getActiveEditor } from './managers/text-editor.js';
+import { applyDefaultStyleToCurves, cloneVectorLayer, updateLayerDefaultStyle } from './core/vector-layer-state.js';
 
 export class PaintApp {
   constructor() {
@@ -31,6 +48,7 @@ export class PaintApp {
     this.registerTools();
     this.initUI();
     this.adjustmentManager = new AdjustmentManager(this.engine, layers, activeLayer);
+    this.setupVectorLayerSync();
   }
 
   registerTools() {
@@ -85,7 +103,13 @@ export class PaintApp {
   setupLayerCallbacks() {
     setLayerCallbacks({
       onAdd: () => addLayer(this.engine),
+      onAddVector: () => addVectorLayer(this.engine),
       onDelete: () => deleteLayer(this.engine)
+    });
+
+    setLayerPropertiesCallbacks({
+      onStyleChange: style => this.updateVectorLayerStyle(style),
+      onApplyStyle: () => this.applyVectorStyleToAll(),
     });
   }
 
@@ -161,5 +185,61 @@ export class PaintApp {
     initDocument(1280, 720, '#ffffff');
     this.engine.requestRepaint();
     checkSession();
+  }
+
+  setupVectorLayerSync() {
+    this._vectorLayerGuard = false;
+
+    this.store.watch(
+      state => state.vectorLayer,
+      nextLayer => {
+        if (this._vectorLayerGuard) {
+          this._vectorLayerGuard = false;
+          return;
+        }
+        const layer = layers[activeLayer];
+        if (!layer || layer.layerType !== 'vector') {
+          updateLayerProperties(layer ?? null);
+          return;
+        }
+        layer.vectorData = cloneVectorLayer(nextLayer);
+        updateLayerProperties(layer);
+        this.engine.requestRepaint();
+      },
+      { immediate: true },
+    );
+
+    this.eventBus.on('layer:activeChanged', ({ layer }) => {
+      if (!layer || layer.layerType !== 'vector') {
+        updateLayerProperties(layer ?? null);
+        return;
+      }
+      const snapshot = cloneVectorLayer(layer.vectorData ?? null);
+      this._vectorLayerGuard = true;
+      this.store.set({ vectorLayer: snapshot });
+      updateLayerProperties(layer);
+    });
+  }
+
+  updateVectorLayerStyle(style = {}) {
+    const layer = layers[activeLayer];
+    if (!layer || layer.layerType !== 'vector') return;
+    const next = updateLayerDefaultStyle(layer.vectorData ?? null, style);
+    layer.vectorData = next;
+    this._vectorLayerGuard = true;
+    this.store.set({ vectorLayer: cloneVectorLayer(next) });
+    updateLayerProperties(layer);
+    this.engine.requestRepaint();
+  }
+
+  applyVectorStyleToAll() {
+    const layer = layers[activeLayer];
+    if (!layer || layer.layerType !== 'vector') return;
+    const next = applyDefaultStyleToCurves(layer.vectorData ?? null);
+    layer.vectorData = next;
+    this._vectorLayerGuard = true;
+    this.store.set({ vectorLayer: cloneVectorLayer(next) });
+    updateLayerProperties(layer);
+    this.engine.requestRepaint();
   }
 }

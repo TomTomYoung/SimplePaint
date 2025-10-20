@@ -4,6 +4,7 @@ import {
   appendCurvesToLayer,
   cloneVectorCurve,
   createEmptyVectorLayer,
+  normaliseVectorStyle,
 } from '../../core/vector-layer-state.js';
 
 const HANDLE_SIZE = 6;
@@ -35,11 +36,36 @@ const isEditModifierActive = (modifierState, ev = null) =>
   !!(modifierState.ctrl || hasCtrlLikeModifier(ev));
 
 const clonePoint = (p) => ({ x: p.x, y: p.y });
-const createEmptyCurve = () => ({ points: [], weights: [] });
+const createEmptyCurve = (style = null) => ({
+  points: [],
+  weights: [],
+  style: style ? normaliseVectorStyle(style) : null,
+});
 const cloneCurve = (curve) => ({
   points: curve.points.map(clonePoint),
   weights: [...curve.weights],
+  style: curve.style ? normaliseVectorStyle(curve.style) : null,
 });
+
+const buildStyleFromToolState = (state = {}) =>
+  normaliseVectorStyle({
+    color: state?.primaryColor,
+    width: state?.brushSize,
+    dashPattern: state?.dashPattern,
+    capStyle: state?.capStyle,
+  });
+
+const mergeStateWithStyle = (state = {}, style = null) => {
+  if (!style) return state;
+  const normalised = normaliseVectorStyle(style);
+  return {
+    ...state,
+    primaryColor: normalised.color ?? state.primaryColor,
+    brushSize: normalised.width ?? state.brushSize,
+    dashPattern: normalised.dashPattern ?? state.dashPattern,
+    capStyle: normalised.capStyle ?? state.capStyle,
+  };
+};
 
 const helpers = Object.freeze({
   applyStroke(ctx, state) {
@@ -169,6 +195,7 @@ export function createEditableCurveTool(store, options) {
       dragHandle.curveIndex === curveIndex
         ? dragHandle.pointIndex
         : -1;
+    const mergedState = mergeStateWithStyle(state, curve.style ?? null);
     return {
       id,
       points: curve.points.map(clonePoint),
@@ -176,7 +203,8 @@ export function createEditableCurveTool(store, options) {
       weights: [...curve.weights],
       dragIndex,
       editMode,
-      state,
+      state: mergedState,
+      style: curve.style ? normaliseVectorStyle(curve.style) : null,
       curveType: type,
       curveIndex,
     };
@@ -208,7 +236,8 @@ export function createEditableCurveTool(store, options) {
   const gatherTransferCurves = () => {
     const curves = committedCurves.map((curve) => cloneVectorCurve(curve));
     if (draftCurve.points.length) {
-      curves.push(cloneVectorCurve(draftCurve));
+      const style = draftCurve.style ? normaliseVectorStyle(draftCurve.style) : buildStyleFromToolState(getState());
+      curves.push(cloneVectorCurve({ ...draftCurve, style }));
     }
     return curves;
   };
@@ -335,6 +364,11 @@ export function createEditableCurveTool(store, options) {
   const commitDraft = (eng) => {
     if (draftCurve.points.length < minPoints) {
       return false;
+    }
+    if (!draftCurve.style) {
+      draftCurve.style = buildStyleFromToolState(getState());
+    } else {
+      draftCurve.style = normaliseVectorStyle(draftCurve.style);
     }
     committedCurves.push(cloneCurve(draftCurve));
     draftCurve = createEmptyCurve();
@@ -464,6 +498,9 @@ export function createEditableCurveTool(store, options) {
       }
 
       const isDoubleClick = ev.detail === 2;
+      if (!draftCurve.style) {
+        draftCurve.style = buildStyleFromToolState(state);
+      }
       draftCurve.points.push(clonePoint(ev.img));
       if (getNewPointWeight) {
         const w = getNewPointWeight(state);
