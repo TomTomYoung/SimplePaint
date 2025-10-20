@@ -10,6 +10,19 @@ const DEFAULT_MODIFIER_STATE = Object.freeze({
   alt: false,
 });
 
+const hasCtrlLikeModifier = (mods = null) =>
+  !!(
+    mods && (
+      mods.ctrl === true ||
+      mods.ctrlKey === true ||
+      mods.meta === true ||
+      mods.metaKey === true
+    )
+  );
+
+const isEditModifierActive = (modifierState, ev = null) =>
+  !!(modifierState.ctrl || hasCtrlLikeModifier(ev));
+
 const clonePoint = (p) => ({ x: p.x, y: p.y });
 
 const helpers = Object.freeze({
@@ -215,7 +228,7 @@ export function createEditableCurveTool(store, options) {
   const setModifierState = (mods, eng) => {
     const next = {
       shift: !!mods?.shift,
-      ctrl: !!mods?.ctrl,
+      ctrl: hasCtrlLikeModifier(mods),
       alt: !!mods?.alt,
     };
     const changed =
@@ -224,7 +237,7 @@ export function createEditableCurveTool(store, options) {
       next.alt !== modifierState.alt;
     modifierState = next;
     let forceUpdate = false;
-    if (modifierState.ctrl && hoverPoint) {
+    if (next.ctrl && hoverPoint) {
       hoverPoint = null;
       forceUpdate = true;
     }
@@ -273,7 +286,7 @@ export function createEditableCurveTool(store, options) {
     onPointerDown(ctx, ev, eng) {
       if (ev.button !== 0) return;
 
-      if (modifierState.ctrl) {
+      if (isEditModifierActive(modifierState, ev)) {
         if (controlPoints.length) {
           const index = findHandleIndex(ev.img);
           if (index >= 0) {
