@@ -861,8 +861,17 @@ const editableCurveActions = Object.freeze([
   },
 ]);
 
-['quad-edit', 'cubic-edit', 'catmull-edit', 'bspline-edit', 'nurbs-edit'].forEach((id) => {
-  toolPropDefs[id] = editableCurveActions;
+const editableCurveSourceMap = Object.freeze({
+  'quad-edit': 'quad',
+  'cubic-edit': 'cubic',
+  'catmull-edit': 'catmull',
+  'bspline-edit': 'bspline',
+  'nurbs-edit': 'nurbs',
+});
+
+Object.entries(editableCurveSourceMap).forEach(([editId, baseId]) => {
+  const baseProps = toolPropDefs[baseId] || [];
+  toolPropDefs[editId] = [...baseProps, ...editableCurveActions];
 });
 
 const ensurePalette = (value) => {

@@ -396,8 +396,9 @@ export function createEditableCurveTool(store, options) {
     cancel() {
       reset();
     },
-    onEnter(ctx, eng) {
-      finalizeStroke(ctx, eng);
+    onEnter(_ctx, eng) {
+      updatePreviewRect();
+      eng.requestRepaint?.();
     },
     onPointerDown(ctx, ev, eng) {
       setModifierState(ev, eng);
