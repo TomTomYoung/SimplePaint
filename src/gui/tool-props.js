@@ -836,6 +836,44 @@ export const toolPropDefs = {
   eyedropper: [],
 };
 
+const editableCurveActions = Object.freeze([
+  {
+    name: 'finalizeCurves',
+    label: '確定',
+    type: 'button',
+    hint: '保持している曲線を描画して確定し、制御点をクリアします。',
+    handle({ tool, ctx, engine }) {
+      if (tool && typeof tool.finalizePending === 'function') {
+        tool.finalizePending(ctx, engine);
+      }
+    },
+  },
+  {
+    name: 'burnCurves',
+    label: '焼き付け',
+    type: 'button',
+    hint: '制御点を保持したまま現在の曲線をレイヤーに描画します。',
+    handle({ tool, ctx, engine }) {
+      if (tool && typeof tool.burnPending === 'function') {
+        tool.burnPending(ctx, engine);
+      }
+    },
+  },
+]);
+
+const editableCurveSourceMap = Object.freeze({
+  'quad-edit': 'quad',
+  'cubic-edit': 'cubic',
+  'catmull-edit': 'catmull',
+  'bspline-edit': 'bspline',
+  'nurbs-edit': 'nurbs',
+});
+
+Object.entries(editableCurveSourceMap).forEach(([editId, baseId]) => {
+  const baseProps = toolPropDefs[baseId] || [];
+  toolPropDefs[editId] = [...baseProps, ...editableCurveActions];
+});
+
 const ensurePalette = (value) => {
   if (!Array.isArray(value)) {
     return [...DEFAULT_TOOL_PALETTE];
@@ -1090,6 +1128,32 @@ export function initToolPropsPanel(store, engine) {
       label.textContent = d.label;
       label.style.display = 'block';
       let input;
+      if (d.type === 'button') {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = d.label;
+        btn.addEventListener('click', () => {
+          const ctx = engine?.ctx;
+          if (!ctx) return;
+          if (typeof d.handle === 'function') {
+            try {
+              d.handle({ tool, store, engine, ctx, id });
+            } catch (error) {
+              console.error('Failed to run tool action', error);
+            }
+          }
+        });
+        wrap.appendChild(btn);
+        if (d.hint) {
+          const hint = document.createElement('div');
+          hint.className = 'prop-hint';
+          hint.textContent = d.hint;
+          wrap.appendChild(hint);
+          btn.title = d.hint;
+        }
+        body.appendChild(wrap);
+        return;
+      }
       if (d.type === 'select') {
         input = document.createElement('select');
         d.options.forEach((o) => {
