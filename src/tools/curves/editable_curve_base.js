@@ -20,6 +20,12 @@ const hasCtrlLikeModifier = (mods = null) =>
     )
   );
 
+const readShiftModifier = (mods = null) =>
+  !!(mods && (mods.shift === true || mods.shiftKey === true));
+
+const readAltModifier = (mods = null) =>
+  !!(mods && (mods.alt === true || mods.altKey === true));
+
 const isEditModifierActive = (modifierState, ev = null) =>
   !!(modifierState.ctrl || hasCtrlLikeModifier(ev));
 
@@ -227,9 +233,9 @@ export function createEditableCurveTool(store, options) {
 
   const setModifierState = (mods, eng) => {
     const next = {
-      shift: !!mods?.shift,
+      shift: readShiftModifier(mods),
       ctrl: hasCtrlLikeModifier(mods),
-      alt: !!mods?.alt,
+      alt: readAltModifier(mods),
     };
     const changed =
       next.shift !== modifierState.shift ||
