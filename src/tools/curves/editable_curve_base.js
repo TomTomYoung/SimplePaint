@@ -416,16 +416,13 @@ export function createEditableCurveTool(store, options) {
         return;
       }
 
-      if (ev.detail === 2) {
-        commitDraft(eng);
-        return;
-      }
-
       beginSnapshot(eng);
       const state = getState();
       if (draftCurve.points.length >= maxPoints) {
         commitDraft(eng);
       }
+
+      const isDoubleClick = ev.detail === 2;
       draftCurve.points.push(clonePoint(ev.img));
       if (getNewPointWeight) {
         const w = getNewPointWeight(state);
@@ -436,7 +433,10 @@ export function createEditableCurveTool(store, options) {
       hoverPoint = null;
       updatePreviewRect();
       eng.requestRepaint?.();
-      if (draftCurve.points.length >= maxPoints) {
+      if (
+        draftCurve.points.length >= maxPoints ||
+        (isDoubleClick && draftCurve.points.length >= minPoints)
+      ) {
         commitDraft(eng);
       }
     },
