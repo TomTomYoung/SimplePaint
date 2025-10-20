@@ -10,6 +10,49 @@ export { describeShortcutsForTool } from './tool-shortcuts.js';
 let toolCallbacks = {};
 let currentTool = null;
 
+const TOOL_SHORTCUT_DESCRIPTIONS = buildToolShortcutDescriptions(
+  PRIMARY_TOOL_SHORTCUTS,
+  SHIFT_TOOL_SHORTCUTS,
+);
+
+function buildToolShortcutDescriptions(primary, shift) {
+  const descriptionMap = new Map();
+  const register = (toolId, text) => {
+    if (!toolId || !text) return;
+    if (!descriptionMap.has(toolId)) {
+      descriptionMap.set(toolId, []);
+    }
+    descriptionMap.get(toolId).push(text);
+  };
+
+  Object.entries(primary).forEach(([code, toolId]) => {
+    register(toolId, codeToDisplayLabel(code));
+  });
+
+  Object.entries(shift).forEach(([code, toolId]) => {
+    register(toolId, `Shift+${codeToDisplayLabel(code)}`);
+  });
+
+  return descriptionMap;
+}
+
+function codeToDisplayLabel(code) {
+  if (code.startsWith('Key')) {
+    return code.slice(3);
+  }
+  if (code.startsWith('Digit')) {
+    return code.slice(5);
+  }
+  switch (code) {
+    case 'Minus':
+      return '-';
+    case 'Equal':
+      return '=';
+    default:
+      return code;
+  }
+}
+
 export function initToolbar() {
   // ツールボタンの初期化
   document.querySelectorAll('.tool').forEach(b => {
