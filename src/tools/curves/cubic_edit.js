@@ -7,17 +7,15 @@ export function makeEditableCubic(store) {
     id,
     minPoints: 4,
     maxPoints: 4,
-    computePreviewBounds({ points, hover }) {
-      const candidates = [...points];
-      if (hover && points.length < 4) candidates.push(hover);
+    computePreviewBounds({ points, hover, editMode, dragIndex }) {
+      const includeHover = hover && !editMode && dragIndex < 0 && points.length < 4;
+      const candidates = includeHover ? [...points, hover] : [...points];
       return computeAABB(candidates);
     },
     drawPreview(octx, context, helpers) {
       const { points, hover, dragIndex, state, editMode } = context;
-      const previewPoints = [...points];
-      if (hover && points.length < 4) {
-        previewPoints.push(hover);
-      }
+      const includeHover = hover && !editMode && dragIndex < 0 && points.length < 4;
+      const previewPoints = includeHover ? [...points, hover] : [...points];
       helpers.drawControlPolygon(octx, previewPoints);
 
       if (points.length >= 4) {
