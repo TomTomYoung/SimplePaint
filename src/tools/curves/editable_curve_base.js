@@ -64,6 +64,7 @@ const helpers = Object.freeze({
  * @property {{x: number, y: number} | null} hover
  * @property {number[]} weights
  * @property {number} dragIndex
+ * @property {boolean} editMode
  * @property {any} state
  */
 
@@ -110,6 +111,7 @@ export function createEditableCurveTool(store, options) {
   /** @type {{x: number, y: number} | null} */
   let hoverPoint = null;
   let dragIndex = -1;
+  let editMode = false;
   let snapshotStarted = false;
 
   const getState = () => store.getToolState(id);
@@ -120,6 +122,7 @@ export function createEditableCurveTool(store, options) {
     hover: hoverPoint,
     weights,
     dragIndex,
+    editMode,
     state,
   });
 
@@ -129,6 +132,7 @@ export function createEditableCurveTool(store, options) {
     hover: hoverPoint ? clonePoint(hoverPoint) : null,
     weights: [...weights],
     dragIndex,
+    editMode,
     state,
   });
 
@@ -137,6 +141,7 @@ export function createEditableCurveTool(store, options) {
     weights = [];
     hoverPoint = null;
     dragIndex = -1;
+    editMode = false;
     snapshotStarted = false;
     tool.previewRect = null;
   };
@@ -226,10 +231,23 @@ export function createEditableCurveTool(store, options) {
     onPointerDown(ctx, ev, eng) {
       if (ev.button !== 0) return;
 
-      if (ev.ctrl && controlPoints.length) {
-        const index = findHandleIndex(ev.img);
-        dragIndex = index;
+      if (editMode !== !!ev.ctrl) {
+        editMode = !!ev.ctrl;
+        eng.requestRepaint?.();
+      }
+
+      if (ev.ctrl) {
         hoverPoint = null;
+        if (controlPoints.length) {
+          const index = findHandleIndex(ev.img);
+          if (index >= 0) {
+            dragIndex = index;
+            updatePreviewRect();
+            eng.requestRepaint?.();
+            return;
+          }
+          dragIndex = -1;
+        }
         updatePreviewRect();
         eng.requestRepaint?.();
         return;
@@ -260,23 +278,35 @@ export function createEditableCurveTool(store, options) {
       eng.requestRepaint?.();
     },
     onPointerMove(_ctx, ev, eng) {
+      const isEditing = !!ev.ctrl || dragIndex >= 0;
+      if (editMode !== isEditing) {
+        editMode = isEditing;
+        eng.requestRepaint?.();
+      }
+
       if (dragIndex >= 0) {
         controlPoints[dragIndex] = clonePoint(ev.img);
         updatePreviewRect();
         eng.requestRepaint?.();
         return;
       }
-      if (controlPoints.length && controlPoints.length < maxPoints) {
+
+      if (!isEditing && controlPoints.length && controlPoints.length < maxPoints) {
         hoverPoint = clonePoint(ev.img);
       } else {
         hoverPoint = null;
       }
       updatePreviewRect();
     },
-    onPointerUp(_ctx, _ev, eng) {
+    onPointerUp(_ctx, ev, eng) {
       if (dragIndex >= 0) {
         dragIndex = -1;
         updatePreviewRect();
+        eng.requestRepaint?.();
+      }
+      const nextMode = !!ev?.ctrl;
+      if (editMode !== nextMode) {
+        editMode = nextMode;
         eng.requestRepaint?.();
       }
     },

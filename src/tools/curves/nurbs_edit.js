@@ -24,7 +24,7 @@ export function makeEditableNURBS(store) {
       return computeAABB(previewPoints);
     },
     drawPreview(octx, context, helpers) {
-      const { points, hover, dragIndex, state, weights } = context;
+      const { points, hover, dragIndex, state, weights, editMode } = context;
       const previewPoints = hover ? [...points, hover] : [...points];
       const previewWeights = hover ? [...weights, 1] : [...weights];
       helpers.drawControlPolygon(octx, previewPoints);
@@ -49,7 +49,9 @@ export function makeEditableNURBS(store) {
         }
       }
 
-      helpers.drawHandles(octx, points, dragIndex);
+      if ((editMode || dragIndex >= 0) && points.length) {
+        helpers.drawHandles(octx, points, dragIndex);
+      }
     },
     finalize(ctx, _eng, context, helpers) {
       const { points, state, weights } = context;

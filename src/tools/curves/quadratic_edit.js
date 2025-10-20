@@ -13,7 +13,7 @@ export function makeEditableQuadratic(store) {
       return computeAABB(candidates);
     },
     drawPreview(octx, context, helpers) {
-      const { points, hover, dragIndex, state } = context;
+      const { points, hover, dragIndex, state, editMode } = context;
       const previewPoints = [...points];
       if (hover && points.length < 3) {
         previewPoints.push(hover);
@@ -46,7 +46,9 @@ export function makeEditableQuadratic(store) {
         octx.restore();
       }
 
-      helpers.drawHandles(octx, points, dragIndex);
+      if ((editMode || dragIndex >= 0) && points.length) {
+        helpers.drawHandles(octx, points, dragIndex);
+      }
     },
     finalize(ctx, _eng, context, helpers) {
       const { points, state } = context;
