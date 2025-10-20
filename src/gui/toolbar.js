@@ -1,5 +1,12 @@
 // toolbar.js - ツールバー管理モジュール
 
+import {
+  getPrimaryShortcutTool,
+  getShiftShortcutTool,
+} from './tool-shortcuts.js';
+
+export { describeShortcutsForTool } from './tool-shortcuts.js';
+
 let toolCallbacks = {};
 let currentTool = null;
 
@@ -76,51 +83,24 @@ function initKeyboardShortcuts() {
       return;
     }
 
-    // ツールショートカット
-    const shortcuts = {
-      'KeyP': 'pencil',
-      'KeyB': 'brush',
-      'KeyE': 'eraser',
-      'KeyT': 'text',
-      'KeyM': 'select-rect',
-      'KeyI': 'eyedropper',
-      'KeyF': 'bucket',
-      'KeyL': 'line',
-      'KeyR': 'rect',
-      'KeyO': 'ellipse',
-      'KeyD': 'scatter',
-      'KeyG': 'smudge',
-      'KeyQ': 'quad',
-      'KeyC': 'cubic',
-      'KeyA': 'arc',
-      'KeyS': 'sector',
-      'KeyU': 'catmull',
-      'KeyN': 'nurbs',
-      'KeyK': 'vector-keep',
-      'KeyH': 'freehand',
-      'KeyV': 'vectorization'
-    };
-
     // Shiftキー併用の別ツール
-    if (e.shiftKey) {
-      const shiftShortcuts = {
-        'KeyP': 'pencil-click',
-        'KeyE': 'eraser-click',
-        'KeyH': 'freehand-click',
-        'KeyV': 'vector-edit'
-      };
-      if (shiftShortcuts[e.code]) {
+    if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      const shiftTool = getShiftShortcutTool(e.code);
+      if (shiftTool) {
         e.preventDefault();
-        selectTool(shiftShortcuts[e.code]);
+        selectTool(shiftTool);
         return;
       }
     }
 
     // 通常のツールショートカット
-    if (!e.ctrlKey && !e.metaKey && shortcuts[e.code]) {
-      e.preventDefault();
-      selectTool(shortcuts[e.code]);
-      return;
+    if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      const primaryTool = getPrimaryShortcutTool(e.code);
+      if (primaryTool) {
+        e.preventDefault();
+        selectTool(primaryTool);
+        return;
+      }
     }
 
     // システムショートカット
@@ -198,6 +178,7 @@ export function selectTool(toolId) {
 export function setToolCallbacks(callbacks) {
   toolCallbacks = callbacks;
 }
+
 
 export function getCurrentTool() {
   return currentTool;

@@ -1,4 +1,5 @@
 import { getActiveEditor } from '../managers/text-editor.js';
+import { describeShortcutsForTool } from './tool-shortcuts.js';
 
 const DEFAULT_TOOL_PALETTE = Object.freeze([
   '#000000',
@@ -876,6 +877,76 @@ const parsePaletteInput = (value) => {
   return normalized;
 };
 
+const POINTER_EVENT_DESCRIPTIONS = Object.freeze({
+  pointerdown: 'pointerdown（押した瞬間）',
+  pointermove: 'pointermove（移動・ドラッグ中）',
+  pointerup: 'pointerup（離した瞬間）',
+});
+
+const formatPointerEvent = (eventName) =>
+  POINTER_EVENT_DESCRIPTIONS[eventName] ?? eventName;
+
+const collectPointerEventNames = (tool) => {
+  if (!tool || typeof tool !== 'object') {
+    return [];
+  }
+  const events = [];
+  if (typeof tool.onPointerDown === 'function') events.push('pointerdown');
+  if (typeof tool.onPointerMove === 'function') events.push('pointermove');
+  if (typeof tool.onPointerUp === 'function') events.push('pointerup');
+  return events.map(formatPointerEvent);
+};
+
+const collectKeyUsageDescriptions = (tool, toolId) => {
+  const descriptions = [];
+  const shortcuts = describeShortcutsForTool(toolId);
+  if (shortcuts.length > 0) {
+    descriptions.push(`ツール切替: ${shortcuts.join(' / ')}`);
+  }
+  if (tool && typeof tool.onEnter === 'function') {
+    descriptions.push('Enterキー: 操作を確定（onEnter）');
+  }
+  if (tool && typeof tool.cancel === 'function') {
+    descriptions.push('Escapeキー: 操作をキャンセル（cancel）');
+  }
+  return descriptions;
+};
+
+const createToolMetaRow = (label, value) => {
+  const row = document.createElement('div');
+  row.className = 'tool-meta-row';
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'tool-meta-label';
+  labelSpan.textContent = label;
+  const valueSpan = document.createElement('span');
+  valueSpan.className = 'tool-meta-value';
+  valueSpan.textContent = value;
+  row.appendChild(labelSpan);
+  row.appendChild(valueSpan);
+  return row;
+};
+
+const createToolMetaSection = (tool, toolId) => {
+  const pointerEvents = collectPointerEventNames(tool);
+  const keyDescriptions = collectKeyUsageDescriptions(tool, toolId);
+  if (pointerEvents.length === 0 && keyDescriptions.length === 0) {
+    return null;
+  }
+  const section = document.createElement('div');
+  section.className = 'tool-meta';
+  const title = document.createElement('div');
+  title.className = 'tool-meta-title';
+  title.textContent = '操作ガイド';
+  section.appendChild(title);
+  if (pointerEvents.length > 0) {
+    section.appendChild(createToolMetaRow('受け付けイベント', pointerEvents.join(' / ')));
+  }
+  if (keyDescriptions.length > 0) {
+    section.appendChild(createToolMetaRow('使用するキー', keyDescriptions.join(' / ')));
+  }
+  return section;
+};
+
 const appendPaletteSection = (container, store, id, state) => {
   const palette = ensurePalette(state?.palette);
   const paletteSection = document.createElement('div');
@@ -998,6 +1069,12 @@ export function initToolPropsPanel(store, engine) {
     const defs = toolPropDefs[id] || [];
     const state = store.getToolState(id);
     body.innerHTML = '';
+
+    const tool = engine && engine.tools instanceof Map ? engine.tools.get(id) : null;
+    const metaSection = createToolMetaSection(tool, id);
+    if (metaSection) {
+      body.appendChild(metaSection);
+    }
 
     if (defs.length === 0) {
       const note = document.createElement('div');
