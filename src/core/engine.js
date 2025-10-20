@@ -243,6 +243,7 @@ export class Engine {
       lastClickCount = 0;
     const DC_TIME = 350; // 350ms以内なら連続クリック扱い
     const DC_DIST = 4; // 4px以内なら同じ位置とみなす
+    let spaceDown = false;
 
     const pointer = (e) => {
       const r = base.getBoundingClientRect();
@@ -290,7 +291,7 @@ export class Engine {
       const p = pointer(e);
       this.updateModifierState(p);
 
-      if (e.button === 1 || (p.ctrl && e.button === 0)) {
+      if (e.button === 1 || (spaceDown && e.button === 0)) {
         this.isPanning = true;
         this.lastS = { x: e.clientX, y: e.clientY };
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -333,6 +334,9 @@ export class Engine {
       }
       if (this.isPanning) {
         this.isPanning = false;
+        base.style.cursor = spaceDown
+          ? "grab"
+          : this.current?.cursor || "default";
         return;
       }
       const p = pointer(e);
