@@ -82,6 +82,11 @@ import { makeCubic } from '../curves/cubic.js';
 import { makeCatmull } from '../curves/catmull.js';
 import { makeBSpline } from '../curves/bspline.js';
 import { makeNURBS } from '../curves/nurbs.js';
+import { makeEditableQuadratic } from '../curves/quadratic_edit.js';
+import { makeEditableCubic } from '../curves/cubic_edit.js';
+import { makeEditableCatmull } from '../curves/catmull_edit.js';
+import { makeEditableBSpline } from '../curves/bspline_edit.js';
+import { makeEditableNURBS } from '../curves/nurbs_edit.js';
 
 // Fill tools
 import { makeBucket } from '../fill/bucket.js';
@@ -194,6 +199,11 @@ export const DEFAULT_TOOL_MANIFEST = Object.freeze([
     createToolEntry('catmull', makeCatmull),
     createToolEntry('bspline', makeBSpline),
     createToolEntry('nurbs', makeNURBS),
+    createToolEntry('quad-edit', makeEditableQuadratic),
+    createToolEntry('cubic-edit', makeEditableCubic),
+    createToolEntry('catmull-edit', makeEditableCatmull),
+    createToolEntry('bspline-edit', makeEditableBSpline),
+    createToolEntry('nurbs-edit', makeEditableNURBS),
   ]),
   createCategory('shapes', 'Shape tools', [
     createToolEntry('arc', makeArc),

@@ -36,6 +36,13 @@
  */
 
 /**
+ * @typedef {Object} ToolModifierState
+ * @property {boolean} shift - Whether the Shift modifier is currently active.
+ * @property {boolean} ctrl - Whether the Control/Command modifier is currently active.
+ * @property {boolean} alt - Whether the Alt/Option modifier is currently active.
+ */
+
+/**
  * @callback ToolPointerHandler
  * @param {CanvasRenderingContext2D} ctx - Drawing context of the active layer.
  * @param {ToolPointerEvent} event - Normalised pointer payload supplied by the engine.
@@ -61,6 +68,8 @@
  * @property {() => void} [cancel] - Optional hook invoked when the interaction is cancelled.
  * @property {(CanvasRenderingContext2D, import('../core/engine.js').Engine) => void} [onEnter]
  *   - Optional hook executed when the user presses Enter.
+ * @property {(ToolModifierState, import('../core/engine.js').Engine) => void} [onModifiersChanged]
+ *   - Optional hook executed whenever global modifier keys change state.
  */
 
 /**
