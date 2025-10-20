@@ -7,17 +7,15 @@ export function makeEditableQuadratic(store) {
     id,
     minPoints: 3,
     maxPoints: 3,
-    computePreviewBounds({ points, hover }) {
-      const candidates = [...points];
-      if (hover && points.length < 3) candidates.push(hover);
+    computePreviewBounds({ points, hover, editMode, dragIndex }) {
+      const includeHover = hover && !editMode && dragIndex < 0 && points.length < 3;
+      const candidates = includeHover ? [...points, hover] : [...points];
       return computeAABB(candidates);
     },
     drawPreview(octx, context, helpers) {
       const { points, hover, dragIndex, state, editMode } = context;
-      const previewPoints = [...points];
-      if (hover && points.length < 3) {
-        previewPoints.push(hover);
-      }
+      const includeHover = hover && !editMode && dragIndex < 0 && points.length < 3;
+      const previewPoints = includeHover ? [...points, hover] : [...points];
       helpers.drawControlPolygon(octx, previewPoints);
 
       if (points.length >= 3) {
