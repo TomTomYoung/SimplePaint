@@ -6,8 +6,9 @@ export function makeEditableBSpline(store) {
   return createEditableCurveTool(store, {
     id,
     minPoints: 4,
-    computePreviewBounds({ points, hover }) {
-      const previewPoints = hover ? [...points, hover] : [...points];
+    computePreviewBounds({ points, hover, editMode, dragIndex }) {
+      const includeHover = hover && !editMode && dragIndex < 0;
+      const previewPoints = includeHover ? [...points, hover] : [...points];
       if (previewPoints.length >= 4) {
         return computeAABB(bspline(previewPoints));
       }
@@ -15,7 +16,8 @@ export function makeEditableBSpline(store) {
     },
     drawPreview(octx, context, helpers) {
       const { points, hover, dragIndex, state, editMode } = context;
-      const previewPoints = hover ? [...points, hover] : [...points];
+      const includeHover = hover && !editMode && dragIndex < 0;
+      const previewPoints = includeHover ? [...points, hover] : [...points];
       helpers.drawControlPolygon(octx, previewPoints);
 
       if (previewPoints.length >= 2) {
