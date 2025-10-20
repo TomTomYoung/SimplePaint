@@ -21,6 +21,7 @@ export class Engine {
     this._preStrokeCanvas = null;
     this._pendingRect = null;
     this.filterPreview = null; // {canvas, x, y}
+    this._modifiers = { shift: false, ctrl: false, alt: false };
     
     this._bindEvents();
     this.requestRepaint = this.requestRepaint.bind(this);
@@ -45,6 +46,9 @@ export class Engine {
     if (this.current && this.current.cancel) this.current.cancel();
     this.current = this.tools.get(id);
     base.style.cursor = this.current?.cursor || "default";
+    if (this.current?.onModifiersChanged) {
+      this.current.onModifiersChanged(this._modifiers, this);
+    }
   }
   register(t) {
     this.tools.set(t.id, t);
@@ -60,6 +64,23 @@ export class Engine {
     const tid = this.store.getState().toolId;
     const ts = this.store.getToolState(tid);
     updateStatus(`x:${Math.floor(pos.img.x)}, y:${Math.floor(pos.img.y)}  線:${ts.primaryColor} 塗:${ts.secondaryColor}  幅:${ts.brushSize}`);
+  }
+
+  updateModifierState(mods = {}) {
+    const next = {
+      shift: !!mods.shift,
+      ctrl: !!mods.ctrl,
+      alt: !!mods.alt,
+    };
+    if (
+      next.shift === this._modifiers.shift &&
+      next.ctrl === this._modifiers.ctrl &&
+      next.alt === this._modifiers.alt
+    ) {
+      return;
+    }
+    this._modifiers = next;
+    this.current?.onModifiersChanged?.(this._modifiers, this);
   }
 
 
@@ -267,7 +288,8 @@ export class Engine {
     if (!area) return;
     area.addEventListener("pointerdown", (e) => {
       const p = pointer(e);
-      
+      this.updateModifierState(p);
+
       if (e.button === 1 || (p.ctrl && e.button === 0)) {
         this.isPanning = true;
         this.lastS = { x: e.clientX, y: e.clientY };
@@ -288,6 +310,7 @@ export class Engine {
 
     area.addEventListener("pointermove", (e) => {
       const p = pointer(e);
+      this.updateModifierState(p);
       if (this.isPanning && this.lastS) {
         const dx = e.clientX - this.lastS.x,
           dy = e.clientY - this.lastS.y;
@@ -313,6 +336,7 @@ export class Engine {
         return;
       }
       const p = pointer(e);
+      this.updateModifierState(p);
       this.current?.onPointerUp(this.ctx, p, this);
       this.finishStrokeToHistory();
       this.requestRepaint();
@@ -333,6 +357,11 @@ export class Engine {
     );
 
     window.addEventListener("keydown", (e) => {
+      this.updateModifierState({
+        ctrl: e.ctrlKey || e.metaKey,
+        shift: e.shiftKey,
+        alt: e.altKey,
+      });
       // ★ テキスト編集中はショートカットを殺す（Escだけ通す）
       if (getActiveEditor()) {
         if (e.code === "Escape") {
@@ -372,6 +401,11 @@ export class Engine {
     });
 
     window.addEventListener("keyup", (e) => {
+      this.updateModifierState({
+        ctrl: e.ctrlKey || e.metaKey,
+        shift: e.shiftKey,
+        alt: e.altKey,
+      });
       if (e.code === "Space") {
         spaceDown = false;
         base.style.cursor = this.current?.cursor || "default";

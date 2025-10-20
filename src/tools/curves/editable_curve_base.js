@@ -4,6 +4,11 @@ import { computeAABB } from '../../utils/geometry/index.js';
 const HANDLE_SIZE = 6;
 const HANDLE_PADDING = 8;
 const HIT_RADIUS_SQ = 64; // 8px radius in image space
+const DEFAULT_MODIFIER_STATE = Object.freeze({
+  shift: false,
+  ctrl: false,
+  alt: false,
+});
 
 const clonePoint = (p) => ({ x: p.x, y: p.y });
 
@@ -112,6 +117,7 @@ export function createEditableCurveTool(store, options) {
   let hoverPoint = null;
   let dragIndex = -1;
   let editMode = false;
+  let modifierState = { ...DEFAULT_MODIFIER_STATE };
   let snapshotStarted = false;
 
   const getState = () => store.getToolState(id);
@@ -142,6 +148,7 @@ export function createEditableCurveTool(store, options) {
     hoverPoint = null;
     dragIndex = -1;
     editMode = false;
+    modifierState = { ...DEFAULT_MODIFIER_STATE };
     snapshotStarted = false;
     tool.previewRect = null;
   };
@@ -193,6 +200,41 @@ export function createEditableCurveTool(store, options) {
     return -1;
   };
 
+  const refreshEditMode = (eng, { forceUpdateRect = false } = {}) => {
+    const shouldEdit = modifierState.ctrl || dragIndex >= 0;
+    const modeChanged = editMode !== shouldEdit;
+    if (modeChanged) {
+      editMode = shouldEdit;
+    }
+    if (modeChanged || forceUpdateRect) {
+      updatePreviewRect();
+      eng?.requestRepaint?.();
+    }
+  };
+
+  const setModifierState = (mods, eng) => {
+    const next = {
+      shift: !!mods?.shift,
+      ctrl: !!mods?.ctrl,
+      alt: !!mods?.alt,
+    };
+    const changed =
+      next.shift !== modifierState.shift ||
+      next.ctrl !== modifierState.ctrl ||
+      next.alt !== modifierState.alt;
+    modifierState = next;
+    let forceUpdate = false;
+    if (modifierState.ctrl && hoverPoint) {
+      hoverPoint = null;
+      forceUpdate = true;
+    }
+    if (changed || forceUpdate) {
+      refreshEditMode(eng, { forceUpdateRect: forceUpdate });
+    } else {
+      refreshEditMode(eng);
+    }
+  };
+
   const finalizeStroke = (ctx, eng) => {
     if (!controlPoints.length || controlPoints.length < minPoints) {
       reset();
@@ -231,25 +273,17 @@ export function createEditableCurveTool(store, options) {
     onPointerDown(ctx, ev, eng) {
       if (ev.button !== 0) return;
 
-      if (editMode !== !!ev.ctrl) {
-        editMode = !!ev.ctrl;
-        eng.requestRepaint?.();
-      }
-
-      if (ev.ctrl) {
-        hoverPoint = null;
+      if (modifierState.ctrl) {
         if (controlPoints.length) {
           const index = findHandleIndex(ev.img);
           if (index >= 0) {
             dragIndex = index;
-            updatePreviewRect();
-            eng.requestRepaint?.();
+            refreshEditMode(eng, { forceUpdateRect: true });
             return;
           }
           dragIndex = -1;
         }
-        updatePreviewRect();
-        eng.requestRepaint?.();
+        refreshEditMode(eng, { forceUpdateRect: true });
         return;
       }
 
@@ -258,11 +292,8 @@ export function createEditableCurveTool(store, options) {
         return;
       }
 
-      if (controlPoints.length >= maxPoints && !ev.ctrl) {
-        finalizeStroke(ctx, eng);
-      }
-
       if (controlPoints.length >= maxPoints) {
+        finalizeStroke(ctx, eng);
         return;
       }
 
@@ -278,11 +309,7 @@ export function createEditableCurveTool(store, options) {
       eng.requestRepaint?.();
     },
     onPointerMove(_ctx, ev, eng) {
-      const isEditing = !!ev.ctrl || dragIndex >= 0;
-      if (editMode !== isEditing) {
-        editMode = isEditing;
-        eng.requestRepaint?.();
-      }
+      refreshEditMode(eng);
 
       if (dragIndex >= 0) {
         controlPoints[dragIndex] = clonePoint(ev.img);
@@ -291,29 +318,28 @@ export function createEditableCurveTool(store, options) {
         return;
       }
 
-      if (!isEditing && controlPoints.length && controlPoints.length < maxPoints) {
+      if (!editMode && controlPoints.length && controlPoints.length < maxPoints) {
         hoverPoint = clonePoint(ev.img);
       } else {
         hoverPoint = null;
       }
       updatePreviewRect();
     },
-    onPointerUp(_ctx, ev, eng) {
+    onPointerUp(_ctx, _ev, eng) {
       if (dragIndex >= 0) {
         dragIndex = -1;
-        updatePreviewRect();
-        eng.requestRepaint?.();
-      }
-      const nextMode = !!ev?.ctrl;
-      if (editMode !== nextMode) {
-        editMode = nextMode;
-        eng.requestRepaint?.();
+        refreshEditMode(eng, { forceUpdateRect: true });
+      } else {
+        refreshEditMode(eng);
       }
     },
     drawPreview(octx) {
       if (!controlPoints.length && !hoverPoint) return;
       const state = getState();
       drawPreview(octx, getContext(state), helpers);
+    },
+    onModifiersChanged(modifiers, eng) {
+      setModifierState(modifiers, eng);
     },
   };
 
