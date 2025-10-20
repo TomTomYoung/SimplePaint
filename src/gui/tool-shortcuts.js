@@ -91,3 +91,9 @@ export function describeShortcutsForTool(toolId) {
 
 export const PRIMARY_TOOL_SHORTCUTS = PRIMARY_TOOL_SHORTCUT_ENTRIES;
 export const SHIFT_TOOL_SHORTCUTS = SHIFT_TOOL_SHORTCUT_ENTRIES;
+
+if (typeof globalThis !== 'undefined') {
+  const globalTarget = /** @type {Record<string, unknown>} */ (globalThis);
+  globalTarget.PRIMARY_TOOL_SHORTCUTS = PRIMARY_TOOL_SHORTCUT_ENTRIES;
+  globalTarget.SHIFT_TOOL_SHORTCUTS = SHIFT_TOOL_SHORTCUT_ENTRIES;
+}
