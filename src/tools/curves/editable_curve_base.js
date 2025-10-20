@@ -30,6 +30,11 @@ const isEditModifierActive = (modifierState, ev = null) =>
   !!(modifierState.ctrl || hasCtrlLikeModifier(ev));
 
 const clonePoint = (p) => ({ x: p.x, y: p.y });
+const createEmptyCurve = () => ({ points: [], weights: [] });
+const cloneCurve = (curve) => ({
+  points: curve.points.map(clonePoint),
+  weights: [...curve.weights],
+});
 
 const helpers = Object.freeze({
   applyStroke(ctx, state) {
@@ -128,44 +133,66 @@ export function createEditableCurveTool(store, options) {
     throw new TypeError('Editable curve tool requires a drawPreview callback');
   }
 
-  /** @type {{x: number, y: number}[]} */
-  let controlPoints = [];
-  /** @type {number[]} */
-  let weights = [];
+  /** @type {{ points: {x:number,y:number}[], weights: number[] }[]} */
+  let committedCurves = [];
+  let draftCurve = createEmptyCurve();
   /** @type {{x: number, y: number} | null} */
   let hoverPoint = null;
-  let dragIndex = -1;
+  /** @type {{ type: 'committed' | 'draft', curveIndex: number, pointIndex: number } | null} */
+  let dragHandle = null;
   let editMode = false;
   let modifierState = { ...DEFAULT_MODIFIER_STATE };
   let snapshotStarted = false;
 
   const getState = () => store.getToolState(id);
 
-  const getContext = (state = getState()) => ({
-    id,
-    points: controlPoints,
-    hover: hoverPoint,
-    weights,
-    dragIndex,
-    editMode,
+  const buildContext = (
+    curve,
     state,
-  });
+    {
+      type,
+      curveIndex,
+      includeHover = false,
+    } = {},
+  ) => {
+    const isDraft = type === 'draft';
+    const useHover = includeHover && isDraft ? hoverPoint : null;
+    const dragIndex =
+      dragHandle &&
+      dragHandle.type === (type === 'committed' ? 'committed' : 'draft') &&
+      dragHandle.curveIndex === curveIndex
+        ? dragHandle.pointIndex
+        : -1;
+    return {
+      id,
+      points: curve.points.map(clonePoint),
+      hover: useHover ? clonePoint(useHover) : null,
+      weights: [...curve.weights],
+      dragIndex,
+      editMode,
+      state,
+      curveType: type,
+      curveIndex,
+    };
+  };
 
-  const getClonedContext = (state = getState()) => ({
-    id,
-    points: controlPoints.map(clonePoint),
-    hover: hoverPoint ? clonePoint(hoverPoint) : null,
-    weights: [...weights],
-    dragIndex,
-    editMode,
-    state,
-  });
+  const getContexts = (state = getState()) => {
+    const contexts = committedCurves.map((curve, index) =>
+      buildContext(curve, state, { type: 'committed', curveIndex: index, includeHover: false }),
+    );
+    if (draftCurve.points.length || hoverPoint) {
+      contexts.push(
+        buildContext(draftCurve, state, { type: 'draft', curveIndex: -1, includeHover: true }),
+      );
+    }
+    return contexts;
+  };
 
   const reset = () => {
-    controlPoints = [];
-    weights = [];
+    committedCurves = [];
+    draftCurve = createEmptyCurve();
     hoverPoint = null;
-    dragIndex = -1;
+    dragHandle = null;
     editMode = false;
     modifierState = { ...DEFAULT_MODIFIER_STATE };
     snapshotStarted = false;
@@ -180,18 +207,30 @@ export function createEditableCurveTool(store, options) {
   };
 
   const updatePreviewRect = () => {
-    if (!controlPoints.length && !hoverPoint) {
+    const state = getState();
+    const contexts = getContexts(state);
+    if (!contexts.length) {
       tool.previewRect = null;
       return;
     }
-    const state = getState();
-    const bounds =
-      computePreviewBounds?.(getContext(state), helpers) ??
-      computeAABB([
-        ...controlPoints.map(clonePoint),
-        ...(hoverPoint ? [clonePoint(hoverPoint)] : []),
-      ]);
-    if (!bounds) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    contexts.forEach((context) => {
+      const bounds =
+        computePreviewBounds?.(context, helpers) ??
+        computeAABB([
+          ...context.points.map(clonePoint),
+          ...(context.hover ? [clonePoint(context.hover)] : []),
+        ]);
+      if (!bounds) return;
+      minX = Math.min(minX, bounds.minX);
+      minY = Math.min(minY, bounds.minY);
+      maxX = Math.max(maxX, bounds.maxX);
+      maxY = Math.max(maxY, bounds.maxY);
+    });
+    if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
       tool.previewRect = null;
       return;
     }
@@ -200,27 +239,38 @@ export function createEditableCurveTool(store, options) {
       helpers.getHandlePadding(),
     );
     tool.previewRect = {
-      x: Math.floor(bounds.minX) - pad,
-      y: Math.floor(bounds.minY) - pad,
-      w: Math.ceil(bounds.maxX - bounds.minX) + pad * 2,
-      h: Math.ceil(bounds.maxY - bounds.minY) + pad * 2,
+      x: Math.floor(minX) - pad,
+      y: Math.floor(minY) - pad,
+      w: Math.ceil(maxX - minX) + pad * 2,
+      h: Math.ceil(maxY - minY) + pad * 2,
     };
   };
 
-  const findHandleIndex = (point) => {
-    for (let i = 0; i < controlPoints.length; i++) {
-      const cp = controlPoints[i];
+  const findHandleRef = (point) => {
+    for (let curveIndex = 0; curveIndex < committedCurves.length; curveIndex++) {
+      const curve = committedCurves[curveIndex];
+      for (let i = 0; i < curve.points.length; i++) {
+        const cp = curve.points[i];
+        const dx = cp.x - point.x;
+        const dy = cp.y - point.y;
+        if (dx * dx + dy * dy <= HIT_RADIUS_SQ) {
+          return { type: 'committed', curveIndex, pointIndex: i };
+        }
+      }
+    }
+    for (let i = 0; i < draftCurve.points.length; i++) {
+      const cp = draftCurve.points[i];
       const dx = cp.x - point.x;
       const dy = cp.y - point.y;
       if (dx * dx + dy * dy <= HIT_RADIUS_SQ) {
-        return i;
+        return { type: 'draft', curveIndex: -1, pointIndex: i };
       }
     }
-    return -1;
+    return null;
   };
 
   const refreshEditMode = (eng, { forceUpdateRect = false } = {}) => {
-    const shouldEdit = modifierState.ctrl || dragIndex >= 0;
+    const shouldEdit = modifierState.ctrl || !!dragHandle;
     const modeChanged = editMode !== shouldEdit;
     if (modeChanged) {
       editMode = shouldEdit;
@@ -242,40 +292,100 @@ export function createEditableCurveTool(store, options) {
       next.ctrl !== modifierState.ctrl ||
       next.alt !== modifierState.alt;
     modifierState = next;
-    let forceUpdate = false;
-    if (next.ctrl && hoverPoint) {
+    if (next.ctrl) {
       hoverPoint = null;
-      forceUpdate = true;
     }
-    if (changed || forceUpdate) {
-      refreshEditMode(eng, { forceUpdateRect: forceUpdate });
-    } else {
-      refreshEditMode(eng);
-    }
+    refreshEditMode(eng, { forceUpdateRect: changed || next.ctrl });
   };
 
-  const finalizeStroke = (ctx, eng) => {
-    if (!controlPoints.length || controlPoints.length < minPoints) {
-      reset();
+  const commitDraft = (eng) => {
+    if (draftCurve.points.length < minPoints) {
+      return false;
+    }
+    committedCurves.push(cloneCurve(draftCurve));
+    draftCurve = createEmptyCurve();
+    hoverPoint = null;
+    dragHandle = null;
+    updatePreviewRect();
+    eng?.requestRepaint?.();
+    return true;
+  };
+
+  const eachCommittedContext = (state, callback) => {
+    committedCurves.forEach((curve, index) => {
+      const context = buildContext(curve, state, {
+        type: 'committed',
+        curveIndex: index,
+        includeHover: false,
+      });
+      callback(context, curve, index);
+    });
+  };
+
+  const finalizeStroke = (ctx, eng, { keepCurves = false } = {}) => {
+    if (draftCurve.points.length >= minPoints) {
+      commitDraft(eng);
+    }
+
+    if (!committedCurves.length) {
+      if (!keepCurves) {
+        reset();
+      } else {
+        updatePreviewRect();
+      }
       eng.requestRepaint?.();
       return;
     }
+
+    if (!snapshotStarted) {
+      eng.beginStrokeSnapshot?.();
+      snapshotStarted = true;
+    }
+
     const state = getState();
-    const context = getClonedContext(state);
-    const bounds = finalize(ctx, eng, context, helpers) ?? null;
-    if (bounds) {
+    const boundsList = [];
+    eachCommittedContext(state, (context) => {
+      const bounds = finalize(ctx, eng, context, helpers) ?? null;
+      if (bounds) {
+        boundsList.push(bounds);
+      }
+    });
+
+    if (boundsList.length) {
       const pad = Math.ceil(state.brushSize || 1);
-      eng.expandPendingRectByRect(
-        bounds.minX - pad,
-        bounds.minY - pad,
-        bounds.maxX - bounds.minX + pad * 2,
-        bounds.maxY - bounds.minY + pad * 2,
-      );
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      boundsList.forEach((bounds) => {
+        minX = Math.min(minX, bounds.minX);
+        minY = Math.min(minY, bounds.minY);
+        maxX = Math.max(maxX, bounds.maxX);
+        maxY = Math.max(maxY, bounds.maxY);
+      });
+      if (
+        Number.isFinite(minX) &&
+        Number.isFinite(minY) &&
+        Number.isFinite(maxX) &&
+        Number.isFinite(maxY)
+      ) {
+        eng.expandPendingRectByRect(
+          minX - pad,
+          minY - pad,
+          maxX - minX + pad * 2,
+          maxY - minY + pad * 2,
+        );
+      }
     }
-    if (snapshotStarted) {
-      eng.finishStrokeToHistory?.();
+
+    eng.finishStrokeToHistory?.();
+    snapshotStarted = false;
+
+    if (!keepCurves) {
+      reset();
+    } else {
+      updatePreviewRect();
     }
-    reset();
     eng.requestRepaint?.();
   };
 
@@ -294,52 +404,60 @@ export function createEditableCurveTool(store, options) {
       if (ev.button !== 0) return;
 
       if (isEditModifierActive(modifierState, ev)) {
-        if (controlPoints.length) {
-          const index = findHandleIndex(ev.img);
-          if (index >= 0) {
-            dragIndex = index;
-            refreshEditMode(eng, { forceUpdateRect: true });
-            return;
-          }
-          dragIndex = -1;
+        const ref = findHandleRef(ev.img);
+        if (ref) {
+          beginSnapshot(eng);
+          dragHandle = ref;
+          refreshEditMode(eng, { forceUpdateRect: true });
+          return;
         }
+        dragHandle = null;
         refreshEditMode(eng, { forceUpdateRect: true });
-        return;
-      }
-
-      if (ev.detail === 2) {
-        finalizeStroke(ctx, eng);
-        return;
-      }
-
-      if (controlPoints.length >= maxPoints) {
-        finalizeStroke(ctx, eng);
         return;
       }
 
       beginSnapshot(eng);
       const state = getState();
-      controlPoints.push(clonePoint(ev.img));
+      if (draftCurve.points.length >= maxPoints) {
+        commitDraft(eng);
+      }
+
+      const isDoubleClick = ev.detail === 2;
+      draftCurve.points.push(clonePoint(ev.img));
       if (getNewPointWeight) {
         const w = getNewPointWeight(state);
-        weights.push(Number.isFinite(w) && w > 0 ? w : 1);
+        draftCurve.weights.push(Number.isFinite(w) && w > 0 ? w : 1);
+      } else {
+        draftCurve.weights.push(1);
       }
       hoverPoint = null;
       updatePreviewRect();
       eng.requestRepaint?.();
+      if (
+        draftCurve.points.length >= maxPoints ||
+        (isDoubleClick && draftCurve.points.length >= minPoints)
+      ) {
+        commitDraft(eng);
+      }
     },
     onPointerMove(_ctx, ev, eng) {
       setModifierState(ev, eng);
       refreshEditMode(eng);
 
-      if (dragIndex >= 0) {
-        controlPoints[dragIndex] = clonePoint(ev.img);
+      if (dragHandle) {
+        const targetCurve =
+          dragHandle.type === 'committed'
+            ? committedCurves[dragHandle.curveIndex]
+            : draftCurve;
+        if (targetCurve && targetCurve.points[dragHandle.pointIndex]) {
+          targetCurve.points[dragHandle.pointIndex] = clonePoint(ev.img);
+        }
         updatePreviewRect();
         eng.requestRepaint?.();
         return;
       }
 
-      if (!editMode && controlPoints.length && controlPoints.length < maxPoints) {
+      if (!editMode && draftCurve.points.length && draftCurve.points.length < maxPoints) {
         hoverPoint = clonePoint(ev.img);
       } else {
         hoverPoint = null;
@@ -348,20 +466,29 @@ export function createEditableCurveTool(store, options) {
     },
     onPointerUp(_ctx, ev, eng) {
       setModifierState(ev, eng);
-      if (dragIndex >= 0) {
-        dragIndex = -1;
+      if (dragHandle) {
+        dragHandle = null;
         refreshEditMode(eng, { forceUpdateRect: true });
       } else {
         refreshEditMode(eng);
       }
     },
     drawPreview(octx) {
-      if (!controlPoints.length && !hoverPoint) return;
       const state = getState();
-      drawPreview(octx, getContext(state), helpers);
+      const contexts = getContexts(state);
+      if (!contexts.length) return;
+      contexts.forEach((context) => {
+        drawPreview(octx, context, helpers);
+      });
     },
     onModifiersChanged(modifiers, eng) {
       setModifierState(modifiers, eng);
+    },
+    finalizePending(ctx, eng) {
+      finalizeStroke(ctx, eng, { keepCurves: false });
+    },
+    burnPending(ctx, eng) {
+      finalizeStroke(ctx, eng, { keepCurves: true });
     },
   };
 
