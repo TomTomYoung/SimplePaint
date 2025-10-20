@@ -2,6 +2,20 @@
 
 let adjustCallbacks = {};
 let layerCallbacks = {};
+let layerPropertiesCallbacks = {};
+
+const layerPropertiesElements = {
+  container: null,
+  typeLabel: null,
+  vectorControls: null,
+  color: null,
+  width: null,
+  dash: null,
+  cap: null,
+  apply: null,
+};
+
+let suppressLayerPropertyEvent = false;
 
 export function initPanelHeaders() {
   document.querySelectorAll('.panel').forEach(p => {
@@ -66,13 +80,50 @@ export function setAdjustCallbacks(callbacks) {
 export function initLayerPanel() {
   const addBtn = document.getElementById('addLayerBtn');
   const delBtn = document.getElementById('delLayerBtn');
-  
+  const addVectorBtn = document.getElementById('addVectorLayerBtn');
+
   addBtn?.addEventListener('click', () => layerCallbacks.onAdd?.());
   delBtn?.addEventListener('click', () => layerCallbacks.onDelete?.());
+  addVectorBtn?.addEventListener('click', () => layerCallbacks.onAddVector?.());
+
+  layerPropertiesElements.container = document.getElementById('layerProperties');
+  layerPropertiesElements.typeLabel = document.getElementById('layerTypeLabel');
+  layerPropertiesElements.vectorControls = document.getElementById('vectorLayerControls');
+  layerPropertiesElements.color = document.getElementById('vectorLayerColor');
+  layerPropertiesElements.width = document.getElementById('vectorLayerWidth');
+  layerPropertiesElements.dash = document.getElementById('vectorLayerDash');
+  layerPropertiesElements.cap = document.getElementById('vectorLayerCap');
+  layerPropertiesElements.apply = document.getElementById('vectorLayerApplyAll');
+
+  const emitStyleChange = () => {
+    if (suppressLayerPropertyEvent) return;
+    const color = layerPropertiesElements.color?.value || '#000000';
+    const width = parseFloat(layerPropertiesElements.width?.value || '1');
+    const dash = layerPropertiesElements.dash?.value || '';
+    const cap = layerPropertiesElements.cap?.value || 'butt';
+    layerPropertiesCallbacks.onStyleChange?.({
+      color,
+      width,
+      dashPattern: dash,
+      capStyle: cap,
+    });
+  };
+
+  layerPropertiesElements.color?.addEventListener('input', emitStyleChange);
+  layerPropertiesElements.width?.addEventListener('input', emitStyleChange);
+  layerPropertiesElements.dash?.addEventListener('input', emitStyleChange);
+  layerPropertiesElements.cap?.addEventListener('change', emitStyleChange);
+  layerPropertiesElements.apply?.addEventListener('click', () =>
+    layerPropertiesCallbacks.onApplyStyle?.(),
+  );
 }
 
 export function setLayerCallbacks(callbacks) {
   layerCallbacks = callbacks;
+}
+
+export function setLayerPropertiesCallbacks(callbacks) {
+  layerPropertiesCallbacks = callbacks || {};
 }
 
 export function updateLayerList(layers, activeLayer, callbacks) {
@@ -184,4 +235,54 @@ export function updateLayerList(layers, activeLayer, callbacks) {
 
     list.appendChild(li);
   });
+}
+
+const ensureLayerPropertiesInitialised = () => {
+  return layerPropertiesElements.container && layerPropertiesElements.typeLabel;
+};
+
+const normaliseColorValue = (value) => {
+  if (typeof value !== 'string') return '#000000';
+  const trimmed = value.trim();
+  if (!trimmed) return '#000000';
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) return trimmed;
+  return '#000000';
+};
+
+export function updateLayerProperties(layer) {
+  if (!ensureLayerPropertiesInitialised()) return;
+  const { container, typeLabel, vectorControls, color, width, dash, cap, apply } =
+    layerPropertiesElements;
+
+  if (!layer) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+  const type = layer.layerType === 'vector' ? 'ベクターレイヤー' : 'ラスターレイヤー';
+  if (typeLabel) typeLabel.textContent = type;
+
+  if (layer.layerType === 'vector') {
+    if (vectorControls) vectorControls.style.display = 'grid';
+    const style = layer.vectorData?.defaultStyle || {};
+    suppressLayerPropertyEvent = true;
+    if (color) color.value = normaliseColorValue(style.color);
+    if (width) {
+      const w = Number(style.width);
+      width.value = Number.isFinite(w) && w > 0 ? String(w) : '1';
+    }
+    if (dash) dash.value = typeof style.dashPattern === 'string' ? style.dashPattern : '';
+    if (cap) cap.value = typeof style.capStyle === 'string' ? style.capStyle : 'butt';
+    suppressLayerPropertyEvent = false;
+    if (apply) {
+      const curveCount = Array.isArray(layer.vectorData?.curves)
+        ? layer.vectorData.curves.length
+        : 0;
+      apply.disabled = curveCount === 0;
+    }
+  } else {
+    if (vectorControls) vectorControls.style.display = 'none';
+    if (apply) apply.disabled = true;
+  }
 }

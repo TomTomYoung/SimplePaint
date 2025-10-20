@@ -124,6 +124,56 @@ footer {
   border-top: 1px solid #ddd;
 }
 
+.layer-properties {
+  display: none;
+  padding: 6px 4px 0;
+  font-size: 12px;
+  color: #333;
+}
+
+.layer-properties h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.layer-property-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.layer-property-row strong {
+  font-size: 12px;
+}
+
+.vector-layer-controls {
+  display: none;
+  gap: 4px;
+  grid-template-columns: minmax(0, auto) 1fr;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.vector-layer-controls label {
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.vector-layer-controls input[type='number'] {
+  width: 90px;
+}
+
+.vector-layer-controls input[type='text'] {
+  width: 100%;
+}
+
+.vector-layer-controls button {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
 .panel-body {
   flex: 1;
   overflow: scroll;
