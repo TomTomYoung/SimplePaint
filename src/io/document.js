@@ -1,4 +1,5 @@
 import { bmp, clipCanvas, layers, activeLayer, renderLayers, updateLayerList, addLayer } from '../core/layer.js';
+import { createEmptyVectorLayer } from '../core/vector-layer-state.js';
 
 function configureLayerDimensions(width, height) {
   layers.forEach((layer) => {
@@ -21,6 +22,10 @@ export function createDocument({ engine, fitToScreen, width = 1280, height = 720
   const ctx = layers[0].getContext('2d');
   ctx.fillStyle = backgroundColor;
   ctx.fillRect(0, 0, width, height);
+
+  if (engine?.store?.set) {
+    engine.store.set({ vectorLayer: createEmptyVectorLayer() });
+  }
 
   if (engine?.clearSelection) {
     engine.clearSelection();
