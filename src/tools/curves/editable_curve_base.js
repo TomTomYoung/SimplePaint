@@ -284,6 +284,7 @@ export function createEditableCurveTool(store, options) {
       finalizeStroke(ctx, eng);
     },
     onPointerDown(ctx, ev, eng) {
+      setModifierState(ev, eng);
       if (ev.button !== 0) return;
 
       if (isEditModifierActive(modifierState, ev)) {
@@ -322,6 +323,7 @@ export function createEditableCurveTool(store, options) {
       eng.requestRepaint?.();
     },
     onPointerMove(_ctx, ev, eng) {
+      setModifierState(ev, eng);
       refreshEditMode(eng);
 
       if (dragIndex >= 0) {
@@ -338,7 +340,8 @@ export function createEditableCurveTool(store, options) {
       }
       updatePreviewRect();
     },
-    onPointerUp(_ctx, _ev, eng) {
+    onPointerUp(_ctx, ev, eng) {
+      setModifierState(ev, eng);
       if (dragIndex >= 0) {
         dragIndex = -1;
         refreshEditMode(eng, { forceUpdateRect: true });
