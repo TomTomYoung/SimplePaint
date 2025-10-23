@@ -16,6 +16,9 @@ const layerPropertiesElements = {
 };
 
 let suppressLayerPropertyEvent = false;
+let layerFilter = 'all';
+let layerSearchTerm = '';
+let lastLayerArgs = { layers: [], activeLayer: 0, callbacks: {} };
 
 export function initPanelHeaders() {
   document.querySelectorAll('.panel').forEach(p => {
@@ -86,6 +89,33 @@ export function initLayerPanel() {
   delBtn?.addEventListener('click', () => layerCallbacks.onDelete?.());
   addVectorBtn?.addEventListener('click', () => layerCallbacks.onAddVector?.());
 
+  const filterButtons = Array.from(document.querySelectorAll('.layer-filter'));
+  const updateFilterButtonState = () => {
+    filterButtons.forEach(button => {
+      const value = button.dataset.layerFilter || 'all';
+      button.classList.toggle('is-active', value === layerFilter);
+      button.setAttribute('aria-pressed', value === layerFilter ? 'true' : 'false');
+    });
+  };
+  filterButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const next = button.dataset.layerFilter || 'all';
+      if (next === layerFilter) return;
+      layerFilter = next;
+      updateFilterButtonState();
+      rerenderLayerList();
+    });
+  });
+  updateFilterButtonState();
+
+  const searchInput = document.getElementById('layerSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      layerSearchTerm = searchInput.value.trim().toLowerCase();
+      rerenderLayerList();
+    });
+  }
+
   layerPropertiesElements.container = document.getElementById('layerProperties');
   layerPropertiesElements.typeLabel = document.getElementById('layerTypeLabel');
   layerPropertiesElements.vectorControls = document.getElementById('vectorLayerControls');
@@ -127,11 +157,88 @@ export function setLayerPropertiesCallbacks(callbacks) {
 }
 
 export function updateLayerList(layers, activeLayer, callbacks) {
+  lastLayerArgs = { layers, activeLayer, callbacks };
+  renderLayerList(layers, activeLayer, callbacks);
+}
+
+const rerenderLayerList = () => {
+  if (!lastLayerArgs) return;
+  renderLayerList(lastLayerArgs.layers, lastLayerArgs.activeLayer, lastLayerArgs.callbacks);
+};
+
+const matchesLayerFilter = layer => {
+  if (layerFilter === 'all') return true;
+  const type = typeof layer?.layerType === 'string' ? layer.layerType : 'raster';
+  return type === layerFilter;
+};
+
+const matchesLayerSearch = layer => {
+  if (!layerSearchTerm) return true;
+  const name = typeof layer?.name === 'string' ? layer.name : '';
+  return name.toLowerCase().includes(layerSearchTerm);
+};
+
+const layerTypeLabel = layer => {
+  const type = typeof layer?.layerType === 'string' ? layer.layerType : 'raster';
+  switch (type) {
+    case 'vector':
+      return 'ベクター';
+    case 'text':
+      return 'テキスト';
+    default:
+      return 'ラスター';
+  }
+};
+
+const drawLayerThumbnail = (layer, canvas) => {
+  if (!(canvas instanceof HTMLCanvasElement)) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const width = canvas.width;
+  const height = canvas.height;
+  ctx.clearRect(0, 0, width, height);
+  if (layer && typeof layer.width === 'number' && typeof layer.height === 'number') {
+    const scale = Math.min(
+      (width - 4) / Math.max(layer.width, 1),
+      (height - 4) / Math.max(layer.height, 1),
+    );
+    const dx = (width - layer.width * scale) / 2;
+    const dy = (height - layer.height * scale) / 2;
+    ctx.save();
+    ctx.translate(dx, dy);
+    ctx.scale(scale, scale);
+    try {
+      ctx.drawImage(layer, 0, 0);
+    } catch (error) {
+      // ignore drawing errors from detached canvases
+    }
+    ctx.restore();
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+  ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
+};
+
+const renderLayerList = (layers, activeLayer, callbacks) => {
   const list = document.getElementById('layerList');
   if (!list) return;
-  
+
   list.innerHTML = '';
-  layers.forEach((l, i) => {
+  const filtered = layers
+    .map((layer, index) => ({ layer, index }))
+    .filter(({ layer }) => matchesLayerFilter(layer))
+    .filter(({ layer }) => matchesLayerSearch(layer));
+
+  if (filtered.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'layer-empty';
+    empty.textContent = layerSearchTerm
+      ? '条件に一致するレイヤーがありません'
+      : 'レイヤーがありません';
+    list.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach(({ layer: l, index: i }) => {
     const li = document.createElement('li');
     li.className = 'layer-item' + (i === activeLayer ? ' active' : '');
     li.draggable = true;
@@ -148,20 +255,33 @@ export function updateLayerList(layers, activeLayer, callbacks) {
       callbacks.onMove?.(from, to);
     });
 
+    const thumb = document.createElement('canvas');
+    thumb.width = 54;
+    thumb.height = 54;
+    thumb.className = 'layer-thumb';
+    drawLayerThumbnail(l, thumb);
+    li.appendChild(thumb);
+
+    const meta = document.createElement('div');
+    meta.className = 'layer-meta';
+    const metaTop = document.createElement('div');
+    metaTop.className = 'layer-meta-top';
+
     const handle = document.createElement('span');
     handle.textContent = '≡';
     handle.className = 'handle';
-    li.appendChild(handle);
+    metaTop.appendChild(handle);
 
     const vis = document.createElement('input');
     vis.type = 'checkbox';
     vis.checked = l.visible;
     vis.addEventListener('change', () => callbacks.onVisibility?.(i, vis.checked));
-    li.appendChild(vis);
+    metaTop.appendChild(vis);
 
     const name = document.createElement('span');
-    name.textContent = typeof l.name === 'string' && l.name ? l.name : `Layer ${i + 1}`;
-    name.style.flex = '1';
+    name.className = 'layer-name';
+    const displayName = typeof l.name === 'string' && l.name ? l.name : `Layer ${i + 1}`;
+    name.textContent = displayName;
     name.style.userSelect = 'none';
     name.title = 'ダブルクリックで名前変更 / クリックで選択';
 
@@ -172,7 +292,7 @@ export function updateLayerList(layers, activeLayer, callbacks) {
 
     name.addEventListener('dblclick', ev => {
       ev.stopPropagation();
-      const old = typeof l.name === 'string' && l.name ? l.name : `Layer ${i + 1}`;
+      const old = displayName;
       const input = document.createElement('input');
       input.type = 'text';
       input.value = old;
@@ -199,12 +319,30 @@ export function updateLayerList(layers, activeLayer, callbacks) {
       });
       input.addEventListener('blur', commit);
 
-      li.replaceChild(input, name);
+      metaTop.replaceChild(input, name);
       input.focus();
       input.select();
     });
 
-    li.appendChild(name);
+    metaTop.appendChild(name);
+    meta.appendChild(metaTop);
+
+    const metaBottom = document.createElement('div');
+    metaBottom.className = 'layer-meta-bottom';
+    const typeLabel = document.createElement('span');
+    typeLabel.textContent = layerTypeLabel(l);
+    metaBottom.appendChild(typeLabel);
+
+    if (typeof l.width === 'number' && typeof l.height === 'number') {
+      const size = document.createElement('span');
+      size.textContent = `${l.width}×${l.height}`;
+      metaBottom.appendChild(size);
+    }
+    meta.appendChild(metaBottom);
+    li.appendChild(meta);
+
+    const controls = document.createElement('div');
+    controls.className = 'layer-item-controls';
 
     const op = document.createElement('input');
     op.type = 'range';
@@ -213,7 +351,7 @@ export function updateLayerList(layers, activeLayer, callbacks) {
     op.step = 0.01;
     op.value = l.opacity;
     op.addEventListener('input', () => callbacks.onOpacity?.(i, parseFloat(op.value)));
-    li.appendChild(op);
+    controls.appendChild(op);
 
     const mode = document.createElement('select');
     ['source-over', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color', 'difference'].forEach(m => {
@@ -224,18 +362,20 @@ export function updateLayerList(layers, activeLayer, callbacks) {
       mode.appendChild(o);
     });
     mode.addEventListener('change', () => callbacks.onBlendMode?.(i, mode.value));
-    li.appendChild(mode);
+    controls.appendChild(mode);
 
     const clip = document.createElement('input');
     clip.type = 'checkbox';
     clip.checked = l.clip;
     clip.title = 'Clip to below';
     clip.addEventListener('change', () => callbacks.onClip?.(i, clip.checked));
-    li.appendChild(clip);
+    controls.appendChild(clip);
+
+    li.appendChild(controls);
 
     list.appendChild(li);
   });
-}
+};
 
 const ensureLayerPropertiesInitialised = () => {
   return layerPropertiesElements.container && layerPropertiesElements.typeLabel;
