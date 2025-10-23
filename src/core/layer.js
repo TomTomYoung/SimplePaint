@@ -60,10 +60,16 @@ export function markLayerPreviewDirty(target) {
   }
 }
 
-export function getLayerPreviewAnchor(target) {
+export function getLayerPreviewAnchor(target, options = {}) {
   const layer = resolveLayerPreviewTarget(target);
   if (!layer) return null;
-  return panelGetLayerPreviewSlot(layer) ?? panelGetLayerPreviewElement(layer) ?? null;
+  const preferSlot = options && options.preferSlot === true;
+  const previewEl = panelGetLayerPreviewElement(layer) ?? null;
+  const slotEl = panelGetLayerPreviewSlot(layer) ?? null;
+  if (preferSlot) {
+    return slotEl ?? previewEl ?? null;
+  }
+  return previewEl ?? slotEl ?? null;
 }
 
 export function getLayerPreviewBounds(target) {

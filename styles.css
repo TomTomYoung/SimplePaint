@@ -888,6 +888,14 @@ summary:focus-visible {
   user-select: none;
 }
 
+.layer-thumb-slot {
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .layer-thumb {
   width: 54px;
   height: 54px;

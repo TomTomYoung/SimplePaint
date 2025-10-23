@@ -383,13 +383,16 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
       callbacks.onMove?.(from, to);
     });
 
+    const thumbSlot = document.createElement('div');
+    thumbSlot.className = 'layer-thumb-slot';
     const thumb = document.createElement('canvas');
     thumb.width = 54;
     thumb.height = 54;
     thumb.className = 'layer-thumb';
+    thumbSlot.appendChild(thumb);
     drawLayerThumbnail(l, thumb);
-    registerLayerThumbnail(l, thumb, li);
-    li.appendChild(thumb);
+    registerLayerThumbnail(l, thumb, thumbSlot);
+    li.appendChild(thumbSlot);
 
     const meta = document.createElement('div');
     meta.className = 'layer-meta';
