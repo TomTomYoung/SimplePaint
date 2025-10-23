@@ -220,7 +220,12 @@ export class Engine {
   undo() {
     const p = this.history.undo();
     if (!p) return;
-    layers[p.layer]
+    const layerIndex = Number.isInteger(p.layer) ? p.layer : activeLayer;
+    const targetLayer = layers[layerIndex];
+    if (!targetLayer) {
+      return;
+    }
+    targetLayer
       .getContext("2d")
       .putImageData(p.before, p.rect.x, p.rect.y);
     renderLayers();
@@ -229,7 +234,12 @@ export class Engine {
   redo() {
     const p = this.history.redo();
     if (!p) return;
-    layers[p.layer]
+    const layerIndex = Number.isInteger(p.layer) ? p.layer : activeLayer;
+    const targetLayer = layers[layerIndex];
+    if (!targetLayer) {
+      return;
+    }
+    targetLayer
       .getContext("2d")
       .putImageData(p.after, p.rect.x, p.rect.y);
     renderLayers();
