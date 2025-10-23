@@ -263,12 +263,14 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
   if (!list) return;
 
   list.innerHTML = '';
+  layerThumbnailRegistry.clear();
   const filtered = layers
     .map((layer, index) => ({ layer, index }))
     .filter(({ layer }) => matchesLayerFilter(layer))
     .filter(({ layer }) => matchesLayerSearch(layer));
 
   if (filtered.length === 0) {
+    layerThumbnailRegistry.clear();
     const empty = document.createElement('li');
     empty.className = 'layer-empty';
     empty.textContent = layerSearchTerm
