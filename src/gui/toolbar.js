@@ -4,11 +4,14 @@ import {
   getPrimaryShortcutTool,
   getShiftShortcutTool,
 } from './tool-shortcuts.js';
+import { readString, writeString } from '../utils/safe-storage.js';
 
 export { describeShortcutsForTool } from './tool-shortcuts.js';
 
 let toolCallbacks = {};
 let currentTool = null;
+
+const LAST_TOOL_STORAGE_KEY = 'ui:lastTool';
 
 const TOOL_SHORTCUT_DESCRIPTIONS = buildToolShortcutDescriptions(
   PRIMARY_TOOL_SHORTCUTS,
@@ -64,9 +67,75 @@ export function initToolbar() {
 
   // システムボタンの初期化
   initSystemButtons();
-  
+
+  // ドロップダウンメニュー
+  initToolDropdowns();
+
   // ショートカットキーの設定
   initKeyboardShortcuts();
+
+  restoreLastSelectedTool();
+}
+
+function restoreLastSelectedTool() {
+  const stored = readString(LAST_TOOL_STORAGE_KEY);
+  if (stored && document.querySelector(`.tool[data-tool="${stored}"]`)) {
+    selectTool(stored);
+    return;
+  }
+
+  if (currentTool) return;
+
+  const first = document.querySelector('.tool[data-tool]');
+  if (first?.dataset.tool) {
+    selectTool(first.dataset.tool);
+  }
+}
+
+function initToolDropdowns() {
+  const dropdowns = Array.from(document.querySelectorAll('.tool-dropdown'));
+  if (!dropdowns.length) return;
+
+  const closeOthers = current => {
+    dropdowns.forEach(dd => {
+      if (dd !== current) {
+        dd.open = false;
+      }
+    });
+  };
+
+  dropdowns.forEach(dropdown => {
+    dropdown.addEventListener('toggle', () => {
+      if (dropdown.open) {
+        closeOthers(dropdown);
+      }
+    });
+
+    dropdown.querySelectorAll('.tool').forEach(button => {
+      button.addEventListener('click', () => {
+        dropdown.open = false;
+        dropdown.querySelector('summary')?.focus();
+      });
+    });
+  });
+
+  document.addEventListener('click', event => {
+    if (dropdowns.some(dd => dd.contains(event.target))) {
+      return;
+    }
+    dropdowns.forEach(dd => {
+      dd.open = false;
+    });
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    dropdowns.forEach(dd => {
+      if (!dd.open) return;
+      dd.open = false;
+      dd.querySelector('summary')?.focus();
+    });
+  });
 }
 
 function initSystemButtons() {
@@ -206,14 +275,18 @@ function initKeyboardShortcuts() {
 
 export function selectTool(toolId) {
   if (currentTool === toolId) return;
-  
+
   // UIの更新
-  document.querySelectorAll('.tool').forEach(b => 
+  document.querySelectorAll('.tool').forEach(b =>
     b.classList.toggle('active', b.dataset.tool === toolId)
   );
-  
+
   currentTool = toolId;
-  
+
+  if (toolId) {
+    writeString(LAST_TOOL_STORAGE_KEY, toolId);
+  }
+
   // コールバック呼び出し
   toolCallbacks.onToolChange?.(toolId);
 }
