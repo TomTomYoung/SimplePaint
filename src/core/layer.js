@@ -1,6 +1,10 @@
 import {
   updateLayerList as panelUpdateLayerList,
   updateLayerProperties as panelUpdateLayerProperties,
+  refreshLayerPreview as panelRefreshLayerPreview,
+  refreshAllLayerPreviews as panelRefreshAllLayerPreviews,
+  getLayerPreviewSlot as panelGetLayerPreviewSlot,
+  getLayerPreviewElement as panelGetLayerPreviewElement,
 } from '../gui/panels.js';
 import { cloneVectorLayer, createEmptyVectorLayer } from './vector-layer-state.js';
 
@@ -11,6 +15,76 @@ const clipCtx = clipCanvas.getContext('2d');
 
 export const layers = [];
 export let activeLayer = 0;
+
+const dirtyLayerPreviewTargets = new Set();
+let previewRefreshScheduled = false;
+
+const schedulePreviewRefresh = callback => {
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(callback);
+  } else {
+    setTimeout(callback, 16);
+  }
+};
+
+const flushLayerPreviewUpdates = () => {
+  previewRefreshScheduled = false;
+  const targets = Array.from(dirtyLayerPreviewTargets);
+  dirtyLayerPreviewTargets.clear();
+  targets.forEach(layer => {
+    if (layer) {
+      panelRefreshLayerPreview(layer);
+    }
+  });
+};
+
+function resolveLayerPreviewTarget(target) {
+  if (typeof target === 'number') {
+    if (!Number.isInteger(target)) return null;
+    if (target < 0 || target >= layers.length) return null;
+    return layers[target];
+  }
+  if (target && typeof target.getContext === 'function') {
+    return target;
+  }
+  return null;
+}
+
+export function markLayerPreviewDirty(target) {
+  const layer = resolveLayerPreviewTarget(target);
+  if (!layer) return;
+  dirtyLayerPreviewTargets.add(layer);
+  if (!previewRefreshScheduled) {
+    previewRefreshScheduled = true;
+    schedulePreviewRefresh(flushLayerPreviewUpdates);
+  }
+}
+
+export function getLayerPreviewAnchor(target, options = {}) {
+  const layer = resolveLayerPreviewTarget(target);
+  if (!layer) return null;
+  const preferSlot = options && options.preferSlot === true;
+  const previewEl = panelGetLayerPreviewElement(layer) ?? null;
+  const slotEl = panelGetLayerPreviewSlot(layer) ?? null;
+  if (preferSlot) {
+    return slotEl ?? previewEl ?? null;
+  }
+  return previewEl ?? slotEl ?? null;
+}
+
+export function getLayerPreviewBounds(target) {
+  const anchor = getLayerPreviewAnchor(target);
+  if (!anchor || typeof anchor.getBoundingClientRect !== 'function') return null;
+  try {
+    return anchor.getBoundingClientRect();
+  } catch (error) {
+    return null;
+  }
+}
+
+export function refreshAllLayerPreviews() {
+  panelRefreshAllLayerPreviews(layers);
+}
 
 const ensureVectorMetadata = (layer, options = {}) => {
   if (!layer) return layer;
