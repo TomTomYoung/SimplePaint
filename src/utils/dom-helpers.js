@@ -2,10 +2,45 @@
  * DOM manipulation and accessibility utilities shared across UI components.
  * The helpers favour explicit inputs and avoid mutating global state so they
  * can be re-used in tests and in environments with synthetic documents.
+ *
+ * @module utils/dom-helpers
+ */
+
+/**
+ * @typedef {Object} CreateElementOptions
+ * @property {Document} [document] - Alternate document to create elements within (useful for tests or iframes).
+ * @property {string} [className] - String assigned to `className`.
+ * @property {string[]} [classList] - Array of classes added via `classList.add`.
+ * @property {string[]} [classes] - Alias of `classList` (merged).
+ * @property {Record<string, string | number | boolean | null | undefined>} [attrs] - Attributes added via `setAttribute`.
+ * @property {Record<string, string | number | boolean | null | undefined>} [attributes] - Alias of `attrs` (merged).
+ * @property {Record<string, string | number | boolean>} [dataset] - Key/value pairs merged into `dataset`.
+ * @property {string} [text] - Text content assigned to `textContent`.
+ * @property {string} [html] - HTML assigned to `innerHTML`.
+ * @property {Iterable<ChildNode|string|number|boolean|null|undefined>} [children] - Nodes or primitives appended to the element (nullish values are skipped).
+ * @property {Record<string, any>} [props] - Arbitrary properties assigned directly on the element.
+ * @property {CSSStyleDeclaration | Record<string, string | number>} [style] - Inline style declarations merged into `style`.
+ * @property {Record<string, EventListener | null | undefined>} [on] - Event listeners bound with `addEventListener` (falsy handlers are ignored).
+ */
+
+/**
+ * @typedef {Object} FocusableQueryOptions
+ * @property {boolean} [includeContainer=false] - Whether to include the container element when it is focusable.
+ */
+
+/**
+ * @typedef {Object} FocusTrapOptions
+ * @property {HTMLElement} [initialFocus] - Element focused immediately after activation.
+ * @property {boolean} [loop=true] - Whether focus wraps from end to start when tabbing past the extremes.
+ * @property {boolean} [includeContainer=false] - Allow the container itself to be focused.
+ * @property {boolean} [restoreFocus=true] - Restore focus to the previously focused element when the trap is released.
+ * @property {Document} [document] - Alternative document reference (automatically inferred from the container when omitted).
  */
 
 /**
  * CSS selector covering most tabbable controls according to the HTML spec.
+ * The selector intentionally omits disabled controls so that a subsequent
+ * visibility filter can make the final determination based on runtime state.
  */
 const DEFAULT_FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -38,20 +73,16 @@ function resolveDocument(doc) {
  * event listeners, children, and arbitrary property assignments.
  *
  * @param {string} tag - Tag name to create (e.g. `div`).
- * @param {Object} [options] - Mutation options for the created element.
- * @param {Document} [options.document] - Alternate document to create elements within.
- * @param {string} [options.className] - String assigned to `className`.
- * @param {string[]} [options.classList] - Array of classes added via `classList`.
- * @param {string[]} [options.classes] - Alias of `classList`.
- * @param {Object} [options.attrs] - Attributes added via `setAttribute`.
- * @param {Object} [options.attributes] - Alias of `attrs` (merged).
- * @param {Object} [options.dataset] - Key/value pairs merged into `dataset`.
- * @param {string} [options.text] - Text content assigned to `textContent`.
- * @param {string} [options.html] - HTML assigned to `innerHTML`.
- * @param {Iterable<ChildNode|string>} [options.children] - Nodes or strings appended to the element.
- * @param {Object} [options.props] - Arbitrary properties assigned directly.
- * @param {Object} [options.style] - Inline style object merged into `style`.
- * @param {Record<string, EventListener>} [options.on] - Event listeners bound with `addEventListener`.
+ * @param {CreateElementOptions} [options] - Mutation options for the created element.
+ *
+ * @example
+ * const button = createElement('button', {
+ *   classList: ['toolbar__action'],
+ *   text: 'Flood fill',
+ *   dataset: { tool: 'fill' },
+ *   on: { click: () => setTool('fill') },
+ * });
+ * toolbar.append(button);
  * @returns {HTMLElement} The configured element instance.
  */
 export function createElement(tag, options = {}) {
@@ -162,6 +193,8 @@ export function toggleClass(node, className, force) {
 
 /**
  * Registers an event listener and returns a disposer that removes it.
+ * This helper ensures the same options object is reused for both the
+ * registration and the clean-up step to avoid mismatched capture flags.
  *
  * @param {EventTarget} target - Event target to listen on.
  * @param {string} type - Event type.
@@ -177,6 +210,12 @@ export function listen(target, type, handler, options) {
 /**
  * Adds an event listener that delegates to descendants matching the selector.
  * The `delegateTarget` property is set on the event prior to invocation.
+ *
+ * @example
+ * const dispose = delegate(menu, '[role="menuitem"]', 'click', (event, item) => {
+ *   selectItem(item.dataset.value);
+ *   dispose();
+ * });
  *
  * @param {Element} root - Root element to attach the listener to.
  * @param {string} selector - CSS selector used to match descendants.
@@ -219,8 +258,7 @@ function isFocusable(element) {
  * disabled nodes are filtered out.
  *
  * @param {HTMLElement} container - Root element to inspect.
- * @param {{includeContainer?: boolean}} [options] - Optional configuration.
- * @param {boolean} [options.includeContainer=false] - Whether to include the container itself.
+ * @param {FocusableQueryOptions} [options] - Optional configuration.
  * @returns {HTMLElement[]} Array of unique focusable elements.
  */
 export function getFocusableElements(container, { includeContainer = false } = {}) {
@@ -239,15 +277,20 @@ export function getFocusableElements(container, { includeContainer = false } = {
 
 /**
  * Traps keyboard focus within the provided container. Focus is optionally
- * restored to the previously focused element when the disposer is called.
+ * restored to the previously focused element when the disposer is called. The
+ * trap listens for <kbd>Tab</kbd> presses at the document level to keep focus
+ * cycling inside the given container and falls back to focusing the container
+ * itself when no tabbable children are present.
  *
  * @param {HTMLElement} container - Element whose children should capture focus.
- * @param {Object} [options]
- * @param {HTMLElement} [options.initialFocus] - Element focused immediately after activation.
- * @param {boolean} [options.loop=true] - Whether focus wraps from end to start.
- * @param {boolean} [options.includeContainer=false] - Allow the container itself to be focused.
- * @param {boolean} [options.restoreFocus=true] - Restore focus to prior element on cleanup.
- * @param {Document} [options.document] - Alternative document reference.
+ * @param {FocusTrapOptions} [options]
+ *
+ * @example
+ * const release = trapFocus(dialog, { initialFocus: dialog.querySelector('button.primary') });
+ * closeButton.addEventListener('click', () => {
+ *   release();
+ *   dialog.close();
+ * });
  * @returns {() => void} Cleanup function removing listeners and restoring focus if requested.
  */
 export function trapFocus(
