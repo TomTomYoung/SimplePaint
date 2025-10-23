@@ -1,4 +1,4 @@
-import { bmp, layers, activeLayer } from '../core/layer.js';
+import { bmp, layers, activeLayer, markLayerPreviewDirty } from '../core/layer.js';
 import { writeCanvasToClipboard, extractImageFromClipboardItems } from './clipboard.js';
 
 function createSelectionCanvas(engine) {
@@ -36,6 +36,7 @@ export async function cutSelection(engine) {
   ctx.clearRect(x, y, w, h);
   const after = ctx.getImageData(x, y, w, h);
   engine.history.pushPatch({ rect: { x, y, w, h }, layer: activeLayer, before, after });
+  markLayerPreviewDirty(activeLayer);
   engine.clearSelection();
   engine.requestRepaint();
 }
