@@ -1,3 +1,24 @@
+/**
+ * Utility helpers for drawing operations on a 2D canvas context.
+ * Currently provides primitives for drawing elliptical paths and performing
+ * flood-fill operations while exposing the minimal state needed for undo logic.
+ */
+
+/**
+ * Draws an elliptical path on the provided 2D canvas context using four cubic
+ * Bézier curves.
+ *
+ * The constant `k` approximates the control-point distance required for a
+ * Bézier curve to match a quarter of a circle (4 * (√2 - 1) / 3). Using the
+ * same ratio for both radii lets us reuse the same approach for ellipses by
+ * scaling independently on the x and y axes.
+ *
+ * @param {CanvasRenderingContext2D} ctx - Rendering context to mutate.
+ * @param {number} cx - X-coordinate of the ellipse centre.
+ * @param {number} cy - Y-coordinate of the ellipse centre.
+ * @param {number} rx - Ellipse radius along the x-axis.
+ * @param {number} ry - Ellipse radius along the y-axis.
+ */
 export function drawEllipsePath(ctx, cx, cy, rx, ry) {
   const k = 0.5522847498307936;
   const ox = rx * k;
@@ -9,6 +30,25 @@ export function drawEllipsePath(ctx, cx, cy, rx, ry) {
   ctx.bezierCurveTo(cx + ox, cy + ry, cx + rx, cy + oy, cx + rx, cy);
 }
 
+/**
+ * Performs a flood fill from the starting pixel and returns the affected
+ * rectangle along with the previous and updated image data snapshots.
+ *
+ * The algorithm uses a scanline stack-based approach so it avoids recursion and
+ * keeps allocations minimal. Each pixel is considered the same colour when the
+ * sum of per-channel absolute differences is less than or equal to `th`.
+ *
+ * @param {CanvasRenderingContext2D} ctx - Rendering context that owns the bitmap.
+ * @param {{width: number, height: number}} bmp - Dimensions of the bitmap to fill.
+ * @param {number} x0 - X-coordinate of the seed pixel.
+ * @param {number} y0 - Y-coordinate of the seed pixel.
+ * @param {[number, number, number, number]} rgba - Replacement colour in RGBA components.
+ * @param {number} [th=0] - Tolerance threshold for colour matching; higher values
+ * allow filling regions with similar but not identical colours.
+ * @returns {{rect: {x: number, y: number, w: number, h: number}, before: ImageData, after: ImageData}|null}
+ * Null when the operation does not change the bitmap (e.g. tolerance zero and
+ * the seed colour matches the replacement colour).
+ */
 export function floodFill(ctx, bmp, x0, y0, rgba, th = 0) {
   if (x0 < 0 || y0 < 0 || x0 >= bmp.width || y0 >= bmp.height) return null;
   const img = ctx.getImageData(0, 0, bmp.width, bmp.height);
