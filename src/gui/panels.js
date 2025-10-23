@@ -29,9 +29,31 @@ let lastLayerArgs = { layers: [], activeLayer: 0, callbacks: {} };
 
 const layerThumbnailRegistry = new Map();
 
-const registerLayerThumbnail = (layer, canvas) => {
+const normaliseLayerId = layer => {
+  if (layer && typeof layer._id === 'string') {
+    return layer._id;
+  }
+  return null;
+};
+
+const registerLayerThumbnail = (layer, canvas, slot) => {
   if (!layer || !(canvas instanceof HTMLCanvasElement)) return;
-  layerThumbnailRegistry.set(layer, canvas);
+  const entry = layerThumbnailRegistry.get(layer) ?? { canvas: null, slot: null };
+  entry.canvas = canvas;
+  entry.slot = slot instanceof HTMLElement ? slot : entry.slot;
+
+  const layerId = normaliseLayerId(layer);
+  if (layerId) {
+    canvas.dataset.layerId = layerId;
+    if (entry.slot) {
+      entry.slot.dataset.layerId = layerId;
+    }
+  }
+
+  layer.previewThumbnail = entry.canvas;
+  layer.previewSlot = entry.slot ?? null;
+
+  layerThumbnailRegistry.set(layer, entry);
 };
 
 const storedLayerSearch = readString(LAYER_SEARCH_KEY, '');
@@ -285,17 +307,37 @@ const drawLayerThumbnail = (layer, canvas) => {
   ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
 };
 
+const ensurePreviewAnchored = (entry) => {
+  if (!entry || !entry.canvas) return;
+  if (!(entry.slot instanceof HTMLElement)) return;
+  if (!entry.slot.contains(entry.canvas)) {
+    entry.slot.insertBefore(entry.canvas, entry.slot.firstChild);
+  }
+};
+
 export function refreshLayerPreview(layer) {
   if (!layer) return;
-  const canvas = layerThumbnailRegistry.get(layer);
-  if (canvas) {
-    drawLayerThumbnail(layer, canvas);
-  }
+  const entry = layerThumbnailRegistry.get(layer);
+  if (!entry || !(entry.canvas instanceof HTMLCanvasElement)) return;
+  ensurePreviewAnchored(entry);
+  drawLayerThumbnail(layer, entry.canvas);
 }
 
 export function refreshAllLayerPreviews(layers = []) {
   if (!Array.isArray(layers)) return;
   layers.forEach(layer => refreshLayerPreview(layer));
+}
+
+export function getLayerPreviewElement(layer) {
+  if (!layer) return null;
+  const entry = layerThumbnailRegistry.get(layer);
+  return entry?.canvas ?? null;
+}
+
+export function getLayerPreviewSlot(layer) {
+  if (!layer) return null;
+  const entry = layerThumbnailRegistry.get(layer);
+  return entry?.slot ?? null;
 }
 
 const renderLayerList = (layers, activeLayer, callbacks) => {
@@ -322,9 +364,13 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
 
   filtered.forEach(({ layer: l, index: i }) => {
     const li = document.createElement('li');
+    const layerId = normaliseLayerId(l);
     li.className = 'layer-item' + (i === activeLayer ? ' active' : '');
     li.draggable = true;
     li.dataset.index = i;
+    if (layerId) {
+      li.dataset.layerId = layerId;
+    }
 
     li.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', i);
@@ -342,7 +388,7 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
     thumb.height = 54;
     thumb.className = 'layer-thumb';
     drawLayerThumbnail(l, thumb);
-    registerLayerThumbnail(l, thumb);
+    registerLayerThumbnail(l, thumb, li);
     li.appendChild(thumb);
 
     const meta = document.createElement('div');

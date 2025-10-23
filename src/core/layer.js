@@ -3,6 +3,8 @@ import {
   updateLayerProperties as panelUpdateLayerProperties,
   refreshLayerPreview as panelRefreshLayerPreview,
   refreshAllLayerPreviews as panelRefreshAllLayerPreviews,
+  getLayerPreviewSlot as panelGetLayerPreviewSlot,
+  getLayerPreviewElement as panelGetLayerPreviewElement,
 } from '../gui/panels.js';
 import { cloneVectorLayer, createEmptyVectorLayer } from './vector-layer-state.js';
 
@@ -55,6 +57,22 @@ export function markLayerPreviewDirty(target) {
   if (!previewRefreshScheduled) {
     previewRefreshScheduled = true;
     schedulePreviewRefresh(flushLayerPreviewUpdates);
+  }
+}
+
+export function getLayerPreviewAnchor(target) {
+  const layer = resolveLayerPreviewTarget(target);
+  if (!layer) return null;
+  return panelGetLayerPreviewSlot(layer) ?? panelGetLayerPreviewElement(layer) ?? null;
+}
+
+export function getLayerPreviewBounds(target) {
+  const anchor = getLayerPreviewAnchor(target);
+  if (!anchor || typeof anchor.getBoundingClientRect !== 'function') return null;
+  try {
+    return anchor.getBoundingClientRect();
+  } catch (error) {
+    return null;
   }
 }
 
