@@ -1,4 +1,4 @@
-import { layers, activeLayer, bmp, renderLayers } from './layer.js';
+import { layers, activeLayer, bmp, renderLayers, markLayerPreviewDirty } from './layer.js';
 import { getDevicePixelRatio, resizeCanvasToDisplaySize } from '../utils/canvas/index.js';
 import { cancelTextEditing, getActiveEditor } from '../managers/text-editor.js';
 import { openImageFile } from '../io/index.js';
@@ -138,6 +138,7 @@ export class Engine {
     this._preStrokeCanvas = null;
     this._pendingRect = null;
     renderLayers();
+    markLayerPreviewDirty(this._strokeLayer);
   }
 
   requestRepaint() {

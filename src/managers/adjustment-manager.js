@@ -1,5 +1,5 @@
 import { applyFilterToCanvas } from "../utils/image/processing.js";
-import { bmp, layers, activeLayer } from "../core/layer.js";
+import { bmp, layers, activeLayer, markLayerPreviewDirty } from "../core/layer.js";
 
 export class AdjustmentManager {
   constructor(engine, layersRef = layers, activeLayerRef = activeLayer) {
@@ -86,6 +86,7 @@ export class AdjustmentManager {
       ctx.drawImage(canvas, x, y);
       const after = ctx.getImageData(x, y, w, h);
       this.engine.history.pushPatch({ rect: { x, y, w, h }, before, after });
+      markLayerPreviewDirty(activeLayer);
       this.engine.filterPreview = null;
       this.engine.requestRepaint();
     }
