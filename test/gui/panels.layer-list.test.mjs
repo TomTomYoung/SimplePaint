@@ -87,3 +87,48 @@ test('updateLayerList renders layer rows without preview canvases', () => {
     env.restore();
   }
 });
+
+test('updateLayerList leaves surrounding panel controls intact', () => {
+  const env = installMockDomEnvironment();
+  try {
+    const { document } = env;
+
+    const panel = document.createElement('section');
+    panel.id = 'layerPanel';
+
+    const filterGroup = document.createElement('div');
+    filterGroup.className = 'layer-filter-group';
+    const filterSentinel = document.createElement('span');
+    filterSentinel.textContent = 'filters';
+    filterGroup.appendChild(filterSentinel);
+
+    const actionRow = document.createElement('div');
+    actionRow.className = 'layer-action-row';
+    const addButton = document.createElement('button');
+    addButton.id = 'addLayerBtn';
+    actionRow.appendChild(addButton);
+
+    const list = document.createElement('ul');
+    list.id = 'layerList';
+    panel.appendChild(filterGroup);
+    panel.appendChild(actionRow);
+    panel.appendChild(list);
+    document._elements.layerList = list;
+    document.body.appendChild(panel);
+
+    const layers = [createMockLayer(env, 0)];
+    updateLayerList(layers, 0, {});
+
+    assert.ok(
+      filterGroup.childNodes.includes(filterSentinel),
+      'layer filter controls remain attached',
+    );
+    assert.ok(
+      actionRow.childNodes.includes(addButton),
+      'layer action buttons remain attached',
+    );
+    assert.strictEqual(list.childNodes.length, 1, 'layer list still populated');
+  } finally {
+    env.restore();
+  }
+});
