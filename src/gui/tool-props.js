@@ -1,5 +1,7 @@
 import { getActiveEditor } from '../managers/text-editor.js';
+import { toolDefaults } from '../core/store.js';
 import { describeShortcutsForTool } from './tool-shortcuts.js';
+import { readJSON, writeJSON } from '../utils/safe-storage.js';
 
 const DEFAULT_TOOL_PALETTE = Object.freeze([
   '#000000',
@@ -11,6 +13,134 @@ const DEFAULT_TOOL_PALETTE = Object.freeze([
   '#4dabf7',
   '#845ef7',
 ]);
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const TOOL_PANEL_STATE_KEY = 'ui:toolAccordionState';
+
+const readAccordionState = () => {
+  const stored = readJSON(TOOL_PANEL_STATE_KEY, {});
+  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+    return {};
+  }
+  const normalised = {};
+  Object.entries(stored).forEach(([key, value]) => {
+    if (typeof value === 'boolean') {
+      normalised[key] = value;
+    }
+  });
+  return normalised;
+};
+
+const writeAccordionState = state => writeJSON(TOOL_PANEL_STATE_KEY, state);
+
+const getPanelContainers = panel => {
+  const body = panel?.querySelector('.panel-body');
+  if (!body) {
+    return null;
+  }
+  const properties = body.querySelector('#toolPropContainer') || body;
+  const palette = body.querySelector('#toolPaletteContainer') || properties;
+  const shortcuts = body.querySelector('#toolShortcutContainer') || properties;
+  const previewCanvas = body.querySelector('#toolPreviewCanvas');
+  const previewReset = body.querySelector('#toolPreviewReset');
+  return {
+    body,
+    properties,
+    palette,
+    shortcuts,
+    previewCanvas: previewCanvas instanceof HTMLCanvasElement ? previewCanvas : null,
+    previewReset: previewReset instanceof HTMLButtonElement ? previewReset : null,
+  };
+};
+
+const computeToolDefaults = id => {
+  const defs = Array.isArray(toolPropDefs[id]) ? toolPropDefs[id] : [];
+  const defaults = { ...toolDefaults };
+  defs.forEach(def => {
+    if (def && typeof def.name === 'string' && def.default !== undefined) {
+      defaults[def.name] = def.default;
+    }
+  });
+  return defaults;
+};
+
+const parseDashPattern = pattern => {
+  if (typeof pattern !== 'string') return [];
+  return pattern
+    .split(/[\s,]+/)
+    .map(Number)
+    .filter(value => Number.isFinite(value) && value !== 0)
+    .map(value => clamp(Math.abs(value), 1, 64));
+};
+
+const drawToolPreview = (canvas, state = {}, toolId = '') => {
+  if (!(canvas instanceof HTMLCanvasElement)) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const { width, height } = canvas;
+
+  ctx.clearRect(0, 0, width, height);
+
+  const cell = 16;
+  for (let y = 0; y < height; y += cell) {
+    for (let x = 0; x < width; x += cell) {
+      const even = ((x / cell) | 0) % 2 === ((y / cell) | 0) % 2;
+      ctx.fillStyle = even ? '#f5f5f5' : '#e6e6e6';
+      ctx.fillRect(x, y, cell, cell);
+    }
+  }
+
+  const strokeColor = typeof state.primaryColor === 'string' ? state.primaryColor : '#4a90e2';
+  const fillColor = state.fillOn === false
+    ? null
+    : (typeof state.secondaryColor === 'string' ? state.secondaryColor : '#f7c948');
+  const lineWidth = clamp(typeof state.brushSize === 'number' ? state.brushSize : 8, 1, 24);
+  const capStyle = typeof state.capStyle === 'string' ? state.capStyle : 'round';
+  const opacity = clamp(typeof state.opacity === 'number' ? state.opacity : 1, 0.1, 1);
+
+  if (fillColor) {
+    ctx.save();
+    ctx.globalAlpha = opacity * 0.75;
+    ctx.fillStyle = fillColor;
+    ctx.beginPath();
+    const baseX = width * 0.35;
+    const baseY = height * 0.55;
+    const baseW = width * 0.45;
+    const peakOffset = height * 0.22;
+    ctx.moveTo(baseX, baseY + peakOffset);
+    ctx.lineTo(baseX + baseW, baseY + peakOffset);
+    ctx.lineTo(baseX + baseW - peakOffset, baseY - peakOffset);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.lineWidth = lineWidth;
+  ctx.lineCap = capStyle;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = strokeColor;
+  const dashSegments = parseDashPattern(state.dashPattern);
+  if (dashSegments.length > 0 && typeof ctx.setLineDash === 'function') {
+    ctx.setLineDash(dashSegments);
+  }
+  ctx.beginPath();
+  ctx.moveTo(width * 0.1, height * 0.75);
+  ctx.quadraticCurveTo(width * 0.45, height * 0.1, width * 0.85, height * 0.65);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = '12px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.textAlign = 'right';
+  ctx.fillText(toolId || '', width - 8, height - 10);
+  ctx.restore();
+};
+
+let activeToolId = null;
+let previewResetRef = null;
 
 const strokeProps = [
   {
@@ -832,6 +962,72 @@ export const toolPropDefs = {
       hint: '入力点を追加する最小距離（px）です。',
     },
   ],
+  'vector-tool': [
+    ...strokeProps,
+    {
+      name: 'snapToGrid',
+      label: 'グリッドにスナップ',
+      type: 'checkbox',
+      default: false,
+      hint: 'オンで最寄りのグリッド交点へ自動吸着します。',
+    },
+    {
+      name: 'gridSize',
+      label: 'グリッド間隔 (px)',
+      type: 'number',
+      min: 1,
+      max: 256,
+      step: 1,
+      default: 8,
+      hint: 'グリッドスナップ有効時の格子間隔を設定します。',
+    },
+    {
+      name: 'snapToExisting',
+      label: '既存アンカーにスナップ',
+      type: 'checkbox',
+      default: true,
+      hint: 'オンにすると既存パスのアンカーへ吸着して整列できます。',
+    },
+    {
+      name: 'snapRadius',
+      label: 'スナップ半径 (px)',
+      type: 'range',
+      min: 1,
+      max: 48,
+      step: 1,
+      default: 6,
+      hint: 'アンカーやセグメントを捕捉する半径を調整します。',
+    },
+    {
+      name: 'simplifyTolerance',
+      label: '簡略化しきい値',
+      type: 'range',
+      min: 0,
+      max: 5,
+      step: 0.05,
+      default: 0.75,
+      hint: 'ドラフト確定時に折れ線をどの程度間引くかを制御します。',
+    },
+    {
+      name: 'rasterizeMode',
+      label: 'ラスタライズモード',
+      type: 'select',
+      options: [
+        { value: 'manual', label: '手動' },
+        { value: 'onExport', label: '書き出し時' },
+        { value: 'auto', label: '自動' },
+      ],
+      default: 'manual',
+      hint: 'パスをビットマップへ反映するタイミングを選びます。',
+    },
+    {
+      name: 'showAnchors',
+      label: 'アンカーを表示',
+      type: 'checkbox',
+      default: true,
+      hint: 'オフにすると編集中のアンカー表示を隠します。',
+    },
+  ],
   'select-rect': [],
   eyedropper: [],
 };
@@ -1122,25 +1318,81 @@ const appendPaletteSection = (container, store, id, state) => {
 export function initToolPropsPanel(store, engine) {
   const panel = document.getElementById('leftPanel');
   if (!panel) return;
-  const body = panel.querySelector('.panel-body');
-  if (!body) return;
+  const containers = getPanelContainers(panel);
+  if (!containers) return;
+
+  const accordionSections = Array.from(
+    panel.querySelectorAll('.accordion-section[data-section]'),
+  );
+  if (accordionSections.length > 0) {
+    let accordionState = readAccordionState();
+    accordionSections.forEach(section => {
+      const key = section.dataset.section;
+      if (!key) return;
+      if (Object.prototype.hasOwnProperty.call(accordionState, key)) {
+        section.open = !!accordionState[key];
+      }
+    });
+
+    const persistAccordionState = () => {
+      const snapshot = {};
+      accordionSections.forEach(section => {
+        const key = section.dataset.section;
+        if (!key) return;
+        snapshot[key] = section.open;
+      });
+      accordionState = snapshot;
+      writeAccordionState(accordionState);
+    };
+
+    accordionSections.forEach(section => {
+      section.addEventListener('toggle', persistAccordionState);
+    });
+  }
+
+  previewResetRef = containers.previewReset;
+  if (previewResetRef && !previewResetRef.dataset.bound) {
+    previewResetRef.addEventListener('click', () => {
+      if (!activeToolId) return;
+      store.resetToolState(activeToolId, {
+        defaults: computeToolDefaults(activeToolId),
+      });
+    });
+    previewResetRef.dataset.bound = 'true';
+  }
 
   const render = (id) => {
+    activeToolId = id;
     const defs = toolPropDefs[id] || [];
-    const state = store.getToolState(id);
-    body.innerHTML = '';
+    const defaults = computeToolDefaults(id);
+    const state = store.getToolState(id, defaults);
+    const fieldRefs = new Map();
+
+    const { properties, palette, shortcuts, previewCanvas } = containers;
+    [properties, palette, shortcuts].forEach(section => {
+      if (section) section.innerHTML = '';
+    });
 
     const tool = engine && engine.tools instanceof Map ? engine.tools.get(id) : null;
     const metaSection = createToolMetaSection(tool, id);
-    if (metaSection) {
-      body.appendChild(metaSection);
+    if (shortcuts) {
+      if (metaSection) {
+        shortcuts.appendChild(metaSection);
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'prop-empty';
+        empty.textContent = 'ショートカットは定義されていません。';
+        shortcuts.appendChild(empty);
+      }
+    } else if (metaSection) {
+      properties.appendChild(metaSection);
     }
 
     if (defs.length === 0) {
       const note = document.createElement('div');
       note.className = 'prop-empty-note';
       note.textContent = 'このツールに固有の設定はありません（パレットのみ）';
-      body.appendChild(note);
+      properties.appendChild(note);
     }
 
     defs.forEach((d) => {
@@ -1165,17 +1417,17 @@ export function initToolPropsPanel(store, engine) {
             }
           }
         });
-        wrap.appendChild(btn);
-        if (d.hint) {
-          const hint = document.createElement('div');
-          hint.className = 'prop-hint';
-          hint.textContent = d.hint;
-          wrap.appendChild(hint);
-          btn.title = d.hint;
+          wrap.appendChild(btn);
+          if (d.hint) {
+            const hint = document.createElement('div');
+            hint.className = 'prop-hint';
+            hint.textContent = d.hint;
+            wrap.appendChild(hint);
+            btn.title = d.hint;
+          }
+          properties.appendChild(wrap);
+          return;
         }
-        body.appendChild(wrap);
-        return;
-      }
       if (d.type === 'select') {
         input = document.createElement('select');
         d.options.forEach((o) => {
@@ -1199,6 +1451,13 @@ export function initToolPropsPanel(store, engine) {
       } else if (d.default !== undefined && d.type !== 'checkbox') {
         input.value = String(d.default);
       }
+      if (input instanceof HTMLElement) {
+        input.name = d.name;
+        fieldRefs.set(d.name, input);
+      }
+      if (id === 'vector-tool' && d.name === 'gridSize' && input instanceof HTMLInputElement) {
+        input.disabled = !state.snapToGrid;
+      }
       const evt = d.type === 'checkbox' || d.type === 'select' ? 'change' : 'input';
       input.addEventListener(evt, () => {
         let v;
@@ -1212,6 +1471,17 @@ export function initToolPropsPanel(store, engine) {
         }
         store.setToolState(id, { [d.name]: v });
         if (d.name === 'antialias') engine?.requestRepaint?.();
+        if (id === 'vector-tool') {
+          if (d.name === 'snapToGrid') {
+            const gridField = fieldRefs.get('gridSize');
+            if (gridField instanceof HTMLInputElement) {
+              gridField.disabled = !input.checked;
+            }
+          }
+          if (d.name === 'showAnchors') {
+            engine?.requestRepaint?.();
+          }
+        }
         if (id === 'text') {
           const ed = getActiveEditor();
           if (ed) {
@@ -1235,10 +1505,12 @@ export function initToolPropsPanel(store, engine) {
           input.title = d.hint;
         }
       }
-      body.appendChild(wrap);
+      properties.appendChild(wrap);
     });
 
-    appendPaletteSection(body, store, id, state);
+    appendPaletteSection(palette || properties, store, id, state);
+
+    drawToolPreview(previewCanvas, state, id);
 
     panel.style.display = 'flex';
     panel.classList.remove('no-tool-props');
