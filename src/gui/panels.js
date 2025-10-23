@@ -21,6 +21,9 @@ const layerPropertiesElements = {
   apply: null,
 };
 
+const layerPreviewRegistry = new Map();
+const LAYER_PREVIEW_SIZE = 72;
+
 let suppressLayerPropertyEvent = false;
 let layerFilter = readStoredLayerFilter();
 let layerSearchValue = '';
@@ -55,6 +58,42 @@ const rememberLayerFilter = value => {
 
 const rememberLayerSearch = value => {
   writeString(LAYER_SEARCH_KEY, value.trim());
+};
+
+const isCanvasLikeLayer = layer =>
+  layer && typeof layer.getContext === 'function' && typeof layer.width === 'number';
+
+const createLayerPreviewElements = () => {
+  const slot = document.createElement('div');
+  slot.className = 'layer-preview-slot';
+  const canvas = document.createElement('canvas');
+  canvas.width = LAYER_PREVIEW_SIZE;
+  canvas.height = LAYER_PREVIEW_SIZE;
+  canvas.className = 'layer-preview';
+  slot.appendChild(canvas);
+  return { slot, canvas };
+};
+
+const ensureLayerPreviewEntry = layer => {
+  if (!isCanvasLikeLayer(layer)) return null;
+  let entry = layerPreviewRegistry.get(layer);
+  if (!entry) {
+    entry = createLayerPreviewElements();
+    layerPreviewRegistry.set(layer, entry);
+  }
+  return entry;
+};
+
+const pruneLayerPreviewRegistry = layers => {
+  const validLayers = new Set(Array.isArray(layers) ? layers : []);
+  for (const [layer, entry] of layerPreviewRegistry.entries()) {
+    if (!validLayers.has(layer)) {
+      if (entry?.slot?.parentNode?.removeChild) {
+        entry.slot.parentNode.removeChild(entry.slot);
+      }
+      layerPreviewRegistry.delete(layer);
+    }
+  }
 };
 
 export function initPanelHeaders() {
@@ -262,15 +301,14 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
   const list = document.getElementById('layerList');
   if (!list) return;
 
+  pruneLayerPreviewRegistry(layers);
   list.innerHTML = '';
-  layerThumbnailRegistry.clear();
   const filtered = layers
     .map((layer, index) => ({ layer, index }))
     .filter(({ layer }) => matchesLayerFilter(layer))
     .filter(({ layer }) => matchesLayerSearch(layer));
 
   if (filtered.length === 0) {
-    layerThumbnailRegistry.clear();
     const empty = document.createElement('li');
     empty.className = 'layer-empty';
     empty.textContent = layerSearchTerm
@@ -464,4 +502,52 @@ export function updateLayerProperties(layer) {
     if (vectorControls) vectorControls.style.display = 'none';
     if (apply) apply.disabled = true;
   }
+}
+
+export function refreshLayerPreview(layer) {
+  const entry = ensureLayerPreviewEntry(layer);
+  if (!entry) return;
+  const { canvas } = entry;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  ctx.save();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (isCanvasLikeLayer(layer) && layer.width > 0 && layer.height > 0) {
+    const scale = Math.min(
+      1,
+      canvas.width / layer.width,
+      canvas.height / layer.height,
+    );
+    const drawWidth = layer.width * scale;
+    const drawHeight = layer.height * scale;
+    const offsetX = (canvas.width - drawWidth) / 2;
+    const offsetY = (canvas.height - drawHeight) / 2;
+
+    try {
+      ctx.drawImage(layer, offsetX, offsetY, drawWidth, drawHeight);
+    } catch (error) {
+      // ignore drawImage errors, typically from tainted canvases
+    }
+  }
+
+  ctx.restore();
+}
+
+export function refreshAllLayerPreviews(layers = []) {
+  if (!Array.isArray(layers)) return;
+  layers.forEach(layer => refreshLayerPreview(layer));
+}
+
+export function getLayerPreviewSlot(layer) {
+  const entry = ensureLayerPreviewEntry(layer);
+  return entry ? entry.slot : null;
+}
+
+export function getLayerPreviewElement(layer) {
+  const entry = ensureLayerPreviewEntry(layer);
+  return entry ? entry.canvas : null;
 }
