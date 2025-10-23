@@ -1,5 +1,6 @@
 import { initToolbar, setToolCallbacks } from './gui/toolbar.js';
 import { initToolPropsPanel } from './gui/tool-props.js';
+import { initShortcutOverlay } from './gui/shortcuts-overlay.js';
 import {
   initAdjustPanel,
   initLayerPanel,
@@ -9,6 +10,7 @@ import {
   setLayerPropertiesCallbacks,
   updateLayerProperties,
 } from './gui/panels.js';
+import { initWorkspaceLayoutControls } from './gui/workspace-layout.js';
 
 import { Engine } from './core/engine.js';
 import {
@@ -181,6 +183,8 @@ export class PaintApp {
     initAdjustPanel();
     initLayerPanel();
     initPanelHeaders();
+    initWorkspaceLayoutControls();
+    initShortcutOverlay();
     initToolPropsPanel(this.store, this.engine);
     initDocument(1280, 720, '#ffffff');
     this.engine.requestRepaint();
