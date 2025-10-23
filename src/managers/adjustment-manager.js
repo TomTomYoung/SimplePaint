@@ -2,10 +2,9 @@ import { applyFilterToCanvas } from "../utils/image/processing.js";
 import { bmp, layers, activeLayer, markLayerPreviewDirty } from "../core/layer.js";
 
 export class AdjustmentManager {
-  constructor(engine, layersRef = layers, activeLayerRef = activeLayer) {
+  constructor(engine, layersRef = layers) {
     this.engine = engine;
     this.layers = layersRef;
-    this.activeLayer = activeLayerRef;
     this.initElements();
   }
 
@@ -80,13 +79,24 @@ export class AdjustmentManager {
       this.engine.beginStrokeSnapshot();
       const w = canvas.width,
         h = canvas.height;
-      const ctx = this.layers[this.activeLayer].getContext("2d");
+      const layerIndex = activeLayer;
+      const targetLayer = this.layers[layerIndex];
+      if (!targetLayer) {
+        this.engine.filterPreview = null;
+        return;
+      }
+      const ctx = targetLayer.getContext("2d");
       const before = ctx.getImageData(x, y, w, h);
       ctx.clearRect(x, y, w, h);
       ctx.drawImage(canvas, x, y);
       const after = ctx.getImageData(x, y, w, h);
-      this.engine.history.pushPatch({ rect: { x, y, w, h }, before, after });
-      markLayerPreviewDirty(activeLayer);
+      this.engine.history.pushPatch({
+        layer: layerIndex,
+        rect: { x, y, w, h },
+        before,
+        after,
+      });
+      markLayerPreviewDirty(layerIndex);
       this.engine.filterPreview = null;
       this.engine.requestRepaint();
     }
