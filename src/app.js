@@ -50,7 +50,7 @@ export class PaintApp {
     initIO(this.engine, () => this.fitToScreen());
     this.registerTools();
     this.initUI();
-    this.adjustmentManager = new AdjustmentManager(this.engine, layers, activeLayer);
+    this.adjustmentManager = new AdjustmentManager(this.engine, layers);
     this.setupVectorLayerSync();
   }
 

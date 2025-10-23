@@ -27,6 +27,14 @@ let layerSearchValue = '';
 let layerSearchTerm = '';
 let lastLayerArgs = { layers: [], activeLayer: 0, callbacks: {} };
 
+const normaliseLayerId = layer => {
+  if (layer && typeof layer._id === 'string') {
+    return layer._id;
+  }
+  return null;
+};
+
+
 const storedLayerSearch = readString(LAYER_SEARCH_KEY, '');
 if (typeof storedLayerSearch === 'string' && storedLayerSearch.trim().length > 0) {
   layerSearchValue = storedLayerSearch.trim();
@@ -250,34 +258,6 @@ const layerTypeLabel = layer => {
   }
 };
 
-const drawLayerThumbnail = (layer, canvas) => {
-  if (!(canvas instanceof HTMLCanvasElement)) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  const width = canvas.width;
-  const height = canvas.height;
-  ctx.clearRect(0, 0, width, height);
-  if (layer && typeof layer.width === 'number' && typeof layer.height === 'number') {
-    const scale = Math.min(
-      (width - 4) / Math.max(layer.width, 1),
-      (height - 4) / Math.max(layer.height, 1),
-    );
-    const dx = (width - layer.width * scale) / 2;
-    const dy = (height - layer.height * scale) / 2;
-    ctx.save();
-    ctx.translate(dx, dy);
-    ctx.scale(scale, scale);
-    try {
-      ctx.drawImage(layer, 0, 0);
-    } catch (error) {
-      // ignore drawing errors from detached canvases
-    }
-    ctx.restore();
-  }
-  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-  ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
-};
-
 const renderLayerList = (layers, activeLayer, callbacks) => {
   const list = document.getElementById('layerList');
   if (!list) return;
@@ -300,9 +280,13 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
 
   filtered.forEach(({ layer: l, index: i }) => {
     const li = document.createElement('li');
+    const layerId = normaliseLayerId(l);
     li.className = 'layer-item' + (i === activeLayer ? ' active' : '');
     li.draggable = true;
     li.dataset.index = i;
+    if (layerId) {
+      li.dataset.layerId = layerId;
+    }
 
     li.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', i);
@@ -314,13 +298,6 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
       const to = parseInt(li.dataset.index);
       callbacks.onMove?.(from, to);
     });
-
-    const thumb = document.createElement('canvas');
-    thumb.width = 54;
-    thumb.height = 54;
-    thumb.className = 'layer-thumb';
-    drawLayerThumbnail(l, thumb);
-    li.appendChild(thumb);
 
     const meta = document.createElement('div');
     meta.className = 'layer-meta';
