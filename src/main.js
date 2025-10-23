@@ -79,8 +79,8 @@ if (hasDOM()) {
   );
 }
 
-export const floodFill = (ctx, x0, y0, rgba, th = 0) =>
-  floodFillImpl(ctx, bmp, x0, y0, rgba, th);
+export const floodFill = (ctx, x0, y0, rgba, tolerance = 0) =>
+  floodFillImpl(ctx, bmp, x0, y0, rgba, tolerance);
 
 export { toHex, drawEllipsePath, layers, activeLayer, bmp, isTextEditing };
 export const selectTool = (id) => app?.selectTool?.(id);
