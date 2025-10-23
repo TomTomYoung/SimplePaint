@@ -11,15 +11,15 @@
 - Added anchor hit-testing and drag editing so existing points can be repositioned without creating new paths, including store persistence coverage.
 - Enabled modifier-driven editing gestures: Shift/double-click inserts new anchors on existing segments, and Alt-click removes anchors or deletes paths when they become empty, with corresponding persistence tests.
 - Added direct path translation by dragging segments so entire shapes can be repositioned while maintaining snapping behaviour, plus unit coverage.
+- Exposed UI controls for snapping preferences, simplification tolerance, rasterise mode, and anchor visibility so artists can adjust behaviour without leaving the tool panel.
 
 ## In Progress / TODO
 - Editing tooling still lacks dedicated segment subdivision UI affordances, multi-point selection, and stroke style adjustments beyond anchor repositioning.
-- UI wiring for toggling snapping modes, simplification tolerance, rasterise mode, and anchor visibility remains to be built.
 - Undo/redo integration for vector edits beyond rasterisation snapshots still needs validation.
 - SVG export currently emits simple `M/L` path commands; support for curves and shape primitives is pending.
 
 ## Next Steps
 1. Design and implement anchor editing interactions within the tool-owned model.
-2. Expose the vector tool configuration options through the UI and ensure they update the store slice.
+2. Iterate on the configuration UI with presets, inline docs, and contextual disablement for dependent fields.
 3. Extend export and rasterisation routines to cover bezier curves, rectangles, ellipses, and polygons once their editing flows land.
 4. Add integration tests exercising tool lifecycle with the main application engine.

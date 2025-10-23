@@ -962,6 +962,72 @@ export const toolPropDefs = {
       hint: '入力点を追加する最小距離（px）です。',
     },
   ],
+  'vector-tool': [
+    ...strokeProps,
+    {
+      name: 'snapToGrid',
+      label: 'グリッドにスナップ',
+      type: 'checkbox',
+      default: false,
+      hint: 'オンで最寄りのグリッド交点へ自動吸着します。',
+    },
+    {
+      name: 'gridSize',
+      label: 'グリッド間隔 (px)',
+      type: 'number',
+      min: 1,
+      max: 256,
+      step: 1,
+      default: 8,
+      hint: 'グリッドスナップ有効時の格子間隔を設定します。',
+    },
+    {
+      name: 'snapToExisting',
+      label: '既存アンカーにスナップ',
+      type: 'checkbox',
+      default: true,
+      hint: 'オンにすると既存パスのアンカーへ吸着して整列できます。',
+    },
+    {
+      name: 'snapRadius',
+      label: 'スナップ半径 (px)',
+      type: 'range',
+      min: 1,
+      max: 48,
+      step: 1,
+      default: 6,
+      hint: 'アンカーやセグメントを捕捉する半径を調整します。',
+    },
+    {
+      name: 'simplifyTolerance',
+      label: '簡略化しきい値',
+      type: 'range',
+      min: 0,
+      max: 5,
+      step: 0.05,
+      default: 0.75,
+      hint: 'ドラフト確定時に折れ線をどの程度間引くかを制御します。',
+    },
+    {
+      name: 'rasterizeMode',
+      label: 'ラスタライズモード',
+      type: 'select',
+      options: [
+        { value: 'manual', label: '手動' },
+        { value: 'onExport', label: '書き出し時' },
+        { value: 'auto', label: '自動' },
+      ],
+      default: 'manual',
+      hint: 'パスをビットマップへ反映するタイミングを選びます。',
+    },
+    {
+      name: 'showAnchors',
+      label: 'アンカーを表示',
+      type: 'checkbox',
+      default: true,
+      hint: 'オフにすると編集中のアンカー表示を隠します。',
+    },
+  ],
   'select-rect': [],
   eyedropper: [],
 };
@@ -1300,6 +1366,7 @@ export function initToolPropsPanel(store, engine) {
     const defs = toolPropDefs[id] || [];
     const defaults = computeToolDefaults(id);
     const state = store.getToolState(id, defaults);
+    const fieldRefs = new Map();
 
     const { properties, palette, shortcuts, previewCanvas } = containers;
     [properties, palette, shortcuts].forEach(section => {
@@ -1384,6 +1451,13 @@ export function initToolPropsPanel(store, engine) {
       } else if (d.default !== undefined && d.type !== 'checkbox') {
         input.value = String(d.default);
       }
+      if (input instanceof HTMLElement) {
+        input.name = d.name;
+        fieldRefs.set(d.name, input);
+      }
+      if (id === 'vector-tool' && d.name === 'gridSize' && input instanceof HTMLInputElement) {
+        input.disabled = !state.snapToGrid;
+      }
       const evt = d.type === 'checkbox' || d.type === 'select' ? 'change' : 'input';
       input.addEventListener(evt, () => {
         let v;
@@ -1397,6 +1471,17 @@ export function initToolPropsPanel(store, engine) {
         }
         store.setToolState(id, { [d.name]: v });
         if (d.name === 'antialias') engine?.requestRepaint?.();
+        if (id === 'vector-tool') {
+          if (d.name === 'snapToGrid') {
+            const gridField = fieldRefs.get('gridSize');
+            if (gridField instanceof HTMLInputElement) {
+              gridField.disabled = !input.checked;
+            }
+          }
+          if (d.name === 'showAnchors') {
+            engine?.requestRepaint?.();
+          }
+        }
         if (id === 'text') {
           const ed = getActiveEditor();
           if (ed) {
