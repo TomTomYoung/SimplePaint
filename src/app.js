@@ -22,6 +22,7 @@ import {
   addLayer,
   deleteLayer,
   addVectorLayer,
+  markLayerPreviewDirty,
 } from './core/layer.js';
 import { initIO, initDocument, openImageFile, triggerSave, doCopy, doCut, handleClipboardItems, restoreSession, checkSession, saveSessionDebounced } from './io/index.js';
 import { DOMManager } from './managers/dom-manager.js';
@@ -50,7 +51,7 @@ export class PaintApp {
     initIO(this.engine, () => this.fitToScreen());
     this.registerTools();
     this.initUI();
-    this.adjustmentManager = new AdjustmentManager(this.engine, layers, activeLayer);
+    this.adjustmentManager = new AdjustmentManager(this.engine, layers);
     this.setupVectorLayerSync();
   }
 
@@ -165,6 +166,7 @@ export class PaintApp {
       after,
     });
     renderLayers();
+    markLayerPreviewDirty(activeLayer);
     this.engine.requestRepaint();
   }
 
