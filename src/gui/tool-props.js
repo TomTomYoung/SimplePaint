@@ -1,6 +1,7 @@
 import { getActiveEditor } from '../managers/text-editor.js';
 import { toolDefaults } from '../core/store.js';
 import { describeShortcutsForTool } from './tool-shortcuts.js';
+import { readJSON, writeJSON } from '../utils/safe-storage.js';
 
 const DEFAULT_TOOL_PALETTE = Object.freeze([
   '#000000',
@@ -14,6 +15,24 @@ const DEFAULT_TOOL_PALETTE = Object.freeze([
 ]);
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const TOOL_PANEL_STATE_KEY = 'ui:toolAccordionState';
+
+const readAccordionState = () => {
+  const stored = readJSON(TOOL_PANEL_STATE_KEY, {});
+  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+    return {};
+  }
+  const normalised = {};
+  Object.entries(stored).forEach(([key, value]) => {
+    if (typeof value === 'boolean') {
+      normalised[key] = value;
+    }
+  });
+  return normalised;
+};
+
+const writeAccordionState = state => writeJSON(TOOL_PANEL_STATE_KEY, state);
 
 const getPanelContainers = panel => {
   const body = panel?.querySelector('.panel-body');
@@ -1235,6 +1254,36 @@ export function initToolPropsPanel(store, engine) {
   if (!panel) return;
   const containers = getPanelContainers(panel);
   if (!containers) return;
+
+  const accordionSections = Array.from(
+    panel.querySelectorAll('.accordion-section[data-section]'),
+  );
+  if (accordionSections.length > 0) {
+    let accordionState = readAccordionState();
+    accordionSections.forEach(section => {
+      const key = section.dataset.section;
+      if (!key) return;
+      if (Object.prototype.hasOwnProperty.call(accordionState, key)) {
+        section.open = !!accordionState[key];
+      }
+    });
+
+    const persistAccordionState = () => {
+      const snapshot = {};
+      accordionSections.forEach(section => {
+        const key = section.dataset.section;
+        if (!key) return;
+        snapshot[key] = section.open;
+      });
+      accordionState = snapshot;
+      writeAccordionState(accordionState);
+    };
+
+    accordionSections.forEach(section => {
+      section.addEventListener('toggle', persistAccordionState);
+    });
+  }
+
   previewResetRef = containers.previewReset;
   if (previewResetRef && !previewResetRef.dataset.bound) {
     previewResetRef.addEventListener('click', () => {

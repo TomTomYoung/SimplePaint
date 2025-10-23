@@ -1,5 +1,11 @@
 // panels.js - パネル管理モジュール
 
+import { readString, writeString } from '../utils/safe-storage.js';
+
+const LAYER_FILTER_KEY = 'ui:layerFilter';
+const LAYER_SEARCH_KEY = 'ui:layerSearch';
+const VALID_LAYER_FILTERS = new Set(['all', 'raster', 'vector', 'text']);
+
 let adjustCallbacks = {};
 let layerCallbacks = {};
 let layerPropertiesCallbacks = {};
@@ -16,9 +22,32 @@ const layerPropertiesElements = {
 };
 
 let suppressLayerPropertyEvent = false;
-let layerFilter = 'all';
+let layerFilter = readStoredLayerFilter();
+let layerSearchValue = '';
 let layerSearchTerm = '';
 let lastLayerArgs = { layers: [], activeLayer: 0, callbacks: {} };
+
+const storedLayerSearch = readString(LAYER_SEARCH_KEY, '');
+if (typeof storedLayerSearch === 'string' && storedLayerSearch.trim().length > 0) {
+  layerSearchValue = storedLayerSearch.trim();
+  layerSearchTerm = layerSearchValue.toLowerCase();
+}
+
+function readStoredLayerFilter() {
+  const stored = readString(LAYER_FILTER_KEY, 'all');
+  if (typeof stored !== 'string') return 'all';
+  const normalised = stored.trim().toLowerCase();
+  return VALID_LAYER_FILTERS.has(normalised) ? normalised : 'all';
+}
+
+const rememberLayerFilter = value => {
+  if (!VALID_LAYER_FILTERS.has(value)) return;
+  writeString(LAYER_FILTER_KEY, value);
+};
+
+const rememberLayerSearch = value => {
+  writeString(LAYER_SEARCH_KEY, value.trim());
+};
 
 export function initPanelHeaders() {
   document.querySelectorAll('.panel').forEach(p => {
@@ -101,18 +130,49 @@ export function initLayerPanel() {
     button.addEventListener('click', () => {
       const next = button.dataset.layerFilter || 'all';
       if (next === layerFilter) return;
-      layerFilter = next;
+      layerFilter = VALID_LAYER_FILTERS.has(next) ? next : 'all';
       updateFilterButtonState();
       rerenderLayerList();
+      rememberLayerFilter(layerFilter);
     });
   });
   updateFilterButtonState();
+  rememberLayerFilter(layerFilter);
 
   const searchInput = document.getElementById('layerSearch');
   if (searchInput) {
+    if (layerSearchValue) {
+      searchInput.value = layerSearchValue;
+    }
+    rememberLayerSearch(layerSearchValue);
+
+    let searchPersistTimer = null;
+    const schedulePersist = () => {
+      if (searchPersistTimer !== null) {
+        clearTimeout(searchPersistTimer);
+      }
+      searchPersistTimer = setTimeout(() => {
+        rememberLayerSearch(layerSearchValue);
+        searchPersistTimer = null;
+      }, 400);
+    };
+
     searchInput.addEventListener('input', () => {
-      layerSearchTerm = searchInput.value.trim().toLowerCase();
+      const rawValue = searchInput.value;
+      layerSearchValue = rawValue.trim();
+      layerSearchTerm = layerSearchValue.toLowerCase();
       rerenderLayerList();
+      schedulePersist();
+    });
+
+    searchInput.addEventListener('blur', () => {
+      layerSearchValue = searchInput.value.trim();
+      layerSearchTerm = layerSearchValue.toLowerCase();
+      rememberLayerSearch(layerSearchValue);
+      if (searchPersistTimer !== null) {
+        clearTimeout(searchPersistTimer);
+        searchPersistTimer = null;
+      }
     });
   }
 
