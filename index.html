@@ -23,6 +23,17 @@
         <button id="actual">100%</button>
 
         <div class="row" style="margin-left: auto; gap: 12px">
+          <button
+            type="button"
+            id="toolSearchTrigger"
+            class="toolbar-command-button"
+            data-action="show-tool-search"
+            aria-haspopup="dialog"
+            aria-controls="toolSearchOverlay"
+            title="Ctrl+K"
+          >
+            ツール検索 (Ctrl+K)
+          </button>
           <button id="restoreBtn" style="display: none">前回復元</button>
         </div>
         <div class="sep"></div>
@@ -339,6 +350,45 @@
       <button id="adjReset">リセット</button>
       <button id="adjCancel">キャンセル</button>
       <button id="adjApply">適用</button>
+    </div>
+  </div>
+
+  <div
+    id="toolSearchOverlay"
+    class="tool-search-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="toolSearchTitle"
+    hidden
+  >
+    <div class="tool-search-panel" role="document">
+      <header class="tool-search-header">
+        <h2 id="toolSearchTitle">ツール検索</h2>
+        <button
+          type="button"
+          class="tool-search-close"
+          data-tool-search-dismiss
+          aria-label="閉じる (Esc)"
+          title="閉じる"
+        >
+          ×
+        </button>
+      </header>
+      <div class="tool-search-body">
+        <label class="tool-search-label" for="toolSearchInput">ツール名やショートカットで検索</label>
+        <input
+          id="toolSearchInput"
+          class="tool-search-input"
+          type="search"
+          placeholder="キーワードで検索 (Ctrl+K)"
+          autocomplete="off"
+          spellcheck="false"
+          aria-controls="toolSearchResults"
+        />
+        <p class="tool-search-hint">Enterで決定、Escで閉じる、↑↓で移動</p>
+        <ul id="toolSearchResults" class="tool-search-results" role="listbox" aria-label="検索結果"></ul>
+        <p id="toolSearchEmpty" class="tool-search-empty" hidden>該当するツールがありません</p>
+      </div>
     </div>
   </div>
 
