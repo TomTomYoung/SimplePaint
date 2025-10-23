@@ -170,3 +170,97 @@ test('updateLayerList leaves surrounding panel controls intact', () => {
     env.restore();
   }
 });
+
+test('updateLayerList preserves layer properties scaffolding', () => {
+  const env = installMockDomEnvironment();
+  try {
+    const { document } = env;
+
+    const list = document.createElement('ul');
+    list.id = 'layerList';
+    document._elements.layerList = list;
+    document.body.appendChild(list);
+
+    const properties = document.createElement('section');
+    properties.id = 'layerProperties';
+    document._elements.layerProperties = properties;
+    document.body.appendChild(properties);
+
+    const typeLabel = document.createElement('strong');
+    typeLabel.id = 'layerTypeLabel';
+    typeLabel.textContent = '—';
+    document._elements.layerTypeLabel = typeLabel;
+    properties.appendChild(typeLabel);
+
+    const vectorControls = document.createElement('div');
+    vectorControls.id = 'vectorLayerControls';
+    document._elements.vectorLayerControls = vectorControls;
+    properties.appendChild(vectorControls);
+
+    const color = document.createElement('input');
+    color.id = 'vectorLayerColor';
+    color.type = 'color';
+    document._elements.vectorLayerColor = color;
+    vectorControls.appendChild(color);
+
+    const width = document.createElement('input');
+    width.id = 'vectorLayerWidth';
+    width.type = 'number';
+    document._elements.vectorLayerWidth = width;
+    vectorControls.appendChild(width);
+
+    const dash = document.createElement('input');
+    dash.id = 'vectorLayerDash';
+    dash.type = 'text';
+    document._elements.vectorLayerDash = dash;
+    vectorControls.appendChild(dash);
+
+    const cap = document.createElement('select');
+    cap.id = 'vectorLayerCap';
+    document._elements.vectorLayerCap = cap;
+    vectorControls.appendChild(cap);
+
+    const apply = document.createElement('button');
+    apply.id = 'vectorLayerApplyAll';
+    apply.type = 'button';
+    document._elements.vectorLayerApplyAll = apply;
+    vectorControls.appendChild(apply);
+
+    const layers = [createMockLayer(env, 0, { layerType: 'vector' })];
+    updateLayerList(layers, 0, {});
+
+    assert.strictEqual(
+      document.getElementById('layerProperties'),
+      properties,
+      'layer properties container remains attached',
+    );
+    assert.strictEqual(
+      document.getElementById('layerTypeLabel'),
+      typeLabel,
+      'layer type label stays registered',
+    );
+    assert.strictEqual(
+      document.getElementById('vectorLayerControls'),
+      vectorControls,
+      'vector controls container remains registered',
+    );
+
+    const vectorInputs = [
+      ['vectorLayerColor', color, 'INPUT'],
+      ['vectorLayerWidth', width, 'INPUT'],
+      ['vectorLayerDash', dash, 'INPUT'],
+      ['vectorLayerCap', cap, 'SELECT'],
+      ['vectorLayerApplyAll', apply, 'BUTTON'],
+    ];
+
+    vectorInputs.forEach(([id, node, tag]) => {
+      const element = document.getElementById(id);
+      assert.strictEqual(element, node, `${id} remains connected`);
+      assert.strictEqual(element.tagName, tag, `${id} keeps expected tag`);
+    });
+
+    assert.strictEqual(list.childNodes.length, 1, 'layer list still renders entries');
+  } finally {
+    env.restore();
+  }
+});

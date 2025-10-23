@@ -5,6 +5,11 @@
 - Simplified the CSS grid layout so rows no longer reserve space for the old preview column yet still show sliders, blend modes, and clip toggles.
 - Updated the engine/manager flows to stop enqueueing thumbnail refreshes after layer operations.
 - Added regression coverage that asserts layer rows render without `<canvas>` elements and that action controls remain attached to the panel.
+- Added regression coverage that the layer filter/search controls, add buttons, and layer property form elements all remain wired to the DOM after the preview removal.
+
+## Progress Log
+- Confirmed automated regression protection for the layer list controls (`layer-filter`, search field, add/delete/vector buttons) so that removing previews no longer drops surrounding UI.
+- Verified via regression tests that the layer properties footer (type label plus vector style controls) persists while rendering layers without previews.
 
 ## Remaining Verification
 - Confirm visually that the layer filter buttons, search field, and add/delete controls stay visible in the live UI after removing previews.
