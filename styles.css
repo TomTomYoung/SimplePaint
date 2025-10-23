@@ -869,7 +869,7 @@ summary:focus-visible {
 
 .layer-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
@@ -886,26 +886,6 @@ summary:focus-visible {
 .layer-item .handle {
   cursor: move;
   user-select: none;
-}
-
-.layer-thumb-slot {
-  width: 54px;
-  height: 54px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.layer-thumb {
-  width: 54px;
-  height: 54px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 6px;
-  background: repeating-conic-gradient(
-      rgba(0, 0, 0, 0.06) 0deg 90deg,
-      rgba(255, 255, 255, 0.06) 90deg 180deg
-    )
-    0 0 / 16px 16px;
 }
 
 .layer-meta {

@@ -1,5 +1,5 @@
 import { floodFill } from '../../utils/drawing.js';
-import { bmp, activeLayer, markLayerPreviewDirty } from '../../core/layer.js';
+import { bmp, activeLayer } from '../../core/layer.js';
 
 export function makeBucket(store) {
   return {
@@ -23,7 +23,6 @@ export function makeBucket(store) {
           p.layer = activeLayer;
         }
         eng.history.pushPatch(p);
-        markLayerPreviewDirty(p.layer);
         eng.requestRepaint();
       }
 

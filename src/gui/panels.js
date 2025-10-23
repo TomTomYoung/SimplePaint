@@ -27,8 +27,6 @@ let layerSearchValue = '';
 let layerSearchTerm = '';
 let lastLayerArgs = { layers: [], activeLayer: 0, callbacks: {} };
 
-const layerThumbnailRegistry = new Map();
-
 const normaliseLayerId = layer => {
   if (layer && typeof layer._id === 'string') {
     return layer._id;
@@ -36,25 +34,6 @@ const normaliseLayerId = layer => {
   return null;
 };
 
-const registerLayerThumbnail = (layer, canvas, slot) => {
-  if (!layer || !(canvas instanceof HTMLCanvasElement)) return;
-  const entry = layerThumbnailRegistry.get(layer) ?? { canvas: null, slot: null };
-  entry.canvas = canvas;
-  entry.slot = slot instanceof HTMLElement ? slot : entry.slot;
-
-  const layerId = normaliseLayerId(layer);
-  if (layerId) {
-    canvas.dataset.layerId = layerId;
-    if (entry.slot) {
-      entry.slot.dataset.layerId = layerId;
-    }
-  }
-
-  layer.previewThumbnail = entry.canvas;
-  layer.previewSlot = entry.slot ?? null;
-
-  layerThumbnailRegistry.set(layer, entry);
-};
 
 const storedLayerSearch = readString(LAYER_SEARCH_KEY, '');
 if (typeof storedLayerSearch === 'string' && storedLayerSearch.trim().length > 0) {
@@ -279,67 +258,6 @@ const layerTypeLabel = layer => {
   }
 };
 
-const drawLayerThumbnail = (layer, canvas) => {
-  if (!(canvas instanceof HTMLCanvasElement)) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  const width = canvas.width;
-  const height = canvas.height;
-  ctx.clearRect(0, 0, width, height);
-  if (layer && typeof layer.width === 'number' && typeof layer.height === 'number') {
-    const scale = Math.min(
-      (width - 4) / Math.max(layer.width, 1),
-      (height - 4) / Math.max(layer.height, 1),
-    );
-    const dx = (width - layer.width * scale) / 2;
-    const dy = (height - layer.height * scale) / 2;
-    ctx.save();
-    ctx.translate(dx, dy);
-    ctx.scale(scale, scale);
-    try {
-      ctx.drawImage(layer, 0, 0);
-    } catch (error) {
-      // ignore drawing errors from detached canvases
-    }
-    ctx.restore();
-  }
-  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-  ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
-};
-
-const ensurePreviewAnchored = (entry) => {
-  if (!entry || !entry.canvas) return;
-  if (!(entry.slot instanceof HTMLElement)) return;
-  if (!entry.slot.contains(entry.canvas)) {
-    entry.slot.insertBefore(entry.canvas, entry.slot.firstChild);
-  }
-};
-
-export function refreshLayerPreview(layer) {
-  if (!layer) return;
-  const entry = layerThumbnailRegistry.get(layer);
-  if (!entry || !(entry.canvas instanceof HTMLCanvasElement)) return;
-  ensurePreviewAnchored(entry);
-  drawLayerThumbnail(layer, entry.canvas);
-}
-
-export function refreshAllLayerPreviews(layers = []) {
-  if (!Array.isArray(layers)) return;
-  layers.forEach(layer => refreshLayerPreview(layer));
-}
-
-export function getLayerPreviewElement(layer) {
-  if (!layer) return null;
-  const entry = layerThumbnailRegistry.get(layer);
-  return entry?.canvas ?? null;
-}
-
-export function getLayerPreviewSlot(layer) {
-  if (!layer) return null;
-  const entry = layerThumbnailRegistry.get(layer);
-  return entry?.slot ?? null;
-}
-
 const renderLayerList = (layers, activeLayer, callbacks) => {
   const list = document.getElementById('layerList');
   if (!list) return;
@@ -382,17 +300,6 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
       const to = parseInt(li.dataset.index);
       callbacks.onMove?.(from, to);
     });
-
-    const thumbSlot = document.createElement('div');
-    thumbSlot.className = 'layer-thumb-slot';
-    const thumb = document.createElement('canvas');
-    thumb.width = 54;
-    thumb.height = 54;
-    thumb.className = 'layer-thumb';
-    thumbSlot.appendChild(thumb);
-    drawLayerThumbnail(l, thumb);
-    registerLayerThumbnail(l, thumb, thumbSlot);
-    li.appendChild(thumbSlot);
 
     const meta = document.createElement('div');
     meta.className = 'layer-meta';

@@ -96,7 +96,6 @@ export class AdjustmentManager {
         before,
         after,
       });
-      markLayerPreviewDirty(layerIndex);
       this.engine.filterPreview = null;
       this.engine.requestRepaint();
     }
