@@ -27,6 +27,13 @@ let layerSearchValue = '';
 let layerSearchTerm = '';
 let lastLayerArgs = { layers: [], activeLayer: 0, callbacks: {} };
 
+const layerThumbnailRegistry = new Map();
+
+const registerLayerThumbnail = (layer, canvas) => {
+  if (!layer || !(canvas instanceof HTMLCanvasElement)) return;
+  layerThumbnailRegistry.set(layer, canvas);
+};
+
 const storedLayerSearch = readString(LAYER_SEARCH_KEY, '');
 if (typeof storedLayerSearch === 'string' && storedLayerSearch.trim().length > 0) {
   layerSearchValue = storedLayerSearch.trim();
@@ -278,17 +285,32 @@ const drawLayerThumbnail = (layer, canvas) => {
   ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
 };
 
+export function refreshLayerPreview(layer) {
+  if (!layer) return;
+  const canvas = layerThumbnailRegistry.get(layer);
+  if (canvas) {
+    drawLayerThumbnail(layer, canvas);
+  }
+}
+
+export function refreshAllLayerPreviews(layers = []) {
+  if (!Array.isArray(layers)) return;
+  layers.forEach(layer => refreshLayerPreview(layer));
+}
+
 const renderLayerList = (layers, activeLayer, callbacks) => {
   const list = document.getElementById('layerList');
   if (!list) return;
 
   list.innerHTML = '';
+  layerThumbnailRegistry.clear();
   const filtered = layers
     .map((layer, index) => ({ layer, index }))
     .filter(({ layer }) => matchesLayerFilter(layer))
     .filter(({ layer }) => matchesLayerSearch(layer));
 
   if (filtered.length === 0) {
+    layerThumbnailRegistry.clear();
     const empty = document.createElement('li');
     empty.className = 'layer-empty';
     empty.textContent = layerSearchTerm
@@ -320,6 +342,7 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
     thumb.height = 54;
     thumb.className = 'layer-thumb';
     drawLayerThumbnail(l, thumb);
+    registerLayerThumbnail(l, thumb);
     li.appendChild(thumb);
 
     const meta = document.createElement('div');

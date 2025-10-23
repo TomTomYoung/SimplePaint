@@ -1,4 +1,4 @@
-import { layers, activeLayer, bmp, renderLayers } from './layer.js';
+import { layers, activeLayer, bmp, renderLayers, markLayerPreviewDirty } from './layer.js';
 import { getDevicePixelRatio, resizeCanvasToDisplaySize } from '../utils/canvas/index.js';
 import { cancelTextEditing, getActiveEditor } from '../managers/text-editor.js';
 import { openImageFile } from '../io/index.js';
@@ -138,6 +138,7 @@ export class Engine {
     this._preStrokeCanvas = null;
     this._pendingRect = null;
     renderLayers();
+    markLayerPreviewDirty(this._strokeLayer);
   }
 
   requestRepaint() {
@@ -220,19 +221,31 @@ export class Engine {
   undo() {
     const p = this.history.undo();
     if (!p) return;
-    layers[p.layer]
+    const layerIndex = Number.isInteger(p.layer) ? p.layer : activeLayer;
+    const targetLayer = layers[layerIndex];
+    if (!targetLayer) {
+      return;
+    }
+    targetLayer
       .getContext("2d")
       .putImageData(p.before, p.rect.x, p.rect.y);
     renderLayers();
+    markLayerPreviewDirty(layerIndex);
     this.requestRepaint();
   }
   redo() {
     const p = this.history.redo();
     if (!p) return;
-    layers[p.layer]
+    const layerIndex = Number.isInteger(p.layer) ? p.layer : activeLayer;
+    const targetLayer = layers[layerIndex];
+    if (!targetLayer) {
+      return;
+    }
+    targetLayer
       .getContext("2d")
       .putImageData(p.after, p.rect.x, p.rect.y);
     renderLayers();
+    markLayerPreviewDirty(layerIndex);
     this.requestRepaint();
   }
 

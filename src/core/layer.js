@@ -1,6 +1,8 @@
 import {
   updateLayerList as panelUpdateLayerList,
   updateLayerProperties as panelUpdateLayerProperties,
+  refreshLayerPreview as panelRefreshLayerPreview,
+  refreshAllLayerPreviews as panelRefreshAllLayerPreviews,
 } from '../gui/panels.js';
 import { cloneVectorLayer, createEmptyVectorLayer } from './vector-layer-state.js';
 
@@ -11,6 +13,43 @@ const clipCtx = clipCanvas.getContext('2d');
 
 export const layers = [];
 export let activeLayer = 0;
+
+const dirtyLayerPreviewIndices = new Set();
+let previewRefreshScheduled = false;
+
+const schedulePreviewRefresh = callback => {
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(callback);
+  } else {
+    setTimeout(callback, 16);
+  }
+};
+
+const flushLayerPreviewUpdates = () => {
+  previewRefreshScheduled = false;
+  const indices = Array.from(dirtyLayerPreviewIndices);
+  dirtyLayerPreviewIndices.clear();
+  indices.forEach(index => {
+    const layer = layers[index];
+    if (layer) {
+      panelRefreshLayerPreview(layer);
+    }
+  });
+};
+
+export function markLayerPreviewDirty(index) {
+  if (!Number.isInteger(index)) return;
+  if (index < 0 || index >= layers.length) return;
+  dirtyLayerPreviewIndices.add(index);
+  if (!previewRefreshScheduled) {
+    previewRefreshScheduled = true;
+    schedulePreviewRefresh(flushLayerPreviewUpdates);
+  }
+}
+
+export function refreshAllLayerPreviews() {
+  panelRefreshAllLayerPreviews(layers);
+}
 
 const ensureVectorMetadata = (layer, options = {}) => {
   if (!layer) return layer;
