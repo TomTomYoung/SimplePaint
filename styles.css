@@ -4,6 +4,12 @@
   --gap: 6px;
   --headerH: 48px;
   /* JSで実高に更新 */
+  --bg-primary: #f6f6f6;
+  --bg-secondary: #fafafa;
+  --bg-elevated: #ffffff;
+  --border-color: #dddddd;
+  --text-color: #222222;
+  --muted-color: #666666;
   font-synthesis-weight: none;
 }
 
@@ -17,6 +23,7 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
   overflow: hidden;
+  color: var(--text-color);
 }
 
 /* ← 固定高さをやめて自動高さ。折り返しやオーバーフローに強くする */
@@ -27,11 +34,8 @@ header {
   align-items: center;
   gap: var(--gap);
   padding: 6px 8px;
-  border-bottom: 1px solid #ddd;
-  overflow: auto;
-  /* スクロールを有効化 */
-  scrollbar-gutter: stable both-edges;
-  /* 常時スクロールバー領域を確保 */
+  border-bottom: 1px solid var(--border-color);
+  overflow: visible;
 }
 
 footer {
@@ -40,45 +44,96 @@ footer {
   align-items: center;
   gap: var(--gap);
   padding: 6px 8px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border-color);
   overflow: hidden;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--border-color);
   border-bottom: none;
 }
 
-/* ← ツールバーは横スクロールで詰める。親headerは伸びない */
-#systems,
-#tools,
-#geotools,
-#vectortools,
-#texttools {
+#systems {
   max-height: 60px;
   display: flex;
   align-items: center;
   gap: var(--gap);
   flex-wrap: wrap;
-  /* 2行に折り返し */
   white-space: normal;
   flex: 1 1 auto;
   padding-bottom: 2px;
-  overflow: auto;
-  /* ← autoでOK */
   min-width: 0;
-  /* ← これが肝 */
-  scrollbar-gutter: stable both-edges;
-  /* ← 常時レール確保 */
 }
 
-#tools::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-  background: #f0f0f0;
-  /* ← レールを常時描画 */
+.toolbar-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--gap);
+  flex-wrap: wrap;
+  width: 100%;
 }
 
-#tools::-webkit-scrollbar-thumb {
-  background: #ccc;
+.toolbar-inline-group {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  flex-wrap: wrap;
+}
+
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.tool-dropdown {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.tool-dropdown > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 112px;
+  height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text-color);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.tool-dropdown > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tool-dropdown[open] > summary {
+  background: rgba(66, 133, 244, 0.12);
+  border-color: rgba(66, 133, 244, 0.4);
+}
+
+.tool-dropdown-panel {
+  position: absolute;
+  inset: calc(100% + 6px) auto auto 0;
+  min-width: clamp(280px, 32vw, 520px);
+  max-height: min(60vh, 420px);
+  overflow: auto;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+  display: grid;
+  gap: 12px;
+  z-index: 1000;
+}
+
+.tool-section {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 }
 
 /* ← グリッドの行高も auto に変更（以前は var(--ui) で固定だった） */
@@ -90,7 +145,7 @@ footer {
 
 #stage {
   position: relative;
-  background: #f6f6f6;
+  background: var(--bg-primary);
   overflow: hidden; /* scrollを削除 */
   display: flex;
   align-items: stretch;
@@ -103,8 +158,8 @@ footer {
 }
 
 .side-panel {
-  background: #fafafa;
-  border: 1px solid #ddd;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
@@ -114,14 +169,14 @@ footer {
 
 .panel-header {
   padding: 4px 8px;
-  background: #eee;
-  border-bottom: 1px solid #ddd;
+  background: rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .panel-footer {
   padding: 4px 8px;
-  background: #eee;
-  border-top: 1px solid #ddd;
+  background: rgba(0, 0, 0, 0.04);
+  border-top: 1px solid var(--border-color);
 }
 
 .layer-properties {
@@ -219,10 +274,10 @@ footer {
 .tool-meta {
   margin-bottom: 12px;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: #f9f9f9;
-  color: #444;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--muted-color);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -318,12 +373,12 @@ footer {
 }
 
 #leftPanel {
-  border-right: 1px solid #ddd;
+  border-right: 1px solid var(--border-color);
   width: 200px;
 }
 
 #layerPanel {
-  border-left: 1px solid #ddd;
+  border-left: 1px solid var(--border-color);
   width: 250px;
 }
 
@@ -371,9 +426,11 @@ body.panel-resize-active * {
 #canvasArea {
   position: relative;
   overflow: scroll; /* スクロールを中央エリアに移動 */
-  background: #f6f6f6;
+  background: var(--bg-primary);
   flex: 1 1 auto;
   min-width: 0;
+  contain: layout style paint;
+  overscroll-behavior: contain;
 }
 
 #canvasArea::-webkit-scrollbar {
@@ -393,6 +450,8 @@ canvas {
   inset: 0;
   image-rendering: pixelated;
   z-index: 0;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 #overlay {
@@ -410,23 +469,18 @@ canvas {
 }
 
 button {
-  height: 28px;
+  height: 32px;
   min-width: 60px;
-  /* 最小幅を指定 */
   padding: 4px 12px;
-  /* 左右パディングを増加 */
   white-space: nowrap;
-  /* テキスト折り返し禁止 */
   overflow: hidden;
-  /* はみ出し非表示 */
   text-overflow: ellipsis;
-  /* 長いテキストは「...」表示 */
 }
 
 select,
 input[type="color"],
 input[type="number"] {
-  height: 28px;
+  height: 32px;
 }
 
 .tool {
@@ -434,6 +488,14 @@ input[type="number"] {
   padding: 4px 8px;
   flex: 0 0 auto;            /* サイズ固定 */
   white-space: nowrap;       /* 折り返し禁止 */
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 2px;
 }
 
 .row {
@@ -451,7 +513,7 @@ input[type="number"] {
 
 #status {
   font-size: 12px;
-  color: #555;
+  color: var(--muted-color);
 }
 
 .active {
@@ -463,9 +525,11 @@ input[type="number"] {
   position: fixed;
   right: 12px;
   top: calc(var(--headerH) + 8px);
-  width: 280px;
-  background: #fff;
-  border: 1px solid #ddd;
+  width: 320px;
+  max-height: min(80vh, 640px);
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   padding: 10px;
@@ -491,6 +555,21 @@ input[type="number"] {
 #adjustPanel input[type="range"] {
   width: 160px;
   height: 20px;
+}
+
+.adjust-preview {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+  justify-content: space-between;
+}
+
+.adjust-preview canvas {
+  width: 140px;
+  height: 100px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
 }
 
 #adjustPanel .actions {
@@ -548,8 +627,8 @@ input[type="number"] {
   align-items: center;
   gap: 4px;
   padding: 2px 4px;
-  border: 1px solid #ccc;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
 }
 
 .layer-item.active {
@@ -563,4 +642,105 @@ input[type="number"] {
 
 .layer-item input[type="range"] {
   width: 60px;
+}
+
+.footer {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.footer-badge {
+  white-space: nowrap;
+}
+
+.shortcut-hint {
+  font-size: 12px;
+  color: var(--muted-color);
+}
+
+@media (max-width: 1200px) {
+  .tool-dropdown > summary {
+    min-width: 96px;
+    font-size: 12px;
+  }
+
+  .tool {
+    min-width: 40px;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  #systems {
+    max-height: 90px;
+  }
+
+  .tool-dropdown-panel {
+    min-width: clamp(240px, 46vw, 420px);
+  }
+}
+
+@media (max-width: 768px) {
+  #leftPanel,
+  #layerPanel {
+    width: 180px;
+  }
+
+  .side-panel {
+    min-width: 120px;
+  }
+
+  #adjustPanel {
+    width: min(92vw, 320px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1e1e1e;
+    --bg-secondary: #2d2d2d;
+    --bg-elevated: #2a2a2a;
+    --border-color: #404040;
+    --text-color: #e0e0e0;
+    --muted-color: #bbbbbb;
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-color);
+  }
+
+  header,
+  footer {
+    background: var(--bg-secondary);
+  }
+
+  .panel-header,
+  .panel-footer,
+  .tool-meta {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .tool-dropdown > summary {
+    background: var(--bg-secondary);
+  }
+
+  .tool-dropdown-panel {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .layer-item.active {
+    background: rgba(65, 131, 215, 0.45);
+  }
 }
