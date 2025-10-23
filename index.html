@@ -285,6 +285,16 @@
       <div class="footer-right" role="group" aria-label="ステータス情報">
         <span id="autosaveBadge" class="footer-badge">AutoSave: —</span>
         <span class="footer-badge">ズーム: <span id="zoomPct">100%</span></span>
+        <label class="layout-control" for="layoutPreset">
+          <span class="layout-label">レイアウト:</span>
+          <select id="layoutPreset" name="layoutPreset">
+            <option value="default">標準</option>
+            <option value="brush">ブラシ重視</option>
+            <option value="reference">資料表示</option>
+            <option value="focus">キャンバス集中</option>
+            <option value="custom">カスタム</option>
+          </select>
+        </label>
         <span class="shortcut-hint"
           >Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン / Shift=拘束 /
           Esc=解除 / ?=ショートカット一覧</span

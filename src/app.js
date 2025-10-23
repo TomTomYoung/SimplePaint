@@ -10,6 +10,7 @@ import {
   setLayerPropertiesCallbacks,
   updateLayerProperties,
 } from './gui/panels.js';
+import { initWorkspaceLayoutControls } from './gui/workspace-layout.js';
 
 import { Engine } from './core/engine.js';
 import {
@@ -182,6 +183,7 @@ export class PaintApp {
     initAdjustPanel();
     initLayerPanel();
     initPanelHeaders();
+    initWorkspaceLayoutControls();
     initShortcutOverlay();
     initToolPropsPanel(this.store, this.engine);
     initDocument(1280, 720, '#ffffff');
