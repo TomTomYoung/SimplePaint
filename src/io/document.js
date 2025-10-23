@@ -6,6 +6,7 @@ import {
   renderLayers,
   updateLayerList,
   addLayer,
+  markLayerPreviewDirty,
 } from '../core/layer.js';
 import { createEmptyVectorLayer, cloneVectorLayer } from '../core/vector-layer-state.js';
 
@@ -58,6 +59,7 @@ export function applyCanvasToActiveLayer(canvas) {
   const ctx = layers[activeLayer].getContext('2d');
   ctx.drawImage(canvas, 0, 0);
   renderLayers();
+  markLayerPreviewDirty(activeLayer);
 }
 
 export function positionFloatingSelection(engine, canvas, width, height) {
