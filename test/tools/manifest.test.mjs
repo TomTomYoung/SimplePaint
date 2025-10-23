@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import { installMockDomEnvironment } from '../helpers/mock-dom.js';
 
 const importEnv = installMockDomEnvironment();
-const manifestModule = await import('../../src/tools/_base/manifest.js');
-const registryModule = await import('../../src/tools/_base/registry.js');
+const manifestModule = await import('../../src/tools/base/manifest.js');
+const registryModule = await import('../../src/tools/base/registry.js');
 const storeModule = await import('../../src/core/store.js');
 importEnv.restore();
 

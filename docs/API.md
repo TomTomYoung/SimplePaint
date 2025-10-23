@@ -28,11 +28,11 @@ This document describes the public modules exposed by the SimplePaint runtime. I
 
 ## Tool Registry
 
-### `src/tools/_base/registry.js`
+### `src/tools/base/registry.js`
 - **`createDefaultTools(store, manifest?)`** – instantiates every tool factory described in a manifest.
 - **`registerDefaultTools(engine, store, manifest?)`** – registers the instantiated tool objects on the engine.
 
-### `src/tools/_base/manifest.js`
+### `src/tools/base/manifest.js`
 - **`DEFAULT_TOOL_MANIFEST`** – frozen array of categories that define the canonical ordering of tools inside the UI.
 - **`DEFAULT_TOOL_IDS`** – frozen array of tool identifiers derived from the manifest.
 - **`flattenToolManifest(manifest?)`** – flattens categories into a single ordered array of tool entries.

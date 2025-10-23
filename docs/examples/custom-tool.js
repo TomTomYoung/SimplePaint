@@ -1,4 +1,4 @@
-import { DEFAULT_TOOL_MANIFEST } from '../../src/tools/_base/manifest.js';
+import { DEFAULT_TOOL_MANIFEST } from '../../src/tools/base/manifest.js';
 
 function makeStarBrush(store) {
   const id = 'star-brush';

@@ -29,7 +29,7 @@ import { DOMManager } from './managers/dom-manager.js';
 import { Viewport } from './core/viewport.js';
 import { createStore, defaultState } from './core/store.js';
 import { EventBus } from './core/event-bus.js';
-import { registerDefaultTools } from './tools/_base/registry.js';
+import { registerDefaultTools } from './tools/base/registry.js';
 import { AdjustmentManager } from './managers/adjustment-manager.js';
 import { cancelTextEditing, getActiveEditor } from './managers/text-editor.js';
 import { applyDefaultStyleToCurves, cloneVectorLayer, updateLayerDefaultStyle } from './core/vector-layer-state.js';

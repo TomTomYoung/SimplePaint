@@ -12,7 +12,7 @@ into your modules ensures consistent IntelliSense and helps editors validate the
 
 ## Factory pattern
 
-Every tool module exports a `make*` factory that receives the shared [`Store`](../src/core/store.js) instance.  The factory returns a plain object describing the behaviour of a tool.  Tools are registered from [`registerDefaultTools`](../src/tools/_base/registry.js), which calls each factory with the store and hands the result to [`Engine.register`](../src/core/engine.js).
+Every tool module exports a `make*` factory that receives the shared [`Store`](../src/core/store.js) instance.  The factory returns a plain object describing the behaviour of a tool.  Tools are registered from [`registerDefaultTools`](../src/tools/base/registry.js), which calls each factory with the store and hands the result to [`Engine.register`](../src/core/engine.js).
 
 ```js
 // src/tools/drawing/pencil.js
@@ -38,7 +38,7 @@ Factories may close over helper functions or caches.  They should never reuse mu
 
 ### Tool manifest and categories
 
-[`src/tools/_base/manifest.js`](../src/tools/_base/manifest.js) declares the canonical list of built-in tools grouped by category.  Each entry stores the tool identifier and the factory used to instantiate it.  The manifest is frozen at load time so tests and editor panels can rely on a stable structure.  Helper utilities exported alongside the manifest include:
+[`src/tools/base/manifest.js`](../src/tools/base/manifest.js) declares the canonical list of built-in tools grouped by category.  Each entry stores the tool identifier and the factory used to instantiate it.  The manifest is frozen at load time so tests and editor panels can rely on a stable structure.  Helper utilities exported alongside the manifest include:
 
 - `flattenToolManifest(manifest)` — returns a flat array of tool entries while preserving category membership metadata.
 - `collectToolIds(manifest)` — returns an array of identifiers, useful for checking uniqueness.
@@ -47,7 +47,7 @@ Factories may close over helper functions or caches.  They should never reuse mu
 - `getToolEntryById(id, manifest)` — fetches the manifest entry for a given id or `null` if it does not exist.
 - `getToolCategoryForId(id, manifest)` — returns the category record that contains the tool, useful for grouping UI widgets.
 
-[`registerDefaultTools`](../src/tools/_base/registry.js) simply flattens the manifest, instantiates each factory, and passes the resulting tool objects to the engine.  Consumers that only need the instantiated tool objects (for example previewing tool metadata in a panel) can call `createDefaultTools(store)` to obtain the same array without registering them on an engine instance.
+[`registerDefaultTools`](../src/tools/base/registry.js) simply flattens the manifest, instantiates each factory, and passes the resulting tool objects to the engine.  Consumers that only need the instantiated tool objects (for example previewing tool metadata in a panel) can call `createDefaultTools(store)` to obtain the same array without registering them on an engine instance.
 
 ## Required properties
 
@@ -106,7 +106,7 @@ All state objects must remain serialisable so autosave and history inspection co
 
 1. Implement a factory in the appropriate category folder under `src/tools/`.
 2. Export the factory from the module.
-3. Add the factory to the relevant array inside [`src/tools/_base/registry.js`](../src/tools/_base/registry.js).  The registry controls the registration order, which also determines the primary tool selected at boot.
+3. Add the factory to the relevant array inside [`src/tools/base/registry.js`](../src/tools/base/registry.js).  The registry controls the registration order, which also determines the primary tool selected at boot.
 4. When the app boots, [`PaintApp.registerTools`](../src/app.js) calls `registerDefaultTools`, making the new tool available in the GUI.  Tool buttons simply need a matching `data-tool` attribute to activate it via the store.
 
 ## Example: lightweight preview tool

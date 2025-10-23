@@ -60,8 +60,8 @@ Add the tool to the manifest passed into the registry. The default manifest is f
 
 ```javascript
 // src/app.js (or wherever you configure bootstrapping)
-import { DEFAULT_TOOL_MANIFEST } from './tools/_base/manifest.js';
-import { registerDefaultTools } from './tools/_base/registry.js';
+import { DEFAULT_TOOL_MANIFEST } from './tools/base/manifest.js';
+import { registerDefaultTools } from './tools/base/registry.js';
 import { makeSpray } from './tools/drawing/spray.js';
 
 const sprayEntry = Object.freeze({

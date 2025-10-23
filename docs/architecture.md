@@ -16,7 +16,7 @@ Located in `src/core/`, the rendering core manages state, history, and drawing o
 
 Tools live under `src/tools/` and are grouped by category. Each tool exports a factory function that returns the lifecycle handlers expected by the engine (`onPointerDown`, `onPointerMove`, `onPointerUp`, `drawPreview`, etc.).
 
-The manifest (`src/tools/_base/manifest.js`) provides a declarative catalogue. The registry (`src/tools/_base/registry.js`) ensures that each tool id is unique and retrievable at runtime. Tools can be swapped or extended without touching engine internals.
+The manifest (`src/tools/base/manifest.js`) provides a declarative catalogue. The registry (`src/tools/base/registry.js`) ensures that each tool id is unique and retrievable at runtime. Tools can be swapped or extended without touching engine internals.
 
 ## 3. Utilities
 
