@@ -1,5 +1,5 @@
 import { floodFill } from '../../utils/drawing.js';
-import { bmp } from '../../core/layer.js';
+import { bmp, activeLayer, markLayerPreviewDirty } from '../../core/layer.js';
 
 export function makeBucket(store) {
   return {
@@ -18,7 +18,14 @@ export function makeBucket(store) {
         [r, g, b, 255],
         16,
       );
-      if (p) eng.history.pushPatch(p);
+      if (p) {
+        if (typeof p.layer !== 'number') {
+          p.layer = activeLayer;
+        }
+        eng.history.pushPatch(p);
+        markLayerPreviewDirty(p.layer);
+        eng.requestRepaint();
+      }
 
     },
     onPointerMove() {},
