@@ -148,7 +148,36 @@
     <div id="stage">
       <div id="leftPanel" class="side-panel panel" data-name="ツール">
         <div class="panel-header"></div>
-        <div class="panel-body"></div>
+        <div class="panel-body">
+          <div id="toolAccordion" class="tool-accordion">
+            <details class="accordion-section" open data-section="properties">
+              <summary>プロパティ</summary>
+              <div id="toolPropContainer" class="accordion-content"></div>
+            </details>
+            <details class="accordion-section" open data-section="preview">
+              <summary>プレビュー</summary>
+              <div class="accordion-content">
+                <div class="tool-preview">
+                  <canvas
+                    id="toolPreviewCanvas"
+                    width="240"
+                    height="140"
+                    aria-label="ツールプレビュー"
+                  ></canvas>
+                  <button id="toolPreviewReset" type="button">既定に戻す</button>
+                </div>
+              </div>
+            </details>
+            <details class="accordion-section" data-section="palette" open>
+              <summary>カラーパレット</summary>
+              <div id="toolPaletteContainer" class="accordion-content"></div>
+            </details>
+            <details class="accordion-section" data-section="shortcuts">
+              <summary>ショートカット</summary>
+              <div id="toolShortcutContainer" class="accordion-content"></div>
+            </details>
+          </div>
+        </div>
         <div class="panel-footer"></div>
       </div>
 
@@ -167,12 +196,57 @@
       <div id="layerPanel" class="side-panel panel" data-name="レイヤー">
         <div class="panel-header"></div>
         <div class="panel-body">
-          <div style="display: flex; gap: 4px; align-items: center">
+          <div class="layer-controls">
+            <div
+              class="layer-filter-group"
+              role="group"
+              aria-label="レイヤー種別フィルター"
+            >
+              <button
+                type="button"
+                class="layer-filter is-active"
+                data-layer-filter="all"
+              >
+                すべて
+              </button>
+              <button
+                type="button"
+                class="layer-filter"
+                data-layer-filter="raster"
+              >
+                ラスター
+              </button>
+              <button
+                type="button"
+                class="layer-filter"
+                data-layer-filter="vector"
+              >
+                ベクター
+              </button>
+              <button
+                type="button"
+                class="layer-filter"
+                data-layer-filter="text"
+              >
+                テキスト
+              </button>
+            </div>
+            <label class="layer-search">
+              <span class="visually-hidden">レイヤー名で検索</span>
+              <input
+                type="search"
+                id="layerSearch"
+                placeholder="名前で絞り込み"
+                autocomplete="off"
+              />
+            </label>
+          </div>
+          <div class="layer-action-row">
             <button id="addLayerBtn">＋</button>
             <button id="addVectorLayerBtn" title="ベクターレイヤーを追加">＋V</button>
             <button id="delLayerBtn">－</button>
           </div>
-          <ul id="layerList"></ul>
+          <ul id="layerList" class="layer-list"></ul>
         </div>
         <div class="panel-footer">
           <div id="layerProperties" class="layer-properties" style="display: none">
