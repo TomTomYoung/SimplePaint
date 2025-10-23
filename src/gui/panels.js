@@ -286,9 +286,7 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
     li.className = 'layer-item' + (i === activeLayer ? ' active' : '');
     li.draggable = true;
     li.dataset.index = i;
-    if (layerId) {
-      li.dataset.layerId = layerId;
-    }
+    li.dataset.layerId = layerId ?? String(i);
 
     li.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', i);
@@ -369,11 +367,13 @@ const renderLayerList = (layers, activeLayer, callbacks) => {
     const metaBottom = document.createElement('div');
     metaBottom.className = 'layer-meta-bottom';
     const typeLabel = document.createElement('span');
+    typeLabel.className = 'layer-type';
     typeLabel.textContent = layerTypeLabel(l);
     metaBottom.appendChild(typeLabel);
 
     if (typeof l.width === 'number' && typeof l.height === 'number') {
       const size = document.createElement('span');
+      size.className = 'layer-size';
       size.textContent = `${l.width}×${l.height}`;
       metaBottom.appendChild(size);
     }

@@ -42,10 +42,29 @@ test('updateLayerList renders layer rows without preview canvases', () => {
         'marks only the active layer row',
       );
       assert.strictEqual(String(item.dataset.index ?? ''), String(index));
-      assert.strictEqual(item.dataset.layerId, layers[index]._id);
+      assert.strictEqual(item.dataset.layerId, layers[index]._id ?? String(index));
 
       const childClasses = item.childNodes.map(child => child.className);
       assert.deepStrictEqual(childClasses, ['layer-meta', 'layer-item-controls']);
+
+      const meta = item.childNodes[0];
+      assert.strictEqual(meta.className, 'layer-meta');
+      const metaTop = meta.childNodes[0];
+      assert.strictEqual(metaTop.className, 'layer-meta-top');
+      const [handle, vis, name] = metaTop.childNodes;
+      assert.strictEqual(handle.textContent, '≡');
+      assert.strictEqual(vis.type, 'checkbox');
+      assert.strictEqual(name.className, 'layer-name');
+
+      const metaBottom = meta.childNodes[1];
+      assert.strictEqual(metaBottom.className, 'layer-meta-bottom');
+      const [typeLabel, sizeLabel] = metaBottom.childNodes;
+      assert.strictEqual(typeLabel.className, 'layer-type');
+      assert.match(typeLabel.textContent, /ラスター|ベクター|テキスト/);
+      if (sizeLabel) {
+        assert.strictEqual(sizeLabel.className, 'layer-size');
+        assert.match(sizeLabel.textContent, /^\d+×\d+$/);
+      }
 
       const visit = node => {
         if (!node || typeof node !== 'object') return;
@@ -56,6 +75,13 @@ test('updateLayerList renders layer rows without preview canvases', () => {
         (node.childNodes || []).forEach(visit);
       };
       visit(item);
+
+      const controls = item.childNodes[1];
+      assert.strictEqual(controls.className, 'layer-item-controls');
+      const [opacity, blend, clip] = controls.childNodes;
+      assert.strictEqual(opacity.type, 'range');
+      assert.strictEqual(blend.tagName, 'SELECT');
+      assert.strictEqual(clip.type, 'checkbox');
     });
   } finally {
     env.restore();
