@@ -285,7 +285,20 @@
       <div class="footer-right" role="group" aria-label="ステータス情報">
         <span id="autosaveBadge" class="footer-badge">AutoSave: —</span>
         <span class="footer-badge">ズーム: <span id="zoomPct">100%</span></span>
-        <span class="shortcut-hint">Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン / Shift=拘束 / Esc=解除</span>
+        <span class="shortcut-hint"
+          >Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン / Shift=拘束 /
+          Esc=解除 / ?=ショートカット一覧</span
+        >
+        <button
+          type="button"
+          id="shortcutOverlayButton"
+          class="footer-button"
+          data-action="show-shortcut-overlay"
+          aria-haspopup="dialog"
+          aria-controls="shortcutOverlay"
+        >
+          ショートカット一覧 (?)
+        </button>
       </div>
     </footer>
   </div>
@@ -316,6 +329,76 @@
       <button id="adjReset">リセット</button>
       <button id="adjCancel">キャンセル</button>
       <button id="adjApply">適用</button>
+    </div>
+  </div>
+
+  <div
+    id="shortcutOverlay"
+    class="shortcut-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="shortcutOverlayTitle"
+    hidden
+  >
+    <div class="shortcut-overlay-panel" role="document">
+      <header class="shortcut-overlay-header">
+        <h2 id="shortcutOverlayTitle">ショートカット一覧</h2>
+        <button
+          type="button"
+          class="shortcut-overlay-close"
+          data-shortcut-dismiss
+          aria-label="閉じる (Esc)"
+          title="閉じる"
+        >
+          ×
+        </button>
+      </header>
+      <div class="shortcut-overlay-body">
+        <section class="shortcut-section">
+          <h3>一般操作</h3>
+          <dl class="shortcut-list">
+            <div class="shortcut-list-item">
+              <dt>Space + ドラッグ</dt>
+              <dd>キャンバスをパン</dd>
+            </div>
+            <div class="shortcut-list-item">
+              <dt>中ボタン</dt>
+              <dd>キャンバスをパン</dd>
+            </div>
+            <div class="shortcut-list-item">
+              <dt>Ctrl + ホイール</dt>
+              <dd>ズームイン / ズームアウト</dd>
+            </div>
+            <div class="shortcut-list-item">
+              <dt>Shift</dt>
+              <dd>移動や図形を拘束</dd>
+            </div>
+            <div class="shortcut-list-item">
+              <dt>Esc</dt>
+              <dd>操作をキャンセル / 選択を解除</dd>
+            </div>
+            <div class="shortcut-list-item">
+              <dt>?</dt>
+              <dd>ショートカット一覧を開く</dd>
+            </div>
+          </dl>
+        </section>
+        <section class="shortcut-section">
+          <h3>ツール切り替え</h3>
+          <p class="shortcut-note">
+            ツールボタンと同じショートカットキーを一覧表示しています。
+          </p>
+          <table class="shortcut-table">
+            <thead>
+              <tr>
+                <th scope="col">ツール</th>
+                <th scope="col">キー</th>
+              </tr>
+            </thead>
+            <tbody id="shortcutToolTable"></tbody>
+          </table>
+        </section>
+      </div>
     </div>
   </div>
   <script type="module" src="src/gui/panels.js"></script>

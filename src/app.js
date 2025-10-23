@@ -1,5 +1,6 @@
 import { initToolbar, setToolCallbacks } from './gui/toolbar.js';
 import { initToolPropsPanel } from './gui/tool-props.js';
+import { initShortcutOverlay } from './gui/shortcuts-overlay.js';
 import {
   initAdjustPanel,
   initLayerPanel,
@@ -181,6 +182,7 @@ export class PaintApp {
     initAdjustPanel();
     initLayerPanel();
     initPanelHeaders();
+    initShortcutOverlay();
     initToolPropsPanel(this.store, this.engine);
     initDocument(1280, 720, '#ffffff');
     this.engine.requestRepaint();

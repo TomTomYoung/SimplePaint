@@ -138,52 +138,6 @@ function initToolDropdowns() {
   });
 }
 
-function initToolDropdowns() {
-  const dropdowns = Array.from(document.querySelectorAll('.tool-dropdown'));
-  if (!dropdowns.length) return;
-
-  const closeOthers = current => {
-    dropdowns.forEach(dd => {
-      if (dd !== current) {
-        dd.open = false;
-      }
-    });
-  };
-
-  dropdowns.forEach(dropdown => {
-    dropdown.addEventListener('toggle', () => {
-      if (dropdown.open) {
-        closeOthers(dropdown);
-      }
-    });
-
-    dropdown.querySelectorAll('.tool').forEach(button => {
-      button.addEventListener('click', () => {
-        dropdown.open = false;
-        dropdown.querySelector('summary')?.focus();
-      });
-    });
-  });
-
-  document.addEventListener('click', event => {
-    if (dropdowns.some(dd => dd.contains(event.target))) {
-      return;
-    }
-    dropdowns.forEach(dd => {
-      dd.open = false;
-    });
-  });
-
-  document.addEventListener('keydown', event => {
-    if (event.key !== 'Escape') return;
-    dropdowns.forEach(dd => {
-      if (!dd.open) return;
-      dd.open = false;
-      dd.querySelector('summary')?.focus();
-    });
-  });
-}
-
 function initSystemButtons() {
   // ファイル操作
   document.getElementById('open')?.addEventListener('click', () => {
