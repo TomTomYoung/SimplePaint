@@ -101,15 +101,35 @@ test('updateLayerList leaves surrounding panel controls intact', () => {
     const filterSentinel = document.createElement('span');
     filterSentinel.textContent = 'filters';
     filterGroup.appendChild(filterSentinel);
+    ['all', 'raster', 'vector', 'text'].forEach(value => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'layer-filter';
+      button.dataset.layerFilter = value;
+      button.textContent = value;
+      filterGroup.appendChild(button);
+    });
+
+    const searchLabel = document.createElement('label');
+    const searchInput = document.createElement('input');
+    searchInput.id = 'layerSearch';
+    searchInput.type = 'search';
+    document._elements.layerSearch = searchInput;
+    searchLabel.appendChild(searchInput);
 
     const actionRow = document.createElement('div');
     actionRow.className = 'layer-action-row';
     const addButton = document.createElement('button');
     addButton.id = 'addLayerBtn';
     actionRow.appendChild(addButton);
+    const addVectorButton = document.createElement('button');
+    addVectorButton.id = 'addVectorLayerBtn';
+    document._elements.addVectorLayerBtn = addVectorButton;
+    actionRow.appendChild(addVectorButton);
 
     const list = document.createElement('ul');
     list.id = 'layerList';
+    filterGroup.appendChild(searchLabel);
     panel.appendChild(filterGroup);
     panel.appendChild(actionRow);
     panel.appendChild(list);
@@ -119,6 +139,15 @@ test('updateLayerList leaves surrounding panel controls intact', () => {
     const layers = [createMockLayer(env, 0)];
     updateLayerList(layers, 0, {});
 
+    const filterButtons = filterGroup.childNodes.filter(
+      node => node.className === 'layer-filter'
+    );
+    assert.strictEqual(filterButtons.length, 4, 'keeps all layer filter buttons rendered');
+    filterButtons.forEach(button => {
+      assert.strictEqual(button.tagName, 'BUTTON');
+      assert.ok(button.textContent.trim().length > 0, 'each filter button has a label');
+    });
+
     assert.ok(
       filterGroup.childNodes.includes(filterSentinel),
       'layer filter controls remain attached',
@@ -127,6 +156,15 @@ test('updateLayerList leaves surrounding panel controls intact', () => {
       actionRow.childNodes.includes(addButton),
       'layer action buttons remain attached',
     );
+
+    const searchInputRef = document.getElementById('layerSearch');
+    assert.ok(searchInputRef, 'layer search input still exists');
+    assert.strictEqual(searchInputRef.type, 'search');
+
+    const vectorAddButton = document.getElementById('addVectorLayerBtn');
+    assert.ok(vectorAddButton, 'vector layer add button is still rendered');
+    assert.strictEqual(vectorAddButton.tagName, 'BUTTON');
+
     assert.strictEqual(list.childNodes.length, 1, 'layer list still populated');
   } finally {
     env.restore();
