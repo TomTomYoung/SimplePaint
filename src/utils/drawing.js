@@ -1,3 +1,39 @@
+/**
+ * Utility helpers for drawing operations on a 2D canvas context.
+ *
+ * The functions in this module deliberately avoid keeping any global state so
+ * that undo/redo stacks can store the returned image snapshots directly. When
+ * the helpers return metadata it is shaped for serialisation to make it safe to
+ * persist in local storage.
+ *
+ * @module utils/drawing
+ */
+
+/**
+ * Describes the rectangle affected by a flood fill along with the before/after
+ * image buffers used by the undo system.
+ *
+ * @typedef {Object} FloodFillResult
+ * @property {{x: number, y: number, w: number, h: number}} rect - Bounding box enclosing every pixel that changed.
+ * @property {ImageData} before - Pixels captured before the fill was applied.
+ * @property {ImageData} after - Pixels captured after the fill completed.
+ */
+
+/**
+ * Draws an elliptical path on the provided 2D canvas context using four cubic
+ * Bézier curves.
+ *
+ * The constant `k` approximates the control-point distance required for a
+ * Bézier curve to match a quarter of a circle: `4 * (sqrt(2) - 1) / 3 ≈
+ * 0.5522847498307936`. Using the same ratio for both radii lets us reuse the
+ * same approach for ellipses by scaling independently on the x and y axes.
+ *
+ * @param {CanvasRenderingContext2D} ctx - Rendering context to mutate.
+ * @param {number} cx - X-coordinate of the ellipse centre.
+ * @param {number} cy - Y-coordinate of the ellipse centre.
+ * @param {number} rx - Ellipse radius along the x-axis.
+ * @param {number} ry - Ellipse radius along the y-axis.
+ */
 export function drawEllipsePath(ctx, cx, cy, rx, ry) {
   const k = 0.5522847498307936;
   const ox = rx * k;
@@ -9,6 +45,33 @@ export function drawEllipsePath(ctx, cx, cy, rx, ry) {
   ctx.bezierCurveTo(cx + ox, cy + ry, cx + rx, cy + oy, cx + rx, cy);
 }
 
+/**
+ * Performs a flood fill from the starting pixel and returns the affected
+ * rectangle along with the previous and updated image data snapshots.
+ *
+ * The implementation is based on a scanline stack-based algorithm so it avoids
+ * recursion and keeps allocations minimal. Each pixel is considered the same
+ * colour when the sum of per-channel absolute differences is less than or equal
+ * to `th`. Because the tolerance is a sum of channel deltas, values around 40–60
+ * allow filling anti-aliased edges without bleeding into unrelated colours.
+ *
+ * @example
+ * const result = floodFill(ctx, { width: canvas.width, height: canvas.height }, x, y, [255, 0, 0, 255], 32);
+ * if (result) {
+ *   history.push(result.before); // save snapshot for undo
+ * }
+ *
+ * @param {CanvasRenderingContext2D} ctx - Rendering context that owns the bitmap.
+ * @param {{width: number, height: number}} bmp - Dimensions of the bitmap to fill.
+ * @param {number} x0 - X-coordinate of the seed pixel.
+ * @param {number} y0 - Y-coordinate of the seed pixel.
+ * @param {[number, number, number, number]} rgba - Replacement colour in RGBA components.
+ * @param {number} [th=0] - Tolerance threshold for colour matching; higher values
+ * allow filling regions with similar but not identical colours.
+ * @returns {FloodFillResult|null} Null when the operation does not change the
+ * bitmap (for example, zero tolerance and the seed colour already matches the
+ * replacement).
+ */
 export function floodFill(ctx, bmp, x0, y0, rgba, th = 0) {
   if (x0 < 0 || y0 < 0 || x0 >= bmp.width || y0 >= bmp.height) return null;
   const img = ctx.getImageData(0, 0, bmp.width, bmp.height);
