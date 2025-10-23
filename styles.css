@@ -267,6 +267,68 @@ footer {
   font-size: 12px;
 }
 
+.tool-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.accordion-section {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.accordion-section[open] > summary {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.accordion-section summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 8px 12px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.accordion-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.accordion-content {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tool-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tool-preview canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  height: auto;
+}
+
+.tool-preview button {
+  align-self: flex-end;
+  min-width: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
 .panel-header {
   padding: 4px 8px;
   background: rgba(0, 0, 0, 0.04);
@@ -549,6 +611,10 @@ footer {
   transition: background 0.2s ease;
   touch-action: none;
   z-index: 2;
+}
+
+.panel-resizer.is-collapsed {
+  display: none;
 }
 
 .panel-resizer.is-collapsed {
