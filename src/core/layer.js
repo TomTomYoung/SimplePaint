@@ -14,7 +14,7 @@ const clipCtx = clipCanvas.getContext('2d');
 export const layers = [];
 export let activeLayer = 0;
 
-const dirtyLayerPreviewIndices = new Set();
+const dirtyLayerPreviewTargets = new Set();
 let previewRefreshScheduled = false;
 
 const schedulePreviewRefresh = callback => {
@@ -27,20 +27,31 @@ const schedulePreviewRefresh = callback => {
 
 const flushLayerPreviewUpdates = () => {
   previewRefreshScheduled = false;
-  const indices = Array.from(dirtyLayerPreviewIndices);
-  dirtyLayerPreviewIndices.clear();
-  indices.forEach(index => {
-    const layer = layers[index];
+  const targets = Array.from(dirtyLayerPreviewTargets);
+  dirtyLayerPreviewTargets.clear();
+  targets.forEach(layer => {
     if (layer) {
       panelRefreshLayerPreview(layer);
     }
   });
 };
 
-export function markLayerPreviewDirty(index) {
-  if (!Number.isInteger(index)) return;
-  if (index < 0 || index >= layers.length) return;
-  dirtyLayerPreviewIndices.add(index);
+function resolveLayerPreviewTarget(target) {
+  if (typeof target === 'number') {
+    if (!Number.isInteger(target)) return null;
+    if (target < 0 || target >= layers.length) return null;
+    return layers[target];
+  }
+  if (target && typeof target.getContext === 'function') {
+    return target;
+  }
+  return null;
+}
+
+export function markLayerPreviewDirty(target) {
+  const layer = resolveLayerPreviewTarget(target);
+  if (!layer) return;
+  dirtyLayerPreviewTargets.add(layer);
   if (!previewRefreshScheduled) {
     previewRefreshScheduled = true;
     schedulePreviewRefresh(flushLayerPreviewUpdates);
