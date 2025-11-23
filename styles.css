@@ -28,14 +28,24 @@ body {
 
 /* ← 固定高さをやめて自動高さ。折り返しやオーバーフローに強くする */
 header {
+  position: relative;
   min-height: var(--ui);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.header-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--gap);
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border-color);
-  overflow: visible;
+  padding: 6px 8px 2px;
+  overflow: auto;
+  flex: 1 1 auto;
 }
 
 footer {
@@ -647,6 +657,46 @@ body.panel-resize-active {
 
 body.panel-resize-active * {
   cursor: col-resize !important;
+}
+
+.header-resizer {
+  cursor: row-resize;
+  flex: 0 0 10px;
+  position: relative;
+  background: transparent;
+  touch-action: none;
+}
+
+.header-resizer::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.12);
+  transform: translate(-50%, -50%);
+  transition: background 0.2s ease;
+}
+
+.header-resizer:hover,
+.header-resizer.active {
+  background: rgba(100, 150, 255, 0.08);
+}
+
+.header-resizer:hover::before,
+.header-resizer.active::before {
+  background: rgba(100, 150, 255, 0.55);
+}
+
+body.header-resize-active {
+  cursor: row-resize;
+  user-select: none;
+}
+
+body.header-resize-active * {
+  cursor: row-resize !important;
 }
 
 #canvasArea {

@@ -11,7 +11,8 @@
 <body>
   <div id="app">
     <header>
-      <div id="systems" class="row">
+      <div class="header-content">
+        <div id="systems" class="row">
         <div class="toolbar-group" data-group="file" role="group" aria-label="ファイル">
           <div class="toolbar-group-label">ファイル</div>
           <div class="toolbar-group-body">
@@ -95,7 +96,7 @@
           </div>
         </div>
       </div>
-      <div id="tools" class="row toolbar-row" role="toolbar" aria-label="ツール">
+        <div id="tools" class="row toolbar-row" role="toolbar" aria-label="ツール">
         <div class="toolbar-inline-group" role="group" aria-label="基本ツール">
           <button class="tool" data-tool="select-rect" title="M">矩形選択</button>
           <button class="tool" data-tool="select-free">自由選択</button>
@@ -206,6 +207,9 @@
           </div>
         </details>
       </div>
+      </div>
+      <div id="headerResizer" class="header-resizer" role="separator" aria-orientation="horizontal"
+        aria-label="ヘッダーの高さを調整"></div>
     </header>
 
     <main id="stage">
