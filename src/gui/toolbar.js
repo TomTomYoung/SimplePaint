@@ -10,6 +10,7 @@ export { describeShortcutsForTool } from './tool-shortcuts.js';
 
 let toolCallbacks = {};
 let currentTool = null;
+let selectionScope = 'layer';
 
 const LAST_TOOL_STORAGE_KEY = 'ui:lastTool';
 
@@ -198,6 +199,10 @@ function initSystemButtons() {
   document.getElementById('open')?.addEventListener('click', () => {
     document.getElementById('fileInput')?.click();
   });
+
+  document.getElementById('newDoc')?.addEventListener('click', () => {
+    toolCallbacks.onNewDocument?.();
+  });
   
   document.getElementById('fileInput')?.addEventListener('change', e => {
     const f = e.target.files?.[0];
@@ -207,35 +212,69 @@ function initSystemButtons() {
 
   document.getElementById('savePNG')?.addEventListener('click', () => 
     toolCallbacks.onSave?.('png'));
-  document.getElementById('saveJPG')?.addEventListener('click', () => 
+  document.getElementById('saveJPG')?.addEventListener('click', () =>
     toolCallbacks.onSave?.('jpg'));
-  document.getElementById('saveWEBP')?.addEventListener('click', () => 
+  document.getElementById('saveWEBP')?.addEventListener('click', () =>
     toolCallbacks.onSave?.('webp'));
 
   // 編集操作
   document.getElementById('undo')?.addEventListener('click', () => 
     toolCallbacks.onUndo?.());
-  document.getElementById('redo')?.addEventListener('click', () => 
+  document.getElementById('redo')?.addEventListener('click', () =>
     toolCallbacks.onRedo?.());
-  document.getElementById('clear')?.addEventListener('click', () => 
-    toolCallbacks.onClear?.());
-
-  // ビュー操作
-  document.getElementById('fit')?.addEventListener('click', () => 
-    toolCallbacks.onFitToScreen?.());
-  document.getElementById('actual')?.addEventListener('click', () => 
-    toolCallbacks.onActualSize?.());
 
   // クリップボード操作
-  document.getElementById('copyBtn')?.addEventListener('click', () => 
+  document.getElementById('copyBtn')?.addEventListener('click', () =>
     toolCallbacks.onCopy?.());
-  document.getElementById('cutBtn')?.addEventListener('click', () => 
+  document.getElementById('cutBtn')?.addEventListener('click', () =>
     toolCallbacks.onCut?.());
-  document.getElementById('pasteBtn')?.addEventListener('click', () => 
+  document.getElementById('pasteBtn')?.addEventListener('click', () =>
     toolCallbacks.onPaste?.());
 
+  // 選択スコープ
+  document.querySelectorAll('.scope-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectionScope = btn.dataset.scope === 'canvas' ? 'canvas' : 'layer';
+      document.querySelectorAll('.scope-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.scope === selectionScope));
+      toolCallbacks.onSelectionScopeChange?.(selectionScope);
+    });
+  });
+
+  // 選択処理
+  document.getElementById('cropSelection')?.addEventListener('click', () =>
+    toolCallbacks.onCropSelection?.(selectionScope));
+  document.getElementById('affineSelectionH')?.addEventListener('click', () =>
+    toolCallbacks.onAffineSelection?.(selectionScope, 'hflip'));
+  document.getElementById('affineSelectionV')?.addEventListener('click', () =>
+    toolCallbacks.onAffineSelection?.(selectionScope, 'vflip'));
+
+  // キャンバス操作
+  document.getElementById('clearAll')?.addEventListener('click', () =>
+    toolCallbacks.onClearAll?.());
+  document.getElementById('resizeCanvas')?.addEventListener('click', () =>
+    toolCallbacks.onResizeCanvas?.());
+  document.getElementById('flipCanvasH')?.addEventListener('click', () =>
+    toolCallbacks.onFlipCanvas?.('h'));
+  document.getElementById('flipCanvasV')?.addEventListener('click', () =>
+    toolCallbacks.onFlipCanvas?.('v'));
+
+  // レイヤー操作
+  document.getElementById('addLayerBtn')?.addEventListener('click', () =>
+    toolCallbacks.onAddLayer?.());
+  document.getElementById('addVectorLayerBtn')?.addEventListener('click', () =>
+    toolCallbacks.onAddVectorLayer?.());
+  document.getElementById('deleteLayerBtn')?.addEventListener('click', () =>
+    toolCallbacks.onDeleteLayer?.());
+
+  // ビュー操作
+  document.getElementById('fit')?.addEventListener('click', () =>
+    toolCallbacks.onFitToScreen?.());
+  document.getElementById('actual')?.addEventListener('click', () =>
+    toolCallbacks.onActualSize?.());
+
   // 復元ボタン
-  document.getElementById('restoreBtn')?.addEventListener('click', () => 
+  document.getElementById('restoreBtn')?.addEventListener('click', () =>
     toolCallbacks.onRestore?.());
 }
 

@@ -28,14 +28,24 @@ body {
 
 /* ← 固定高さをやめて自動高さ。折り返しやオーバーフローに強くする */
 header {
+  position: relative;
   min-height: var(--ui);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.header-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--gap);
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border-color);
-  overflow: visible;
+  padding: 6px 8px 2px;
+  overflow: auto;
+  flex: 1 1 auto;
 }
 
 footer {
@@ -60,6 +70,62 @@ footer {
   flex: 1 1 auto;
   padding-bottom: 2px;
   min-width: 0;
+}
+
+.toolbar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  min-width: 0;
+}
+
+.toolbar-group-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.toolbar-group-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.toolbar-subgroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.toolbar-subgroup-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.toolbar-group.toolbar-right {
+  margin-left: auto;
+}
+
+.selection-scope .scope-btn {
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  cursor: pointer;
+}
+
+.selection-scope .scope-btn.active {
+  background: rgba(66, 133, 244, 0.12);
+  border-color: rgba(66, 133, 244, 0.48);
 }
 
 .toolbar-command-button {
@@ -572,6 +638,46 @@ body.panel-resize-active {
 
 body.panel-resize-active * {
   cursor: col-resize !important;
+}
+
+.header-resizer {
+  cursor: row-resize;
+  flex: 0 0 10px;
+  position: relative;
+  background: transparent;
+  touch-action: none;
+}
+
+.header-resizer::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.12);
+  transform: translate(-50%, -50%);
+  transition: background 0.2s ease;
+}
+
+.header-resizer:hover,
+.header-resizer.active {
+  background: rgba(100, 150, 255, 0.08);
+}
+
+.header-resizer:hover::before,
+.header-resizer.active::before {
+  background: rgba(100, 150, 255, 0.55);
+}
+
+body.header-resize-active {
+  cursor: row-resize;
+  user-select: none;
+}
+
+body.header-resize-active * {
+  cursor: row-resize !important;
 }
 
 #canvasArea {

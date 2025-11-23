@@ -148,22 +148,22 @@ export function triggerSave(format) {
   });
 }
 
-export async function doCopy() {
+export async function doCopy(scope = 'layer') {
   try {
-    await copySelection(engine);
+    await copySelection(engine, scope);
     updateStatus('コピー完了');
   } catch (error) {
     updateStatus('コピー不可（権限/ブラウザ制限）');
   }
 }
 
-export async function doCut() {
+export async function doCut(scope = 'layer') {
   if (!engine.selection) {
     updateStatus('選択がないためカット不可');
     return;
   }
   try {
-    await cutSelection(engine);
+    await cutSelection(engine, scope);
     updateStatus('カット完了');
     saveSessionDebounced();
   } catch (error) {

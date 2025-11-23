@@ -8,6 +8,7 @@ import {
 } from './managers/text-editor.js';
 import { layers, activeLayer, bmp } from './core/layer.js';
 import { initPanelResize } from './gui/panel-resize.js';
+import { initHeaderResize } from './gui/header-resize.js';
 
 function createEngineStub() {
   const context = {
@@ -55,7 +56,10 @@ let app = null;
 export let engine = createEngineStub();
 
 if (hasDOM()) {
-  const ensureResizeInit = () => initPanelResize();
+  const ensureResizeInit = () => {
+    initPanelResize();
+    initHeaderResize();
+  };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', ensureResizeInit, { once: true });
   } else {

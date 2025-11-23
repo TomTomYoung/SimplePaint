@@ -42,15 +42,11 @@ const getPanelContainers = panel => {
   const properties = body.querySelector('#toolPropContainer') || body;
   const palette = body.querySelector('#toolPaletteContainer') || properties;
   const shortcuts = body.querySelector('#toolShortcutContainer') || properties;
-  const previewCanvas = body.querySelector('#toolPreviewCanvas');
-  const previewReset = body.querySelector('#toolPreviewReset');
   return {
     body,
     properties,
     palette,
     shortcuts,
-    previewCanvas: previewCanvas instanceof HTMLCanvasElement ? previewCanvas : null,
-    previewReset: previewReset instanceof HTMLButtonElement ? previewReset : null,
   };
 };
 
@@ -65,82 +61,7 @@ const computeToolDefaults = id => {
   return defaults;
 };
 
-const parseDashPattern = pattern => {
-  if (typeof pattern !== 'string') return [];
-  return pattern
-    .split(/[\s,]+/)
-    .map(Number)
-    .filter(value => Number.isFinite(value) && value !== 0)
-    .map(value => clamp(Math.abs(value), 1, 64));
-};
-
-const drawToolPreview = (canvas, state = {}, toolId = '') => {
-  if (!(canvas instanceof HTMLCanvasElement)) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  const { width, height } = canvas;
-
-  ctx.clearRect(0, 0, width, height);
-
-  const cell = 16;
-  for (let y = 0; y < height; y += cell) {
-    for (let x = 0; x < width; x += cell) {
-      const even = ((x / cell) | 0) % 2 === ((y / cell) | 0) % 2;
-      ctx.fillStyle = even ? '#f5f5f5' : '#e6e6e6';
-      ctx.fillRect(x, y, cell, cell);
-    }
-  }
-
-  const strokeColor = typeof state.primaryColor === 'string' ? state.primaryColor : '#4a90e2';
-  const fillColor = state.fillOn === false
-    ? null
-    : (typeof state.secondaryColor === 'string' ? state.secondaryColor : '#f7c948');
-  const lineWidth = clamp(typeof state.brushSize === 'number' ? state.brushSize : 8, 1, 24);
-  const capStyle = typeof state.capStyle === 'string' ? state.capStyle : 'round';
-  const opacity = clamp(typeof state.opacity === 'number' ? state.opacity : 1, 0.1, 1);
-
-  if (fillColor) {
-    ctx.save();
-    ctx.globalAlpha = opacity * 0.75;
-    ctx.fillStyle = fillColor;
-    ctx.beginPath();
-    const baseX = width * 0.35;
-    const baseY = height * 0.55;
-    const baseW = width * 0.45;
-    const peakOffset = height * 0.22;
-    ctx.moveTo(baseX, baseY + peakOffset);
-    ctx.lineTo(baseX + baseW, baseY + peakOffset);
-    ctx.lineTo(baseX + baseW - peakOffset, baseY - peakOffset);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  ctx.save();
-  ctx.lineWidth = lineWidth;
-  ctx.lineCap = capStyle;
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = strokeColor;
-  const dashSegments = parseDashPattern(state.dashPattern);
-  if (dashSegments.length > 0 && typeof ctx.setLineDash === 'function') {
-    ctx.setLineDash(dashSegments);
-  }
-  ctx.beginPath();
-  ctx.moveTo(width * 0.1, height * 0.75);
-  ctx.quadraticCurveTo(width * 0.45, height * 0.1, width * 0.85, height * 0.65);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.font = '12px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif';
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-  ctx.textAlign = 'right';
-  ctx.fillText(toolId || '', width - 8, height - 10);
-  ctx.restore();
-};
-
 let activeToolId = null;
-let previewResetRef = null;
 
 const strokeProps = [
   {
@@ -1350,17 +1271,6 @@ export function initToolPropsPanel(store, engine) {
     });
   }
 
-  previewResetRef = containers.previewReset;
-  if (previewResetRef && !previewResetRef.dataset.bound) {
-    previewResetRef.addEventListener('click', () => {
-      if (!activeToolId) return;
-      store.resetToolState(activeToolId, {
-        defaults: computeToolDefaults(activeToolId),
-      });
-    });
-    previewResetRef.dataset.bound = 'true';
-  }
-
   const render = (id) => {
     activeToolId = id;
     const defs = toolPropDefs[id] || [];
@@ -1368,7 +1278,7 @@ export function initToolPropsPanel(store, engine) {
     const state = store.getToolState(id, defaults);
     const fieldRefs = new Map();
 
-    const { properties, palette, shortcuts, previewCanvas } = containers;
+    const { properties, palette, shortcuts } = containers;
     [properties, palette, shortcuts].forEach(section => {
       if (section) section.innerHTML = '';
     });
@@ -1509,8 +1419,6 @@ export function initToolPropsPanel(store, engine) {
     });
 
     appendPaletteSection(palette || properties, store, id, state);
-
-    drawToolPreview(previewCanvas, state, id);
 
     panel.style.display = 'flex';
     panel.classList.remove('no-tool-props');
