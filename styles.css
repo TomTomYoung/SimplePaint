@@ -10,6 +10,7 @@
   --border-color: #dddddd;
   --text-color: #222222;
   --muted-color: #666666;
+  --header-resizer-height: 10px;
   font-synthesis-weight: none;
 }
 
@@ -36,6 +37,7 @@ header {
   gap: 0;
   border-bottom: 1px solid var(--border-color);
   overflow: hidden;
+  padding-bottom: var(--header-resizer-height);
 }
 
 .header-content {
@@ -650,8 +652,11 @@ body.panel-resize-active * {
 
 .header-resizer {
   cursor: row-resize;
-  flex: 0 0 10px;
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--header-resizer-height);
   background: transparent;
   touch-action: none;
 }
