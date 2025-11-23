@@ -82,134 +82,137 @@
           </div>
         </div>
 
-        <div class="toolbar-group toolbar-right" aria-label="表示">
+        <div class="toolbar-group" data-group="view" role="group" aria-label="表示">
           <div class="toolbar-group-label">表示</div>
           <div class="toolbar-group-body">
             <div class="toolbar-subgroup" role="group" aria-label="ビュー制御">
               <button id="fit">画面に合わせる</button>
               <button id="actual">100%</button>
             </div>
-            <button type="button" id="toolSearchTrigger" class="toolbar-command-button" data-action="show-tool-search"
-              aria-haspopup="dialog" aria-controls="toolSearchOverlay" title="Ctrl+K">
-              ツール検索 (Ctrl+K)
-            </button>
+
           </div>
         </div>
-      </div>
-        <div id="tools" class="row toolbar-row" role="toolbar" aria-label="ツール">
-        <div class="toolbar-inline-group" role="group" aria-label="基本ツール">
-          <button class="tool" data-tool="select-rect" title="M">矩形選択</button>
-          <button class="tool" data-tool="select-free">自由選択</button>
+
+        <div class="toolbar-group" data-group="tools" role="group" aria-label="ツール">      
+          <button type="button" id="toolSearchTrigger" class="toolbar-command-button" data-action="show-tool-search"
+            aria-haspopup="dialog" aria-controls="toolSearchOverlay" title="Ctrl+K">
+            ツール検索 (Ctrl+K)
+          </button>            
+          <div class="toolbar-inline-group" role="group" aria-label="基本ツール">
+            <button class="tool" data-tool="select-rect" title="M">矩形選択</button>
+            <button class="tool" data-tool="select-free">自由選択</button>
+          </div>
+          <div class="toolbar-spacer" aria-hidden="true"></div>
+          <details class="tool-dropdown" data-group="brushes">
+            <summary aria-haspopup="true">ブラシ系</summary>
+            <div class="tool-dropdown-panel" role="menu">
+              <div class="tool-section" aria-label="ブラシ">
+                <button class="tool" data-tool="pencil" title="P" role="menuitem">鉛筆</button>
+                <button class="tool" data-tool="pencil-click" title="Shift+P" role="menuitem">鉛筆(オフドラッグ)</button>
+                <button class="tool" data-tool="brush" title="B" role="menuitem">ブラシ</button>
+                <button class="tool" data-tool="minimal" role="menuitem">Minimal</button>
+                <button class="tool" data-tool="smooth" role="menuitem">Smooth</button>
+                <button class="tool" data-tool="texture-brush" role="menuitem">Texture</button>
+                <button class="tool" data-tool="tess-stroke" role="menuitem">テッセ</button>
+                <button class="tool" data-tool="sdf-stroke" role="menuitem">SDF</button>
+                <button class="tool" data-tool="watercolor" title="W" role="menuitem">水彩</button>
+                <button class="tool" data-tool="preview-refine" role="menuitem">二段</button>
+                <button class="tool" data-tool="vector-keep" title="K" role="menuitem">ベクタ</button>
+                <button class="tool" data-tool="calligraphy" title="C" role="menuitem">カリグラフィ</button>
+                <button class="tool" data-tool="ribbon" role="menuitem">リボン</button>
+                <button class="tool" data-tool="bristle" role="menuitem">多毛筆</button>
+                <button class="tool" data-tool="airbrush" role="menuitem">エアブラシ</button>
+                <button class="tool" data-tool="scatter" role="menuitem">散布</button>
+                <button class="tool" data-tool="smudge" role="menuitem">スマッジ</button>
+                <button class="tool" data-tool="aa-line-brush" role="menuitem">AA線</button>
+                <button class="tool" data-tool="pixel-brush" role="menuitem">ピクセル筆</button>
+                <button class="tool" data-tool="blur-brush" role="menuitem">ぼかし</button>
+                <button class="tool" data-tool="edge-aware-paint" role="menuitem">縁保持塗り</button>
+                <button class="tool" data-tool="noise-displaced" role="menuitem">ノイズ変位</button>
+                <button class="tool" data-tool="chalk-pastel" role="menuitem">Chalk</button>
+                <button class="tool" data-tool="curvature-adaptive" role="menuitem">Curvature</button>
+                <button class="tool" data-tool="depth-aware" role="menuitem">DepthAware</button>
+                <button class="tool" data-tool="distance-stamped" role="menuitem">Distance</button>
+              </div>
+            </div>
+          </details>
+          <details class="tool-dropdown" data-group="experimental">
+            <summary aria-haspopup="true">特殊/表現</summary>
+            <div class="tool-dropdown-panel" role="menu">
+              <div class="tool-section" aria-label="特殊ブラシ">
+                <button class="tool" data-tool="drip-gravity" role="menuitem">Drip</button>
+                <button class="tool" data-tool="flow-guided-brush" role="menuitem">Flow</button>
+                <button class="tool" data-tool="glyph-brush" role="menuitem">Glyph</button>
+                <button class="tool" data-tool="gpu-instanced-brush" role="menuitem">GPUStamp</button>
+                <button class="tool" data-tool="gradient-brush" role="menuitem">Gradient</button>
+                <button class="tool" data-tool="granulation" role="menuitem">Granulation</button>
+                <button class="tool" data-tool="halftone-dither" role="menuitem">Halftone</button>
+                <button class="tool" data-tool="hatching" role="menuitem">Hatching</button>
+                <button class="tool" data-tool="hdr-linear" role="menuitem">HDR</button>
+                <button class="tool" data-tool="height-normal" role="menuitem">HeightNorm</button>
+                <button class="tool" data-tool="mask-driven" role="menuitem">MaskDriven</button>
+                <button class="tool" data-tool="meta-brush" role="menuitem">Meta</button>
+                <button class="tool" data-tool="on-image-warp" role="menuitem">Warp</button>
+                <button class="tool" data-tool="outline-stroke-fill" role="menuitem">OutStroke</button>
+                <button class="tool" data-tool="palette-mapped" role="menuitem">PaletteMap</button>
+                <button class="tool" data-tool="pattern-art-brush" role="menuitem">PatternArt</button>
+                <button class="tool" data-tool="predictive-brush" role="menuitem">Predictive</button>
+                <button class="tool" data-tool="pvel-map" role="menuitem">PVMap</button>
+                <button class="tool" data-tool="snap-grid" role="menuitem">SnapGrid</button>
+                <button class="tool" data-tool="stamp-blend" role="menuitem">StampBlend</button>
+                <button class="tool" data-tool="stroke-boil" role="menuitem">StrokeBoil</button>
+                <button class="tool" data-tool="symmetry-mirror" role="menuitem">Symmetry</button>
+                <button class="tool" data-tool="time-aware" role="menuitem">TimeAware</button>
+              </div>
+            </div>
+          </details>
+          <details class="tool-dropdown" data-group="vector">
+            <summary aria-haspopup="true">幾何/ベクター</summary>
+            <div class="tool-dropdown-panel" role="menu">
+              <div class="tool-section" aria-label="幾何ツール">
+                <button class="tool" data-tool="line" title="L" role="menuitem">直線</button>
+                <button class="tool" data-tool="rect" title="R" role="menuitem">矩形</button>
+                <button class="tool" data-tool="ellipse" title="O" role="menuitem">楕円</button>
+                <button class="tool" data-tool="quad" title="Q" role="menuitem">2次ベジェ</button>
+                <button class="tool" data-tool="cubic" title="C" role="menuitem">3次ベジェ</button>
+                <button class="tool" data-tool="quad-edit" role="menuitem">2次ベジェ編集</button>
+                <button class="tool" data-tool="cubic-edit" role="menuitem">3次ベジェ編集</button>
+                <button class="tool" data-tool="arc" title="A" role="menuitem">円弧</button>
+                <button class="tool" data-tool="sector" title="S" role="menuitem">扇形</button>
+                <button class="tool" data-tool="catmull" title="U" role="menuitem">Catmull</button>
+                <button class="tool" data-tool="catmull-edit" role="menuitem">Catmull編集</button>
+                <button class="tool" data-tool="bspline" title="B" role="menuitem">Bスプライン</button>
+                <button class="tool" data-tool="bspline-edit" role="menuitem">Bスプライン編集</button>
+                <button class="tool" data-tool="nurbs" title="N" role="menuitem">NURBS</button>
+                <button class="tool" data-tool="nurbs-edit" role="menuitem">NURBS編集</button>
+                <button class="tool" data-tool="ellipse-2" title="E" role="menuitem">楕円(回転)</button>
+                <button class="tool" data-tool="freehand" title="H" role="menuitem">補間描画</button>
+                <button class="tool" data-tool="freehand-click" title="Shift+H" role="menuitem">補間描画(オフドラッグ)</button>
+              </div>
+              <div class="tool-section" aria-label="ベクター編集">
+                <button class="tool" data-tool="vectorization" title="V" role="menuitem">ベクタ化</button>
+                <button class="tool" data-tool="vector-edit" title="Shift+V" role="menuitem">ベクタ編集</button>
+              </div>
+            </div>
+          </details>
+          <details class="tool-dropdown" data-group="utility">
+            <summary aria-haspopup="true">補助</summary>
+            <div class="tool-dropdown-panel" role="menu">
+              <div class="tool-section" aria-label="補助ツール">
+                <button class="tool" data-tool="eraser" title="E" role="menuitem">消しゴム</button>
+                <button class="tool" data-tool="eraser-click" title="Shift+E" role="menuitem">消しゴム(オフドラッグ)</button>
+                <button class="tool" data-tool="eyedropper" title="I" role="menuitem">スポイト</button>
+                <button class="tool" data-tool="bucket" title="F" role="menuitem">バケツ</button>
+                <button class="tool" data-tool="text" title="T" role="menuitem">テキスト</button>
+              </div>
+            </div>
+          </details>
         </div>
-        <div class="toolbar-spacer" aria-hidden="true"></div>
-        <details class="tool-dropdown" data-group="brushes">
-          <summary aria-haspopup="true">ブラシ系</summary>
-          <div class="tool-dropdown-panel" role="menu">
-            <div class="tool-section" aria-label="ブラシ">
-              <button class="tool" data-tool="pencil" title="P" role="menuitem">鉛筆</button>
-              <button class="tool" data-tool="pencil-click" title="Shift+P" role="menuitem">鉛筆(オフドラッグ)</button>
-              <button class="tool" data-tool="brush" title="B" role="menuitem">ブラシ</button>
-              <button class="tool" data-tool="minimal" role="menuitem">Minimal</button>
-              <button class="tool" data-tool="smooth" role="menuitem">Smooth</button>
-              <button class="tool" data-tool="texture-brush" role="menuitem">Texture</button>
-              <button class="tool" data-tool="tess-stroke" role="menuitem">テッセ</button>
-              <button class="tool" data-tool="sdf-stroke" role="menuitem">SDF</button>
-              <button class="tool" data-tool="watercolor" title="W" role="menuitem">水彩</button>
-              <button class="tool" data-tool="preview-refine" role="menuitem">二段</button>
-              <button class="tool" data-tool="vector-keep" title="K" role="menuitem">ベクタ</button>
-              <button class="tool" data-tool="calligraphy" title="C" role="menuitem">カリグラフィ</button>
-              <button class="tool" data-tool="ribbon" role="menuitem">リボン</button>
-              <button class="tool" data-tool="bristle" role="menuitem">多毛筆</button>
-              <button class="tool" data-tool="airbrush" role="menuitem">エアブラシ</button>
-              <button class="tool" data-tool="scatter" role="menuitem">散布</button>
-              <button class="tool" data-tool="smudge" role="menuitem">スマッジ</button>
-              <button class="tool" data-tool="aa-line-brush" role="menuitem">AA線</button>
-              <button class="tool" data-tool="pixel-brush" role="menuitem">ピクセル筆</button>
-              <button class="tool" data-tool="blur-brush" role="menuitem">ぼかし</button>
-              <button class="tool" data-tool="edge-aware-paint" role="menuitem">縁保持塗り</button>
-              <button class="tool" data-tool="noise-displaced" role="menuitem">ノイズ変位</button>
-              <button class="tool" data-tool="chalk-pastel" role="menuitem">Chalk</button>
-              <button class="tool" data-tool="curvature-adaptive" role="menuitem">Curvature</button>
-              <button class="tool" data-tool="depth-aware" role="menuitem">DepthAware</button>
-              <button class="tool" data-tool="distance-stamped" role="menuitem">Distance</button>
-            </div>
-          </div>
-        </details>
-        <details class="tool-dropdown" data-group="experimental">
-          <summary aria-haspopup="true">特殊/表現</summary>
-          <div class="tool-dropdown-panel" role="menu">
-            <div class="tool-section" aria-label="特殊ブラシ">
-              <button class="tool" data-tool="drip-gravity" role="menuitem">Drip</button>
-              <button class="tool" data-tool="flow-guided-brush" role="menuitem">Flow</button>
-              <button class="tool" data-tool="glyph-brush" role="menuitem">Glyph</button>
-              <button class="tool" data-tool="gpu-instanced-brush" role="menuitem">GPUStamp</button>
-              <button class="tool" data-tool="gradient-brush" role="menuitem">Gradient</button>
-              <button class="tool" data-tool="granulation" role="menuitem">Granulation</button>
-              <button class="tool" data-tool="halftone-dither" role="menuitem">Halftone</button>
-              <button class="tool" data-tool="hatching" role="menuitem">Hatching</button>
-              <button class="tool" data-tool="hdr-linear" role="menuitem">HDR</button>
-              <button class="tool" data-tool="height-normal" role="menuitem">HeightNorm</button>
-              <button class="tool" data-tool="mask-driven" role="menuitem">MaskDriven</button>
-              <button class="tool" data-tool="meta-brush" role="menuitem">Meta</button>
-              <button class="tool" data-tool="on-image-warp" role="menuitem">Warp</button>
-              <button class="tool" data-tool="outline-stroke-fill" role="menuitem">OutStroke</button>
-              <button class="tool" data-tool="palette-mapped" role="menuitem">PaletteMap</button>
-              <button class="tool" data-tool="pattern-art-brush" role="menuitem">PatternArt</button>
-              <button class="tool" data-tool="predictive-brush" role="menuitem">Predictive</button>
-              <button class="tool" data-tool="pvel-map" role="menuitem">PVMap</button>
-              <button class="tool" data-tool="snap-grid" role="menuitem">SnapGrid</button>
-              <button class="tool" data-tool="stamp-blend" role="menuitem">StampBlend</button>
-              <button class="tool" data-tool="stroke-boil" role="menuitem">StrokeBoil</button>
-              <button class="tool" data-tool="symmetry-mirror" role="menuitem">Symmetry</button>
-              <button class="tool" data-tool="time-aware" role="menuitem">TimeAware</button>
-            </div>
-          </div>
-        </details>
-        <details class="tool-dropdown" data-group="vector">
-          <summary aria-haspopup="true">幾何/ベクター</summary>
-          <div class="tool-dropdown-panel" role="menu">
-            <div class="tool-section" aria-label="幾何ツール">
-              <button class="tool" data-tool="line" title="L" role="menuitem">直線</button>
-              <button class="tool" data-tool="rect" title="R" role="menuitem">矩形</button>
-              <button class="tool" data-tool="ellipse" title="O" role="menuitem">楕円</button>
-              <button class="tool" data-tool="quad" title="Q" role="menuitem">2次ベジェ</button>
-              <button class="tool" data-tool="cubic" title="C" role="menuitem">3次ベジェ</button>
-              <button class="tool" data-tool="quad-edit" role="menuitem">2次ベジェ編集</button>
-              <button class="tool" data-tool="cubic-edit" role="menuitem">3次ベジェ編集</button>
-              <button class="tool" data-tool="arc" title="A" role="menuitem">円弧</button>
-              <button class="tool" data-tool="sector" title="S" role="menuitem">扇形</button>
-              <button class="tool" data-tool="catmull" title="U" role="menuitem">Catmull</button>
-              <button class="tool" data-tool="catmull-edit" role="menuitem">Catmull編集</button>
-              <button class="tool" data-tool="bspline" title="B" role="menuitem">Bスプライン</button>
-              <button class="tool" data-tool="bspline-edit" role="menuitem">Bスプライン編集</button>
-              <button class="tool" data-tool="nurbs" title="N" role="menuitem">NURBS</button>
-              <button class="tool" data-tool="nurbs-edit" role="menuitem">NURBS編集</button>
-              <button class="tool" data-tool="ellipse-2" title="E" role="menuitem">楕円(回転)</button>
-              <button class="tool" data-tool="freehand" title="H" role="menuitem">補間描画</button>
-              <button class="tool" data-tool="freehand-click" title="Shift+H" role="menuitem">補間描画(オフドラッグ)</button>
-            </div>
-            <div class="tool-section" aria-label="ベクター編集">
-              <button class="tool" data-tool="vectorization" title="V" role="menuitem">ベクタ化</button>
-              <button class="tool" data-tool="vector-edit" title="Shift+V" role="menuitem">ベクタ編集</button>
-            </div>
-          </div>
-        </details>
-        <details class="tool-dropdown" data-group="utility">
-          <summary aria-haspopup="true">補助</summary>
-          <div class="tool-dropdown-panel" role="menu">
-            <div class="tool-section" aria-label="補助ツール">
-              <button class="tool" data-tool="eraser" title="E" role="menuitem">消しゴム</button>
-              <button class="tool" data-tool="eraser-click" title="Shift+E" role="menuitem">消しゴム(オフドラッグ)</button>
-              <button class="tool" data-tool="eyedropper" title="I" role="menuitem">スポイト</button>
-              <button class="tool" data-tool="bucket" title="F" role="menuitem">バケツ</button>
-              <button class="tool" data-tool="text" title="T" role="menuitem">テキスト</button>
-            </div>
-          </div>
-        </details>
-      </div>
-      </div>
+
       <div id="headerResizer" class="header-resizer" role="separator" aria-orientation="horizontal"
-        aria-label="ヘッダーの高さを調整"></div>
+        aria-label="ヘッダーの高さを調整">
+      </div>
+
     </header>
 
     <main id="stage">

@@ -111,10 +111,6 @@ footer {
   color: var(--text-muted);
 }
 
-.toolbar-group.toolbar-right {
-  margin-left: auto;
-}
-
 .selection-scope .scope-btn {
   padding: 4px 10px;
   border-radius: 12px;
@@ -160,13 +156,6 @@ footer {
   outline-offset: 3px;
 }
 
-.toolbar-row {
-  display: flex;
-  align-items: stretch;
-  gap: var(--gap);
-  flex-wrap: wrap;
-  width: 100%;
-}
 
 .toolbar-inline-group {
   display: flex;
