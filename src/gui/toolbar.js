@@ -375,6 +375,14 @@ export function selectTool(toolId) {
     b.classList.toggle('active', b.dataset.tool === toolId)
   );
 
+  const toolLabel = document.getElementById('activeToolLabel');
+  if (toolLabel) {
+    const activeButton = document.querySelector(`.tool[data-tool="${toolId}"]`);
+    const labelText = activeButton?.textContent?.trim() || toolId || '—';
+    toolLabel.textContent = labelText;
+    toolLabel.dataset.toolId = toolId ?? '';
+  }
+
   currentTool = toolId;
 
   if (toolId) {
