@@ -149,73 +149,104 @@
       </div>
     </header>
 
-    <div id="leftResizer" class="panel-resizer"></div>
-
-
-    <div id="canvasArea">
-      <canvas id="base"></canvas>
-      <canvas id="overlay"></canvas>
-      <div id="editorLayer"></div>
-    </div>
-
-
-    <div id="rightResizer" class="panel-resizer"></div>
-
-    <div id="layerPanel" class="side-panel panel" data-name="レイヤー">
-      <div class="panel-header"></div>
-      <div class="panel-body">
-        <div class="layer-controls">
-          <div class="layer-filter-group" role="group" aria-label="レイヤー種別フィルター">
-            <button type="button" class="layer-filter is-active" data-layer-filter="all">
-              すべて
-            </button>
-            <button type="button" class="layer-filter" data-layer-filter="raster">
-              ラスター
-            </button>
-            <button type="button" class="layer-filter" data-layer-filter="vector">
-              ベクター
-            </button>
-            <button type="button" class="layer-filter" data-layer-filter="text">
-              テキスト
-            </button>
-          </div>
-          <label class="layer-search">
-            <span class="visually-hidden">レイヤー名で検索</span>
-            <input type="search" id="layerSearch" placeholder="名前で絞り込み" autocomplete="off" />
-          </label>
-        </div>
-        <div class="layer-action-row">
-          <button id="addLayerBtn">＋</button>
-          <button id="addVectorLayerBtn" title="ベクターレイヤーを追加">＋V</button>
-          <button id="delLayerBtn">－</button>
-        </div>
-        <ul id="layerList" class="layer-list"></ul>
-      </div>
-      <div class="panel-footer">
-        <div id="layerProperties" class="layer-properties" style="display: none">
-          <h4>レイヤープロパティ</h4>
-          <div class="layer-property-row">
-            <span>種類:</span>
-            <strong id="layerTypeLabel">—</strong>
-          </div>
-          <div id="vectorLayerControls" class="vector-layer-controls" style="display: none">
-            <label for="vectorLayerColor">線色</label>
-            <input type="color" id="vectorLayerColor" value="#000000" />
-            <label for="vectorLayerWidth">線幅</label>
-            <input type="number" id="vectorLayerWidth" min="0.1" step="0.1" value="1" />
-            <label for="vectorLayerDash">破線</label>
-            <input type="text" id="vectorLayerDash" placeholder="例: 4 2" />
-            <label for="vectorLayerCap">線端</label>
-            <select id="vectorLayerCap">
-              <option value="butt">butt</option>
-              <option value="round">round</option>
-              <option value="square">square</option>
-            </select>
-            <button id="vectorLayerApplyAll" type="button">全ベクターに適用</button>
+    <main id="stage">
+      <div id="leftPanel" class="side-panel panel" data-name="ツール">
+        <div class="panel-header"></div>
+        <div class="panel-body">
+          <div class="tool-accordion">
+            <details class="accordion-section" data-section="properties" open>
+              <summary>プロパティ</summary>
+              <div class="accordion-content">
+                <div class="tool-preview">
+                  <canvas id="toolPreviewCanvas" width="320" height="160"></canvas>
+                  <button type="button" id="toolPreviewReset">プレビューを初期化</button>
+                </div>
+                <div id="toolPropContainer"></div>
+              </div>
+            </details>
+            <details class="accordion-section" data-section="palette" open>
+              <summary>パレット</summary>
+              <div class="accordion-content">
+                <div id="toolPaletteContainer"></div>
+              </div>
+            </details>
+            <details class="accordion-section" data-section="shortcuts">
+              <summary>ショートカット</summary>
+              <div class="accordion-content">
+                <div id="toolShortcutContainer"></div>
+              </div>
+            </details>
           </div>
         </div>
       </div>
-    </div>
+
+      <div id="leftResizer" class="panel-resizer"></div>
+
+      <div id="canvasArea">
+        <canvas id="base"></canvas>
+        <canvas id="overlay"></canvas>
+        <div id="editorLayer"></div>
+      </div>
+
+
+      <div id="rightResizer" class="panel-resizer"></div>
+
+      <div id="layerPanel" class="side-panel panel" data-name="レイヤー">
+        <div class="panel-header"></div>
+        <div class="panel-body">
+          <div class="layer-controls">
+            <div class="layer-filter-group" role="group" aria-label="レイヤー種別フィルター">
+              <button type="button" class="layer-filter is-active" data-layer-filter="all">
+                すべて
+              </button>
+              <button type="button" class="layer-filter" data-layer-filter="raster">
+                ラスター
+              </button>
+              <button type="button" class="layer-filter" data-layer-filter="vector">
+                ベクター
+              </button>
+              <button type="button" class="layer-filter" data-layer-filter="text">
+                テキスト
+              </button>
+            </div>
+            <label class="layer-search">
+              <span class="visually-hidden">レイヤー名で検索</span>
+              <input type="search" id="layerSearch" placeholder="名前で絞り込み" autocomplete="off" />
+            </label>
+          </div>
+          <div class="layer-action-row">
+            <button id="addLayerBtn">＋</button>
+            <button id="addVectorLayerBtn" title="ベクターレイヤーを追加">＋V</button>
+            <button id="delLayerBtn">－</button>
+          </div>
+          <ul id="layerList" class="layer-list"></ul>
+        </div>
+        <div class="panel-footer">
+          <div id="layerProperties" class="layer-properties" style="display: none">
+            <h4>レイヤープロパティ</h4>
+            <div class="layer-property-row">
+              <span>種類:</span>
+              <strong id="layerTypeLabel">—</strong>
+            </div>
+            <div id="vectorLayerControls" class="vector-layer-controls" style="display: none">
+              <label for="vectorLayerColor">線色</label>
+              <input type="color" id="vectorLayerColor" value="#000000" />
+              <label for="vectorLayerWidth">線幅</label>
+              <input type="number" id="vectorLayerWidth" min="0.1" step="0.1" value="1" />
+              <label for="vectorLayerDash">破線</label>
+              <input type="text" id="vectorLayerDash" placeholder="例: 4 2" />
+              <label for="vectorLayerCap">線端</label>
+              <select id="vectorLayerCap">
+                <option value="butt">butt</option>
+                <option value="round">round</option>
+                <option value="square">square</option>
+              </select>
+              <button id="vectorLayerApplyAll" type="button">全ベクターに適用</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 
   <footer class="row footer">
