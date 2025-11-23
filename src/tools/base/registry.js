@@ -18,9 +18,7 @@ function instantiateTool(entry, store) {
   if (!tool || typeof tool !== 'object') {
     throw new TypeError(`Tool factory for "${entry.id}" did not return a tool object`);
   }
-  if (!tool.id) {
-    tool.id = entry.id;
-  }
+  tool.id = entry.id;
   return tool;
 }
 

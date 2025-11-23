@@ -12,34 +12,93 @@
   <div id="app">
     <header>
       <div id="systems" class="row">
-        <button id="open">開く</button><input id="fileInput" type="file" accept="image/*" />
-        <button id="savePNG">保存 PNG</button>
-        <button id="saveJPG">保存 JPEG</button>
-        <button id="saveWEBP">保存 WebP</button>
-        <div class="sep"></div>
-        <button id="adjustBtn">調整</button>
-        <div class="sep"></div>
-        <button id="fit">画面に合わせる</button>
-        <button id="actual">100%</button>
-
-        <div class="row" style="margin-left: auto; gap: 12px">
-          <button type="button" id="toolSearchTrigger" class="toolbar-command-button" data-action="show-tool-search"
-            aria-haspopup="dialog" aria-controls="toolSearchOverlay" title="Ctrl+K">
-            ツール検索 (Ctrl+K)
-          </button>
-          <button id="restoreBtn" style="display: none">前回復元</button>
+        <div class="toolbar-group" data-group="file" role="group" aria-label="ファイル">
+          <div class="toolbar-group-label">ファイル</div>
+          <div class="toolbar-group-body">
+            <div class="toolbar-subgroup" role="group" aria-label="復元と新規">
+              <button id="restoreBtn" style="display: none">前回復元</button>
+              <button id="newDoc">新規</button>
+              <button id="open">開く</button><input id="fileInput" type="file" accept="image/*" />
+            </div>
+            <div class="toolbar-subgroup" role="group" aria-label="保存">
+              <button id="savePNG">保存 PNG</button>
+              <button id="saveJPG">保存 JPEG</button>
+              <button id="saveWEBP">保存 WebP</button>
+            </div>
+          </div>
         </div>
-        <div class="sep"></div>
-        <button id="undo">Undo</button>
-        <button id="redo">Redo</button>
-        <button id="clear">全消去</button>
+
+        <div class="toolbar-group" data-group="edit" role="group" aria-label="編集">
+          <div class="toolbar-group-label">編集</div>
+          <div class="toolbar-group-body">
+            <div class="toolbar-subgroup" role="group" aria-label="履歴">
+              <button id="undo">Undo</button>
+              <button id="redo">Redo</button>
+            </div>
+            <div class="toolbar-subgroup" role="group" aria-label="クリップボード">
+              <button id="copyBtn" title="Ctrl+C">コピー</button>
+              <button id="cutBtn" title="Ctrl+X">カット</button>
+              <button id="pasteBtn" title="Ctrl+V">ペースト</button>
+            </div>
+            <div class="toolbar-subgroup selection-scope" role="group" aria-label="選択対象">
+              <span class="toolbar-subgroup-label">選択対象</span>
+              <button type="button" class="scope-btn" data-scope="canvas">キャンバス</button>
+              <button type="button" class="scope-btn active" data-scope="layer">レイヤー</button>
+            </div>
+            <div class="toolbar-subgroup" role="group" aria-label="選択操作">
+              <button id="cropSelection">選択範囲トリミング</button>
+              <button id="affineSelectionH">選択ミラー(水平)</button>
+              <button id="affineSelectionV">選択ミラー(垂直)</button>
+            </div>
+            <div class="toolbar-subgroup" role="group" aria-label="調整">
+              <button id="adjustBtn">調整</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar-group" data-group="canvas" role="group" aria-label="キャンバス">
+          <div class="toolbar-group-label">キャンバス</div>
+          <div class="toolbar-group-body">
+            <div class="toolbar-subgroup" role="group" aria-label="キャンバス管理">
+              <button id="clearAll">全レイヤークリア</button>
+              <button id="resizeCanvas">サイズ変更</button>
+            </div>
+            <div class="toolbar-subgroup" role="group" aria-label="不可逆変換">
+              <button id="flipCanvasH">キャンバス鏡像(水平)</button>
+              <button id="flipCanvasV">キャンバス鏡像(垂直)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar-group" data-group="layer" role="group" aria-label="レイヤー">
+          <div class="toolbar-group-label">レイヤー</div>
+          <div class="toolbar-group-body">
+            <div class="toolbar-subgroup" role="group" aria-label="レイヤー操作">
+              <button id="addLayerBtn">レイヤー追加</button>
+              <button id="addVectorLayerBtn">ベクター追加</button>
+              <button id="deleteLayerBtn">レイヤー削除</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar-group toolbar-right" aria-label="表示">
+          <div class="toolbar-group-label">表示</div>
+          <div class="toolbar-group-body">
+            <div class="toolbar-subgroup" role="group" aria-label="ビュー制御">
+              <button id="fit">画面に合わせる</button>
+              <button id="actual">100%</button>
+            </div>
+            <button type="button" id="toolSearchTrigger" class="toolbar-command-button" data-action="show-tool-search"
+              aria-haspopup="dialog" aria-controls="toolSearchOverlay" title="Ctrl+K">
+              ツール検索 (Ctrl+K)
+            </button>
+          </div>
+        </div>
       </div>
       <div id="tools" class="row toolbar-row" role="toolbar" aria-label="ツール">
         <div class="toolbar-inline-group" role="group" aria-label="基本ツール">
-          <button class="tool" data-tool="select-rect" title="M">選択</button>
-          <button id="copyBtn" title="Ctrl+C">コピー</button>
-          <button id="cutBtn" title="Ctrl+X">カット</button>
-          <button id="pasteBtn" title="Ctrl+V">ペースト</button>
+          <button class="tool" data-tool="select-rect" title="M">矩形選択</button>
+          <button class="tool" data-tool="select-free">自由選択</button>
         </div>
         <div class="toolbar-spacer" aria-hidden="true"></div>
         <details class="tool-dropdown" data-group="brushes">
@@ -149,73 +208,100 @@
       </div>
     </header>
 
-    <div id="leftResizer" class="panel-resizer"></div>
-
-
-    <div id="canvasArea">
-      <canvas id="base"></canvas>
-      <canvas id="overlay"></canvas>
-      <div id="editorLayer"></div>
-    </div>
-
-
-    <div id="rightResizer" class="panel-resizer"></div>
-
-    <div id="layerPanel" class="side-panel panel" data-name="レイヤー">
-      <div class="panel-header"></div>
-      <div class="panel-body">
-        <div class="layer-controls">
-          <div class="layer-filter-group" role="group" aria-label="レイヤー種別フィルター">
-            <button type="button" class="layer-filter is-active" data-layer-filter="all">
-              すべて
-            </button>
-            <button type="button" class="layer-filter" data-layer-filter="raster">
-              ラスター
-            </button>
-            <button type="button" class="layer-filter" data-layer-filter="vector">
-              ベクター
-            </button>
-            <button type="button" class="layer-filter" data-layer-filter="text">
-              テキスト
-            </button>
-          </div>
-          <label class="layer-search">
-            <span class="visually-hidden">レイヤー名で検索</span>
-            <input type="search" id="layerSearch" placeholder="名前で絞り込み" autocomplete="off" />
-          </label>
-        </div>
-        <div class="layer-action-row">
-          <button id="addLayerBtn">＋</button>
-          <button id="addVectorLayerBtn" title="ベクターレイヤーを追加">＋V</button>
-          <button id="delLayerBtn">－</button>
-        </div>
-        <ul id="layerList" class="layer-list"></ul>
-      </div>
-      <div class="panel-footer">
-        <div id="layerProperties" class="layer-properties" style="display: none">
-          <h4>レイヤープロパティ</h4>
-          <div class="layer-property-row">
-            <span>種類:</span>
-            <strong id="layerTypeLabel">—</strong>
-          </div>
-          <div id="vectorLayerControls" class="vector-layer-controls" style="display: none">
-            <label for="vectorLayerColor">線色</label>
-            <input type="color" id="vectorLayerColor" value="#000000" />
-            <label for="vectorLayerWidth">線幅</label>
-            <input type="number" id="vectorLayerWidth" min="0.1" step="0.1" value="1" />
-            <label for="vectorLayerDash">破線</label>
-            <input type="text" id="vectorLayerDash" placeholder="例: 4 2" />
-            <label for="vectorLayerCap">線端</label>
-            <select id="vectorLayerCap">
-              <option value="butt">butt</option>
-              <option value="round">round</option>
-              <option value="square">square</option>
-            </select>
-            <button id="vectorLayerApplyAll" type="button">全ベクターに適用</button>
+    <main id="stage">
+      <div id="leftPanel" class="side-panel panel" data-name="ツール">
+        <div class="panel-header"></div>
+        <div class="panel-body">
+          <div class="tool-accordion">
+            <details class="accordion-section" data-section="properties" open>
+              <summary>プロパティ</summary>
+              <div class="accordion-content">
+                <div id="toolPropContainer"></div>
+              </div>
+            </details>
+            <details class="accordion-section" data-section="palette" open>
+              <summary>パレット</summary>
+              <div class="accordion-content">
+                <div id="toolPaletteContainer"></div>
+              </div>
+            </details>
+            <details class="accordion-section" data-section="shortcuts">
+              <summary>ショートカット</summary>
+              <div class="accordion-content">
+                <div id="toolShortcutContainer"></div>
+              </div>
+            </details>
           </div>
         </div>
       </div>
-    </div>
+
+      <div id="leftResizer" class="panel-resizer"></div>
+
+      <div id="canvasArea">
+        <canvas id="base"></canvas>
+        <canvas id="overlay"></canvas>
+        <div id="editorLayer"></div>
+      </div>
+
+
+      <div id="rightResizer" class="panel-resizer"></div>
+
+      <div id="layerPanel" class="side-panel panel" data-name="レイヤー">
+        <div class="panel-header"></div>
+        <div class="panel-body">
+          <div class="layer-controls">
+            <div class="layer-filter-group" role="group" aria-label="レイヤー種別フィルター">
+              <button type="button" class="layer-filter is-active" data-layer-filter="all">
+                すべて
+              </button>
+              <button type="button" class="layer-filter" data-layer-filter="raster">
+                ラスター
+              </button>
+              <button type="button" class="layer-filter" data-layer-filter="vector">
+                ベクター
+              </button>
+              <button type="button" class="layer-filter" data-layer-filter="text">
+                テキスト
+              </button>
+            </div>
+            <label class="layer-search">
+              <span class="visually-hidden">レイヤー名で検索</span>
+              <input type="search" id="layerSearch" placeholder="名前で絞り込み" autocomplete="off" />
+            </label>
+          </div>
+          <div class="layer-action-row">
+            <button id="addLayerBtn">＋</button>
+            <button id="addVectorLayerBtn" title="ベクターレイヤーを追加">＋V</button>
+            <button id="delLayerBtn">－</button>
+          </div>
+          <ul id="layerList" class="layer-list"></ul>
+        </div>
+        <div class="panel-footer">
+          <div id="layerProperties" class="layer-properties" style="display: none">
+            <h4>レイヤープロパティ</h4>
+            <div class="layer-property-row">
+              <span>種類:</span>
+              <strong id="layerTypeLabel">—</strong>
+            </div>
+            <div id="vectorLayerControls" class="vector-layer-controls" style="display: none">
+              <label for="vectorLayerColor">線色</label>
+              <input type="color" id="vectorLayerColor" value="#000000" />
+              <label for="vectorLayerWidth">線幅</label>
+              <input type="number" id="vectorLayerWidth" min="0.1" step="0.1" value="1" />
+              <label for="vectorLayerDash">破線</label>
+              <input type="text" id="vectorLayerDash" placeholder="例: 4 2" />
+              <label for="vectorLayerCap">線端</label>
+              <select id="vectorLayerCap">
+                <option value="butt">butt</option>
+                <option value="round">round</option>
+                <option value="square">square</option>
+              </select>
+              <button id="vectorLayerApplyAll" type="button">全ベクターに適用</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 
   <footer class="row footer">

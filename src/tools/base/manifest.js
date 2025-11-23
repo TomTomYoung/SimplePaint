@@ -129,6 +129,7 @@ function createCategory(id, label, tools) {
 export const DEFAULT_TOOL_MANIFEST = Object.freeze([
   createCategory('selection', 'Selection tools', [
     createToolEntry('select-rect', () => makeSelectRect()),
+    createToolEntry('select-free', () => makeSelectRect()),
   ]),
   createCategory('drawing', 'Drawing tools', [
     createToolEntry('pencil', makePencil),
