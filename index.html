@@ -23,15 +23,8 @@
         <button id="actual">100%</button>
 
         <div class="row" style="margin-left: auto; gap: 12px">
-          <button
-            type="button"
-            id="toolSearchTrigger"
-            class="toolbar-command-button"
-            data-action="show-tool-search"
-            aria-haspopup="dialog"
-            aria-controls="toolSearchOverlay"
-            title="Ctrl+K"
-          >
+          <button type="button" id="toolSearchTrigger" class="toolbar-command-button" data-action="show-tool-search"
+            aria-haspopup="dialog" aria-controls="toolSearchOverlay" title="Ctrl+K">
             ツール検索 (Ctrl+K)
           </button>
           <button id="restoreBtn" style="display: none">前回復元</button>
@@ -162,27 +155,16 @@
         <div class="panel-body">
           <div id="toolAccordion" class="tool-accordion">
             <details class="accordion-section" open data-section="properties">
-              <summary>プロパティ</summary>
+              <summary>ツールプロパティ</summary>
               <div class="accordion-content">
                 <div class="tool-preview">
-                  <canvas
-                    id="toolPreviewCanvas"
-                    width="240"
-                    height="140"
-                    aria-label="ツールプレビュー"
-                  ></canvas>
+                  <canvas id="toolPreviewCanvas" width="240" height="140" aria-label="ツールプレビュー"></canvas>
                   <button id="toolPreviewReset" type="button">既定に戻す</button>
                 </div>
                 <div id="toolPropContainer"></div>
+                <div id="toolPaletteContainer"></div>
+                <div id="toolShortcutContainer"></div>
               </div>
-            </details>
-            <details class="accordion-section" data-section="palette" open>
-              <summary>カラーパレット</summary>
-              <div id="toolPaletteContainer" class="accordion-content"></div>
-            </details>
-            <details class="accordion-section" data-section="shortcuts">
-              <summary>ショートカット</summary>
-              <div id="toolShortcutContainer" class="accordion-content"></div>
             </details>
           </div>
         </div>
@@ -205,48 +187,23 @@
         <div class="panel-header"></div>
         <div class="panel-body">
           <div class="layer-controls">
-            <div
-              class="layer-filter-group"
-              role="group"
-              aria-label="レイヤー種別フィルター"
-            >
-              <button
-                type="button"
-                class="layer-filter is-active"
-                data-layer-filter="all"
-              >
+            <div class="layer-filter-group" role="group" aria-label="レイヤー種別フィルター">
+              <button type="button" class="layer-filter is-active" data-layer-filter="all">
                 すべて
               </button>
-              <button
-                type="button"
-                class="layer-filter"
-                data-layer-filter="raster"
-              >
+              <button type="button" class="layer-filter" data-layer-filter="raster">
                 ラスター
               </button>
-              <button
-                type="button"
-                class="layer-filter"
-                data-layer-filter="vector"
-              >
+              <button type="button" class="layer-filter" data-layer-filter="vector">
                 ベクター
               </button>
-              <button
-                type="button"
-                class="layer-filter"
-                data-layer-filter="text"
-              >
+              <button type="button" class="layer-filter" data-layer-filter="text">
                 テキスト
               </button>
             </div>
             <label class="layer-search">
               <span class="visually-hidden">レイヤー名で検索</span>
-              <input
-                type="search"
-                id="layerSearch"
-                placeholder="名前で絞り込み"
-                autocomplete="off"
-              />
+              <input type="search" id="layerSearch" placeholder="名前で絞り込み" autocomplete="off" />
             </label>
           </div>
           <div class="layer-action-row">
@@ -269,11 +226,7 @@
               <label for="vectorLayerWidth">線幅</label>
               <input type="number" id="vectorLayerWidth" min="0.1" step="0.1" value="1" />
               <label for="vectorLayerDash">破線</label>
-              <input
-                type="text"
-                id="vectorLayerDash"
-                placeholder="例: 4 2"
-              />
+              <input type="text" id="vectorLayerDash" placeholder="例: 4 2" />
               <label for="vectorLayerCap">線端</label>
               <select id="vectorLayerCap">
                 <option value="butt">butt</option>
@@ -303,18 +256,10 @@
             <option value="custom">カスタム</option>
           </select>
         </label>
-        <span class="shortcut-hint"
-          >Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン / Shift=拘束 /
-          Esc=解除 / ?=ショートカット一覧</span
-        >
-        <button
-          type="button"
-          id="shortcutOverlayButton"
-          class="footer-button"
-          data-action="show-shortcut-overlay"
-          aria-haspopup="dialog"
-          aria-controls="shortcutOverlay"
-        >
+        <span class="shortcut-hint">Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン / Shift=拘束 /
+          Esc=解除 / ?=ショートカット一覧</span>
+        <button type="button" id="shortcutOverlayButton" class="footer-button" data-action="show-shortcut-overlay"
+          aria-haspopup="dialog" aria-controls="shortcutOverlay">
           ショートカット一覧 (?)
         </button>
       </div>
@@ -350,38 +295,19 @@
     </div>
   </div>
 
-  <div
-    id="toolSearchOverlay"
-    class="tool-search-overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="toolSearchTitle"
-    hidden
-  >
+  <div id="toolSearchOverlay" class="tool-search-overlay" role="dialog" aria-modal="true"
+    aria-labelledby="toolSearchTitle" hidden>
     <div class="tool-search-panel" role="document">
       <header class="tool-search-header">
         <h2 id="toolSearchTitle">ツール検索</h2>
-        <button
-          type="button"
-          class="tool-search-close"
-          data-tool-search-dismiss
-          aria-label="閉じる (Esc)"
-          title="閉じる"
-        >
+        <button type="button" class="tool-search-close" data-tool-search-dismiss aria-label="閉じる (Esc)" title="閉じる">
           ×
         </button>
       </header>
       <div class="tool-search-body">
         <label class="tool-search-label" for="toolSearchInput">ツール名やショートカットで検索</label>
-        <input
-          id="toolSearchInput"
-          class="tool-search-input"
-          type="search"
-          placeholder="キーワードで検索 (Ctrl+K)"
-          autocomplete="off"
-          spellcheck="false"
-          aria-controls="toolSearchResults"
-        />
+        <input id="toolSearchInput" class="tool-search-input" type="search" placeholder="キーワードで検索 (Ctrl+K)"
+          autocomplete="off" spellcheck="false" aria-controls="toolSearchResults" />
         <p class="tool-search-hint">Enterで決定、Escで閉じる、↑↓で移動</p>
         <ul id="toolSearchResults" class="tool-search-results" role="listbox" aria-label="検索結果"></ul>
         <p id="toolSearchEmpty" class="tool-search-empty" hidden>該当するツールがありません</p>
@@ -389,24 +315,12 @@
     </div>
   </div>
 
-  <div
-    id="shortcutOverlay"
-    class="shortcut-overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="shortcutOverlayTitle"
-    hidden
-  >
+  <div id="shortcutOverlay" class="shortcut-overlay" role="dialog" aria-modal="true"
+    aria-labelledby="shortcutOverlayTitle" hidden>
     <div class="shortcut-overlay-panel" role="document">
       <header class="shortcut-overlay-header">
         <h2 id="shortcutOverlayTitle">ショートカット一覧</h2>
-        <button
-          type="button"
-          class="shortcut-overlay-close"
-          data-shortcut-dismiss
-          aria-label="閉じる (Esc)"
-          title="閉じる"
-        >
+        <button type="button" class="shortcut-overlay-close" data-shortcut-dismiss aria-label="閉じる (Esc)" title="閉じる">
           ×
         </button>
       </header>
