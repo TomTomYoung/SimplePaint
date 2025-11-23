@@ -149,121 +149,99 @@
       </div>
     </header>
 
-    <div id="stage">
-      <div id="leftPanel" class="side-panel panel" data-name="ツール">
-        <div class="panel-header"></div>
-        <div class="panel-body">
-          <div id="toolAccordion" class="tool-accordion">
-            <details class="accordion-section" open data-section="properties">
-              <summary>ツールプロパティ</summary>
-              <div class="accordion-content">
-                <div class="tool-preview">
-                  <canvas id="toolPreviewCanvas" width="240" height="140" aria-label="ツールプレビュー"></canvas>
-                  <button id="toolPreviewReset" type="button">既定に戻す</button>
-                </div>
-                <div id="toolPropContainer"></div>
-                <div id="toolPaletteContainer"></div>
-                <div id="toolShortcutContainer"></div>
-              </div>
-            </details>
+    <div id="leftResizer" class="panel-resizer"></div>
+
+
+    <div id="canvasArea">
+      <canvas id="base"></canvas>
+      <canvas id="overlay"></canvas>
+      <div id="editorLayer"></div>
+    </div>
+
+
+    <div id="rightResizer" class="panel-resizer"></div>
+
+    <div id="layerPanel" class="side-panel panel" data-name="レイヤー">
+      <div class="panel-header"></div>
+      <div class="panel-body">
+        <div class="layer-controls">
+          <div class="layer-filter-group" role="group" aria-label="レイヤー種別フィルター">
+            <button type="button" class="layer-filter is-active" data-layer-filter="all">
+              すべて
+            </button>
+            <button type="button" class="layer-filter" data-layer-filter="raster">
+              ラスター
+            </button>
+            <button type="button" class="layer-filter" data-layer-filter="vector">
+              ベクター
+            </button>
+            <button type="button" class="layer-filter" data-layer-filter="text">
+              テキスト
+            </button>
           </div>
+          <label class="layer-search">
+            <span class="visually-hidden">レイヤー名で検索</span>
+            <input type="search" id="layerSearch" placeholder="名前で絞り込み" autocomplete="off" />
+          </label>
         </div>
-        <div class="panel-footer"></div>
-      </div>
-
-      <div id="leftResizer" class="panel-resizer"></div>
-
-
-      <div id="canvasArea">
-        <canvas id="base"></canvas>
-        <canvas id="overlay"></canvas>
-        <div id="editorLayer"></div>
-      </div>
-
-
-      <div id="rightResizer" class="panel-resizer"></div>
-
-      <div id="layerPanel" class="side-panel panel" data-name="レイヤー">
-        <div class="panel-header"></div>
-        <div class="panel-body">
-          <div class="layer-controls">
-            <div class="layer-filter-group" role="group" aria-label="レイヤー種別フィルター">
-              <button type="button" class="layer-filter is-active" data-layer-filter="all">
-                すべて
-              </button>
-              <button type="button" class="layer-filter" data-layer-filter="raster">
-                ラスター
-              </button>
-              <button type="button" class="layer-filter" data-layer-filter="vector">
-                ベクター
-              </button>
-              <button type="button" class="layer-filter" data-layer-filter="text">
-                テキスト
-              </button>
-            </div>
-            <label class="layer-search">
-              <span class="visually-hidden">レイヤー名で検索</span>
-              <input type="search" id="layerSearch" placeholder="名前で絞り込み" autocomplete="off" />
-            </label>
-          </div>
-          <div class="layer-action-row">
-            <button id="addLayerBtn">＋</button>
-            <button id="addVectorLayerBtn" title="ベクターレイヤーを追加">＋V</button>
-            <button id="delLayerBtn">－</button>
-          </div>
-          <ul id="layerList" class="layer-list"></ul>
+        <div class="layer-action-row">
+          <button id="addLayerBtn">＋</button>
+          <button id="addVectorLayerBtn" title="ベクターレイヤーを追加">＋V</button>
+          <button id="delLayerBtn">－</button>
         </div>
-        <div class="panel-footer">
-          <div id="layerProperties" class="layer-properties" style="display: none">
-            <h4>レイヤープロパティ</h4>
-            <div class="layer-property-row">
-              <span>種類:</span>
-              <strong id="layerTypeLabel">—</strong>
-            </div>
-            <div id="vectorLayerControls" class="vector-layer-controls" style="display: none">
-              <label for="vectorLayerColor">線色</label>
-              <input type="color" id="vectorLayerColor" value="#000000" />
-              <label for="vectorLayerWidth">線幅</label>
-              <input type="number" id="vectorLayerWidth" min="0.1" step="0.1" value="1" />
-              <label for="vectorLayerDash">破線</label>
-              <input type="text" id="vectorLayerDash" placeholder="例: 4 2" />
-              <label for="vectorLayerCap">線端</label>
-              <select id="vectorLayerCap">
-                <option value="butt">butt</option>
-                <option value="round">round</option>
-                <option value="square">square</option>
-              </select>
-              <button id="vectorLayerApplyAll" type="button">全ベクターに適用</button>
-            </div>
+        <ul id="layerList" class="layer-list"></ul>
+      </div>
+      <div class="panel-footer">
+        <div id="layerProperties" class="layer-properties" style="display: none">
+          <h4>レイヤープロパティ</h4>
+          <div class="layer-property-row">
+            <span>種類:</span>
+            <strong id="layerTypeLabel">—</strong>
+          </div>
+          <div id="vectorLayerControls" class="vector-layer-controls" style="display: none">
+            <label for="vectorLayerColor">線色</label>
+            <input type="color" id="vectorLayerColor" value="#000000" />
+            <label for="vectorLayerWidth">線幅</label>
+            <input type="number" id="vectorLayerWidth" min="0.1" step="0.1" value="1" />
+            <label for="vectorLayerDash">破線</label>
+            <input type="text" id="vectorLayerDash" placeholder="例: 4 2" />
+            <label for="vectorLayerCap">線端</label>
+            <select id="vectorLayerCap">
+              <option value="butt">butt</option>
+              <option value="round">round</option>
+              <option value="square">square</option>
+            </select>
+            <button id="vectorLayerApplyAll" type="button">全ベクターに適用</button>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <footer class="row footer">
-      <div id="status">準備完了</div>
+  <footer class="row footer">
+    <div id="status">準備完了</div>
 
-      <div class="footer-right" role="group" aria-label="ステータス情報">
-        <span id="autosaveBadge" class="footer-badge">AutoSave: —</span>
-        <span class="footer-badge">ズーム: <span id="zoomPct">100%</span></span>
-        <label class="layout-control" for="layoutPreset">
-          <span class="layout-label">レイアウト:</span>
-          <select id="layoutPreset" name="layoutPreset">
-            <option value="default">標準</option>
-            <option value="brush">ブラシ重視</option>
-            <option value="reference">資料表示</option>
-            <option value="focus">キャンバス集中</option>
-            <option value="custom">カスタム</option>
-          </select>
-        </label>
-        <span class="shortcut-hint">Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン / Shift=拘束 /
-          Esc=解除 / ?=ショートカット一覧</span>
-        <button type="button" id="shortcutOverlayButton" class="footer-button" data-action="show-shortcut-overlay"
-          aria-haspopup="dialog" aria-controls="shortcutOverlay">
-          ショートカット一覧 (?)
-        </button>
-      </div>
-    </footer>
+    <div class="footer-right" role="group" aria-label="ステータス情報">
+      <span id="autosaveBadge" class="footer-badge">AutoSave: —</span>
+      <span class="footer-badge">ズーム: <span id="zoomPct">100%</span></span>
+      <label class="layout-control" for="layoutPreset">
+        <span class="layout-label">レイアウト:</span>
+        <select id="layoutPreset" name="layoutPreset">
+          <option value="default">標準</option>
+          <option value="brush">ブラシ重視</option>
+          <option value="reference">資料表示</option>
+          <option value="focus">キャンバス集中</option>
+          <option value="custom">カスタム</option>
+        </select>
+      </label>
+      <span class="shortcut-hint">Space+ドラッグ=パン / Ctrl+ホイール=ズーム / 中ボタン=パン / Shift=拘束 /
+        Esc=解除 / ?=ショートカット一覧</span>
+      <button type="button" id="shortcutOverlayButton" class="footer-button" data-action="show-shortcut-overlay"
+        aria-haspopup="dialog" aria-controls="shortcutOverlay">
+        ショートカット一覧 (?)
+      </button>
+    </div>
+  </footer>
   </div>
 
   <!-- 調整パネル（中身は前回と同じ） -->
@@ -323,36 +301,6 @@
         <button type="button" class="shortcut-overlay-close" data-shortcut-dismiss aria-label="閉じる (Esc)" title="閉じる">
           ×
         </button>
-      </header>
-      <div class="shortcut-overlay-body">
-        <section class="shortcut-section">
-          <h3>一般操作</h3>
-          <dl class="shortcut-list">
-            <div class="shortcut-list-item">
-              <dt>Space + ドラッグ</dt>
-              <dd>キャンバスをパン</dd>
-            </div>
-            <div class="shortcut-list-item">
-              <dt>中ボタン</dt>
-              <dd>キャンバスをパン</dd>
-            </div>
-            <div class="shortcut-list-item">
-              <dt>Ctrl + ホイール</dt>
-              <dd>ズームイン / ズームアウト</dd>
-            </div>
-            <div class="shortcut-list-item">
-              <dt>Shift</dt>
-              <dd>移動や図形を拘束</dd>
-            </div>
-            <div class="shortcut-list-item">
-              <dt>Esc</dt>
-              <dd>操作をキャンセル / 選択を解除</dd>
-            </div>
-            <div class="shortcut-list-item">
-              <dt>?</dt>
-              <dd>ショートカット一覧を開く</dd>
-            </div>
-          </dl>
         </section>
         <section class="shortcut-section">
           <h3>ツール切り替え</h3>
@@ -369,8 +317,8 @@
             <tbody id="shortcutToolTable"></tbody>
           </table>
         </section>
-      </div>
     </div>
+  </div>
   </div>
   <script type="module" src="src/gui/panels.js"></script>
   <script type="module" src="src/gui/toolbar.js"></script>

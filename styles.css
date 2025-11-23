@@ -253,42 +253,6 @@ footer {
 
 .accordion-content {
   padding: 10px 12px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.tool-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.tool-preview canvas {
-  display: block;
-  width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-secondary);
-  box-sizing: border-box;
-}
-
-.tool-preview button {
-  align-self: flex-end;
-  min-width: 0;
-  padding: 4px 10px;
-  font-size: 12px;
-}
-
-.panel-header {
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.04);
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -1114,38 +1078,8 @@ summary:focus-visible {
   overflow: auto;
 }
 
-.tool-search-item {
-  margin: 0;
-}
-
-.tool-search-button {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-  color: var(--text-color);
-  font-size: 13px;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-}
-
-.tool-search-button:hover,
-.tool-search-button:focus-visible {
-  border-color: rgba(66, 133, 244, 0.48);
-  background: rgba(66, 133, 244, 0.08);
-  box-shadow: 0 1px 4px rgba(66, 133, 244, 0.12);
-}
-
-.tool-search-button.is-active {
-  border-color: rgba(66, 133, 244, 0.6);
-  background: rgba(66, 133, 244, 0.15);
-  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+background: rgba(66, 133, 244, 0.15);
+box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
 }
 
 .tool-search-name {
