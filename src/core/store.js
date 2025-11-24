@@ -1,5 +1,6 @@
 import { EventBus } from './event-bus.js';
 import { createEmptyVectorLayer } from './vector-layer-state.js';
+import { computeToolDefaults } from '../gui/tool-props.js';
 
 const hasStructuredClone = typeof globalThis.structuredClone === 'function';
 
@@ -128,10 +129,11 @@ export class Store {
     });
   }
 
-  getToolState(id, defaults = toolDefaults) {
+  getToolState(id, defaults) {
+    const effectiveDefaults = defaults ?? computeToolDefaults(id);
     const toolState = this.state.tools?.[id];
-    if (!defaults && !toolState) return {};
-    const base = defaults ? { ...defaults } : {};
+    if (!effectiveDefaults && !toolState) return {};
+    const base = effectiveDefaults ? { ...effectiveDefaults } : {};
     return toolState ? { ...base, ...deepClone(toolState) } : base;
   }
 
@@ -142,7 +144,7 @@ export class Store {
     if (!isPlainObject(updates)) {
       throw new TypeError('Store.setToolState expects a plain object of updates');
     }
-    const { replace = false, defaults = toolDefaults, silent = false } = options;
+    const { replace = false, defaults = computeToolDefaults(id), silent = false } = options;
     const stored = this.state.tools?.[id]
       ? deepClone(this.state.tools[id])
       : undefined;
@@ -171,7 +173,7 @@ export class Store {
   }
 
   resetToolState(id, options = {}) {
-    const { defaults = toolDefaults, silent = false } = options;
+    const { defaults = computeToolDefaults(id), silent = false } = options;
     return this.setToolState(id, {}, { replace: true, defaults, silent });
   }
 
@@ -216,35 +218,3 @@ export const defaultState = Object.freeze({
   vectorLayer: defaultVectorLayerState,
 });
 
-export const toolDefaults = Object.freeze({
-  brushSize: 4,
-  smoothAlpha: 0.55,
-  spacingRatio: 0.4,
-  primaryColor: '#000000',
-  secondaryColor: '#ffffff',
-  fillOn: true,
-  antialias: false,
-  alpha: 1,
-  opacity: 1,
-  dashPattern: '',
-  capStyle: 'butt',
-  cornerRadius: 0,
-  nurbsWeight: 1,
-  fontFamily: 'system-ui, sans-serif',
-  fontSize: 24,
-  diffusion: 0.1,
-  evaporation: 0.02,
-  penAngle: 45,
-  kappa: 2,
-  w_min: 1,
-  palette: Object.freeze([
-    '#000000',
-    '#ffffff',
-    '#ff6b6b',
-    '#ffa94d',
-    '#ffd43b',
-    '#94d82d',
-    '#4dabf7',
-    '#845ef7',
-  ]),
-});
