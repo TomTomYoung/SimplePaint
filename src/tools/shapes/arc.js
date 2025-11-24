@@ -1,3 +1,4 @@
+// ツール仕様: 概要=幾何図形を配置する形状ツール。 入力=ポインタドラッグ、Shift/Altなどの修飾キー。 出力=確定した図形のパスまたは描画。 操作=ドラッグで図形のサイズや角度を決め、離して確定。必要に応じてShiftで比率固定。
 import { applyStrokeStyle } from '../../utils/stroke-style.js';
 
 export function makeArc(store) {

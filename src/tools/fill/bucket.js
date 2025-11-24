@@ -1,3 +1,4 @@
+// ツール仕様: 概要=領域を塗りつぶすバケツツール。 入力=ポインタクリック、必要に応じて修飾キー。 出力=塗りつぶされたラスターピクセル。 操作=クリックした領域を指定色で塗りつぶし、隣接ピクセルの閾値を考慮。
 import { floodFill } from '../../utils/drawing.js';
 import { bmp, activeLayer } from '../../core/layer.js';
 
