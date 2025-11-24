@@ -1,5 +1,4 @@
 import { getActiveEditor } from '../managers/text-editor.js';
-import { toolDefaults } from '../core/store.js';
 import { describeShortcutsForTool } from './tool-shortcuts.js';
 import { readJSON, writeJSON } from '../utils/safe-storage.js';
 
@@ -50,9 +49,9 @@ const getPanelContainers = panel => {
   };
 };
 
-const computeToolDefaults = id => {
+export const computeToolDefaults = id => {
   const defs = Array.isArray(toolPropDefs[id]) ? toolPropDefs[id] : [];
-  const defaults = { ...toolDefaults };
+  const defaults = {};
   defs.forEach(def => {
     if (def && typeof def.name === 'string' && def.default !== undefined) {
       defaults[def.name] = def.default;

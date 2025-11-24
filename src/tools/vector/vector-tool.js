@@ -1,18 +1,9 @@
 // ツール仕様: 概要=ベクターパスの作成・編集ツール。 入力=ポインタクリック/ドラッグ、修飾キー、必要に応じてキーボード確定操作。 出力=ベクターレイヤー上のパスやアウトライン操作結果。 操作=クリックで点やパスを追加、ドラッグで制御点調整、Enterで確定、Escでキャンセル。
-import { toolDefaults } from '../../core/store.js';
+import { computeToolDefaults } from '../../gui/tool-props.js';
 
 const TOOL_ID = 'vector-tool';
 
-const DEFAULTS = Object.freeze({
-  ...toolDefaults,
-  snapToGrid: false,
-  gridSize: 8,
-  snapToExisting: true,
-  snapRadius: 6,
-  simplifyTolerance: 0.75,
-  rasterizeMode: 'manual', // manual | onExport | auto
-  showAnchors: true,
-});
+const DEFAULTS = Object.freeze(computeToolDefaults(TOOL_ID));
 
 const MIN_SAMPLE_DISTANCE_SQ = 0.25; // 0.5px
 
@@ -849,7 +840,7 @@ function normalisePersistedPaths(vectors) {
     usedIds.add(id);
 
     const width = Number(entry.width);
-    const color = typeof entry.color === 'string' ? entry.color : toolDefaults.primaryColor;
+    const color = typeof entry.color === 'string' ? entry.color : DEFAULTS.primaryColor;
 
     out.push({
       id,
