@@ -1060,10 +1060,18 @@ const POINTER_EVENT_DESCRIPTIONS = Object.freeze({
   pointerup: 'pointerup（離した瞬間）',
 });
 
+const POINTER_EVENT_BEHAVIORS = Object.freeze({
+  pointerdown: 'pointerdown: 操作を開始/対象を捕捉',
+  pointermove: 'pointermove: ドラッグに応じてプレビューやストロークを更新',
+  pointerup: 'pointerup: 操作を確定して描画を終了',
+});
+
+const DEFAULT_USAGE_MESSAGE = '操作方法はツール選択後に表示されます。';
+
 const formatPointerEvent = (eventName) =>
   POINTER_EVENT_DESCRIPTIONS[eventName] ?? eventName;
 
-const collectPointerEventNames = (tool) => {
+const detectPointerEventNames = (tool) => {
   if (!tool || typeof tool !== 'object') {
     return [];
   }
@@ -1071,6 +1079,11 @@ const collectPointerEventNames = (tool) => {
   if (typeof tool.onPointerDown === 'function') events.push('pointerdown');
   if (typeof tool.onPointerMove === 'function') events.push('pointermove');
   if (typeof tool.onPointerUp === 'function') events.push('pointerup');
+  return events;
+};
+
+const collectPointerEventNames = (tool) => {
+  const events = detectPointerEventNames(tool);
   return events.map(formatPointerEvent);
 };
 
@@ -1087,6 +1100,22 @@ const collectKeyUsageDescriptions = (tool, toolId) => {
     descriptions.push('Escapeキー: 操作をキャンセル（cancel）');
   }
   return descriptions;
+};
+
+const collectOperationDescriptions = (tool, toolId) => {
+  const pointerDescriptions = detectPointerEventNames(tool).map(
+    (eventName) => POINTER_EVENT_BEHAVIORS[eventName] ?? `${formatPointerEvent(eventName)}: 状態を更新`,
+  );
+  const keyDescriptions = collectKeyUsageDescriptions(tool, toolId);
+  return [...pointerDescriptions, ...keyDescriptions];
+};
+
+const updateActiveToolUsage = (messages) => {
+  const usage = document.getElementById('activeToolUsage');
+  if (!usage) return;
+  const text = messages.length > 0 ? messages.join(' / ') : DEFAULT_USAGE_MESSAGE;
+  usage.textContent = text;
+  usage.title = text;
 };
 
 const createToolMetaRow = (label, value) => {
@@ -1284,6 +1313,8 @@ export function initToolPropsPanel(store, engine) {
     });
 
     const tool = engine && engine.tools instanceof Map ? engine.tools.get(id) : null;
+    const operationDescriptions = collectOperationDescriptions(tool, id);
+    updateActiveToolUsage(operationDescriptions);
     const metaSection = createToolMetaSection(tool, id);
     if (shortcuts) {
       if (metaSection) {

@@ -1,3 +1,10 @@
+/*
+ * ツール仕様
+ * 概要: ツール管理や描画エンジンの共通基盤。
+ * 入力: ツール実装から呼び出される内部API。
+ * 出力: ツール生成やレンダリングに必要なデータ。
+ * 操作: ツール登録・遅延処理・タイル描画などを内部で処理。
+ */
 /**
  * @typedef {import('../../types/tool.js').Tool} Tool
  * @typedef {import('../../types/tool.js').ToolManifest} ToolManifest
