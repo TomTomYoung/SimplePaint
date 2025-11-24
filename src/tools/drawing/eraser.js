@@ -1,4 +1,18 @@
 // ツール仕様: 概要=ストローク系の描画ツール群。筆圧や速度に応じてピクセルを塗布し、形状や質感を変化させます。 入力=ペン/マウスのポインタイベント、筆圧や速度、Shiftなどの修飾キー。 出力=ラスターレイヤー上の筆跡や効果付きストローク。 操作=左ドラッグで描画開始→移動でストローク更新→離して確定。右クリックやスポイト機能がある場合は色取得に使用。
+
+export const properties = [
+  {
+    name: 'brushSize',
+    label: '消し幅',
+    type: 'range',
+    min: 1,
+    max: 64,
+    step: 1,
+    default: 4,
+    hint: '消しゴムの太さを 1〜64px で指定します。',
+  },
+];
+
 export function makeEraser(store) {
         const id = 'eraser';
         let drawing = false,

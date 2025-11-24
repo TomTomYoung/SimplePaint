@@ -2,6 +2,8 @@
 import { bmp, bctx } from '../../core/layer.js';
 import { toHex } from '../../utils/color/index.js';
 
+export const properties = [];
+
 export function makeEyedropper(store) {
   return {
     id: 'eyedropper',

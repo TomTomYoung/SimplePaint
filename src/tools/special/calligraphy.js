@@ -1,4 +1,40 @@
 // ツール仕様: 概要=表現効果を追加する特殊ブラシ群。スタンプや粒状感、物理風の挙動を備えます。 入力=ペン/マウスのポインタイベント、筆圧/速度、必要に応じて修飾キー。 出力=質感や模様を含むストロークやスタンプ。 操作=左ドラッグで効果を適用し、移動でパラメータが更新、離して確定。
+import { strokeProps } from '../base/common-properties.js';
+
+export const properties = [
+  ...strokeProps,
+  {
+    name: 'penAngle',
+    label: 'ペン角度',
+    type: 'range',
+    min: 0,
+    max: 180,
+    step: 1,
+    default: 45,
+    hint: 'ペン先の回転角度を 0〜180° で指定します。傾きを変えると太さの出方が変化します。',
+  },
+  {
+    name: 'kappa',
+    label: '長短径比',
+    type: 'range',
+    min: 1.5,
+    max: 3,
+    step: 0.1,
+    default: 2,
+    hint: '筆先の長径と短径の比率を設定します。値が高いほど楕円が細長くなります。',
+  },
+  {
+    name: 'w_min',
+    label: '最小幅',
+    type: 'range',
+    min: 1,
+    max: 64,
+    step: 1,
+    default: 1,
+    hint: 'ペン先の短径を 1〜64px で制限します。細さの下限を決め筆致を安定させます。',
+  },
+];
+
 export function makeCalligraphy(store) {
   const id = 'calligraphy';
   let drawing = false;

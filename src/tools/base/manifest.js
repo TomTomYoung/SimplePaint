@@ -6,12 +6,12 @@
  * @typedef {import('../../types/tool.js').ToolManifestCategory} ToolManifestCategory
  */
 
-import { makeSelectRect } from '../selection/select-rect.js';
+import { makeSelectRect, properties as selectRectProperties } from '../selection/select-rect.js';
 
 // Drawing tools
-import { makePencil } from '../drawing/pencil.js';
+import { makePencil, properties as pencilProperties } from '../drawing/pencil.js';
 import { makePencilClick } from '../drawing/pencil-click.js';
-import { makeBrush } from '../drawing/brush.js';
+import { makeBrush, properties as brushProperties } from '../drawing/brush.js';
 import { makeMinimal } from '../drawing/minimal.js';
 import { makeSmooth } from '../drawing/smooth.js';
 import { makeFreehand } from '../drawing/freehand.js';
@@ -30,7 +30,7 @@ import { makeStampBlendModesBrush } from '../drawing/stamp_blend_modes_brush.js'
 import { makeStrokeBoilBrush } from '../drawing/stroke_boil_brush.js';
 import { makeSymmetryMirror } from '../drawing/symmetry_mirror.js';
 import { makeTimeAwareBrush } from '../drawing/time_aware_brush.js';
-import { makeEraser } from '../drawing/eraser.js';
+import { makeEraser, properties as eraserProperties } from '../drawing/eraser.js';
 import { makeEraserClick } from '../drawing/eraser-click.js';
 
 // Specialised brushes
@@ -39,7 +39,7 @@ import { makeTessellatedStroke } from '../special/tessellated-stroke.js';
 import { makeSdfStroke } from '../special/sdf-stroke.js';
 import { makeWatercolor } from '../special/watercolor.js';
 import { makePreviewRefine } from '../special/preview-refine.js';
-import { makeCalligraphy } from '../special/calligraphy.js';
+import { makeCalligraphy, properties as calligraphyProperties } from '../special/calligraphy.js';
 import { makeRibbon } from '../special/ribbon.js';
 import { makeBristle } from '../special/bristle.js';
 import { makeAirbrush } from '../special/airbrush.js';
@@ -72,7 +72,7 @@ import { makePathBooleans } from '../vector/path_booleans_v2.js';
 import { makeOutlineStrokeToFill } from '../vector/outline_stroke_to_fill.js';
 
 // Geometric primitives
-import { makeShape } from '../shapes/shape.js';
+import { makeShape, lineProperties, rectProperties, ellipseProperties } from '../shapes/shape.js';
 import { makeArc } from '../shapes/arc.js';
 import { makeSector } from '../shapes/sector.js';
 import { makeEllipse2 } from '../shapes/ellipse-2.js';
@@ -90,19 +90,20 @@ import { makeEditableBSpline } from '../curves/bspline_edit.js';
 import { makeEditableNURBS } from '../curves/nurbs_edit.js';
 
 // Fill tools
-import { makeBucket } from '../fill/bucket.js';
-import { makeEyedropper } from '../fill/eyedropper.js';
+import { makeBucket, properties as bucketProperties } from '../fill/bucket.js';
+import { makeEyedropper, properties as eyedropperProperties } from '../fill/eyedropper.js';
 
 // Text
-import { makeTextTool } from '../text/text-tool.js';
+import { makeTextTool, properties as textProperties } from '../text/text-tool.js';
 
 /**
  * @param {string} id
  * @param {ToolFactory} factory
+ * @param {Array} [properties]
  * @returns {ToolManifestEntry}
  */
-function createToolEntry(id, factory) {
-  return Object.freeze({ id, factory });
+function createToolEntry(id, factory, properties) {
+  return Object.freeze({ id, factory, properties: properties || [] });
 }
 
 /**
@@ -129,13 +130,13 @@ function createCategory(id, label, tools) {
 /** @type {ToolManifest} */
 export const DEFAULT_TOOL_MANIFEST = Object.freeze([
   createCategory('selection', 'Selection tools', [
-    createToolEntry('select-rect', () => makeSelectRect()),
-    createToolEntry('select-free', () => makeSelectRect()),
+    createToolEntry('select-rect', () => makeSelectRect(), selectRectProperties),
+    createToolEntry('select-free', () => makeSelectRect(), selectRectProperties),
   ]),
   createCategory('drawing', 'Drawing tools', [
-    createToolEntry('pencil', makePencil),
+    createToolEntry('pencil', makePencil, pencilProperties),
     createToolEntry('pencil-click', makePencilClick),
-    createToolEntry('brush', makeBrush),
+    createToolEntry('brush', makeBrush, brushProperties),
     createToolEntry('minimal', makeMinimal),
     createToolEntry('smooth', makeSmooth),
     createToolEntry('freehand', makeFreehand),
@@ -154,7 +155,7 @@ export const DEFAULT_TOOL_MANIFEST = Object.freeze([
     createToolEntry('stroke-boil', makeStrokeBoilBrush),
     createToolEntry('symmetry-mirror', makeSymmetryMirror),
     createToolEntry('time-aware', makeTimeAwareBrush),
-    createToolEntry('eraser', makeEraser),
+    createToolEntry('eraser', makeEraser, eraserProperties),
     createToolEntry('eraser-click', makeEraserClick),
   ]),
   createCategory('special', 'Special brushes', [
@@ -163,7 +164,7 @@ export const DEFAULT_TOOL_MANIFEST = Object.freeze([
     createToolEntry('sdf-stroke', makeSdfStroke),
     createToolEntry('watercolor', makeWatercolor),
     createToolEntry('preview-refine', makePreviewRefine),
-    createToolEntry('calligraphy', makeCalligraphy),
+    createToolEntry('calligraphy', makeCalligraphy, calligraphyProperties),
     createToolEntry('ribbon', makeRibbon),
     createToolEntry('bristle', makeBristle),
     createToolEntry('airbrush', makeAirbrush),
@@ -211,16 +212,16 @@ export const DEFAULT_TOOL_MANIFEST = Object.freeze([
     createToolEntry('arc', makeArc),
     createToolEntry('sector', makeSector),
     createToolEntry('ellipse-2', makeEllipse2),
-    createToolEntry('line', (store) => makeShape('line', store)),
-    createToolEntry('rect', (store) => makeShape('rect', store)),
-    createToolEntry('ellipse', (store) => makeShape('ellipse', store)),
+    createToolEntry('line', (store) => makeShape('line', store), lineProperties),
+    createToolEntry('rect', (store) => makeShape('rect', store), rectProperties),
+    createToolEntry('ellipse', (store) => makeShape('ellipse', store), ellipseProperties),
   ]),
   createCategory('fill', 'Fill tools', [
-    createToolEntry('bucket', makeBucket),
-    createToolEntry('eyedropper', makeEyedropper),
+    createToolEntry('bucket', makeBucket, bucketProperties),
+    createToolEntry('eyedropper', makeEyedropper, eyedropperProperties),
   ]),
   createCategory('text', 'Text tools', [
-    createToolEntry('text', makeTextTool),
+    createToolEntry('text', makeTextTool, textProperties),
   ]),
 ]);
 

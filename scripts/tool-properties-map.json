@@ -1,0 +1,110 @@
+{
+  "pencil": {
+    "common": ["strokeProps", "opacityProp"],
+    "custom": []
+  },
+  "pencil-click": {
+    "common": ["strokeProps", "opacityProp"],
+    "custom": []
+  },
+  "brush": {
+    "common": ["strokeProps", "opacityProp", "smoothProps"],
+    "custom": []
+  },
+  "smooth": {
+    "common": ["strokeProps", "smoothProps"],
+    "custom": []
+  },
+  "minimal": {
+    "common": [],
+    "custom": [
+      {
+        "name": "brushSize",
+        "label": "線幅（ミニマル）",
+        "type": "range",
+        "min": 1,
+        "max": 6,
+        "step": 1,
+        "default": 4,
+        "hint": "極細線ブラシの太さを 1〜6px で調整します。"
+      },
+      {
+        "name": "primaryColor",
+        "label": "線色",
+        "type": "color",
+        "default": "#000000",
+        "hint": "描画に使用する色を選びます。"
+      }
+    ]
+  },
+  "eraser": {
+    "common": [],
+    "custom": [
+      {
+        "name": "brushSize",
+        "label": "消し幅",
+        "type": "range",
+        "min": 1,
+        "max": 64,
+        "step": 1,
+        "default": 4,
+        "hint": "消しゴムの太さを 1〜64px で指定します。"
+      }
+    ]
+  },
+  "eraser-click": {
+    "common": [],
+    "custom": [
+      {
+        "name": "brushSize",
+        "label": "消し幅",
+        "type": "range",
+        "min": 1,
+        "max": 64,
+        "step": 1,
+        "default": 4,
+        "hint": "クリック単位で削除する円の直径を決めます。"
+      }
+    ]
+  },
+  "bucket": {
+    "common": [],
+    "custom": [
+      {
+        "name": "primaryColor",
+        "label": "塗り色",
+        "type": "color",
+        "default": "#000000",
+        "hint": "塗りつぶしに使用する色を選びます。"
+      }
+    ]
+  },
+  "line": {
+    "common": ["strokeProps", "strokeStyleExtras", "aaProp"],
+    "custom": []
+  },
+  "rect": {
+    "common": ["strokeProps", "strokeStyleExtras", "fillProps", "aaProp"],
+    "custom": ["cornerRadiusProp"]
+  },
+  "ellipse": {
+    "common": ["strokeProps", "strokeStyleExtras", "fillProps", "aaProp"],
+    "custom": []
+  },
+  "ellipse-2": {
+    "common": ["strokeProps", "strokeStyleExtras", "fillProps", "aaProp"],
+    "custom": []
+  },
+  "text": {
+    "common": ["strokeProps", "textProps"],
+    "custom": []
+  },
+  "select-rect": {
+    "common": [],
+    "custom": []
+  },
+  "eyedropper": {
+    "common": [],
+    "custom": []
+  }
+}

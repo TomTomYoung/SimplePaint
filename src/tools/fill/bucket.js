@@ -2,6 +2,16 @@
 import { floodFill } from '../../utils/drawing.js';
 import { bmp, activeLayer } from '../../core/layer.js';
 
+export const properties = [
+  {
+    name: 'primaryColor',
+    label: '塗り色',
+    type: 'color',
+    default: '#000000',
+    hint: '塗りつぶしに使用する色を選びます。',
+  },
+];
+
 export function makeBucket(store) {
   return {
     id: 'bucket',

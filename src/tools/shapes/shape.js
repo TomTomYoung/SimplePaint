@@ -1,6 +1,11 @@
 // ツール仕様: 概要=幾何図形を配置する形状ツール。 入力=ポインタドラッグ、Shift/Altなどの修飾キー。 出力=確定した図形のパスまたは描画。 操作=ドラッグで図形のサイズや角度を決め、離して確定。必要に応じてShiftで比率固定。
 import { drawEllipsePath } from '../../utils/drawing.js';
 import { applyStrokeStyle } from '../../utils/stroke-style.js';
+import { strokeProps, strokeStyleExtras, fillProps, aaProp, cornerRadiusProp } from '../base/common-properties.js';
+
+export const lineProperties = [...strokeProps, ...strokeStyleExtras, ...aaProp];
+export const rectProperties = [...strokeProps, ...strokeStyleExtras, cornerRadiusProp, ...fillProps, ...aaProp];
+export const ellipseProperties = [...strokeProps, ...strokeStyleExtras, ...fillProps, ...aaProp];
 
 const clampCornerRadius = (value, width, height) => {
   const maxRadius = Math.max(0, Math.min(width, height) / 2);

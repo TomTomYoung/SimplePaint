@@ -1,4 +1,7 @@
 // ツール仕様: 概要=矩形/自由選択を行う選択ツール。 入力=ポインタドラッグ、Shift/Ctrlなどの修飾キーで加算・減算。 出力=新しい選択マスクや選択範囲。 操作=ドラッグで選択範囲を描き、離して確定。ShiftやAltで加算/減算選択。
+
+export const properties = [];
+
 export function makeSelectRect() {
         let dragging = false,
           moving = false,

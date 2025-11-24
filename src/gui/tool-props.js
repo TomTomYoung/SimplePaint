@@ -1,6 +1,7 @@
 import { getActiveEditor } from '../managers/text-editor.js';
 import { describeShortcutsForTool } from './tool-shortcuts.js';
 import { readJSON, writeJSON } from '../utils/safe-storage.js';
+import { DEFAULT_TOOL_MANIFEST } from '../tools/base/manifest.js';
 
 const DEFAULT_TOOL_PALETTE = Object.freeze([
   '#000000',
@@ -1010,6 +1011,15 @@ const editableCurveSourceMap = Object.freeze({
 Object.entries(editableCurveSourceMap).forEach(([editId, baseId]) => {
   const baseProps = toolPropDefs[baseId] || [];
   toolPropDefs[editId] = [...baseProps, ...editableCurveActions];
+});
+
+// マニフェストからプロパティ定義を読み込んで、toolPropDefsにマージ
+DEFAULT_TOOL_MANIFEST.forEach(category => {
+  category.tools.forEach(tool => {
+    if (tool.properties && tool.properties.length > 0) {
+      toolPropDefs[tool.id] = tool.properties;
+    }
+  });
 });
 
 const ensurePalette = (value) => {
