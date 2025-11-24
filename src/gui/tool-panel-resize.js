@@ -1,7 +1,7 @@
 import { readJSON, writeJSON } from '../utils/safe-storage.js';
 
 const STORAGE_KEY = 'ui:toolPanelSplit';
-const MIN_SELECTOR_HEIGHT = 180;
+const MIN_SELECTOR_HEIGHT = 0;
 const MIN_PROP_HEIGHT = 220;
 const FALLBACK_HEIGHT = 320;
 

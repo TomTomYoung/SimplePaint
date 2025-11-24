@@ -325,7 +325,7 @@ footer {
 .tool-selector-panel {
   padding-bottom: 6px;
   flex: 0 0 var(--tool-selector-height, 320px);
-  min-height: 180px;
+  min-height: 0;
 }
 
 .tool-selector-panel .panel-body {
