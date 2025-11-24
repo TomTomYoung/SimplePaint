@@ -323,6 +323,9 @@ footer {
 }
 
 .tool-selector-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding-bottom: 6px;
   flex: 0 0 var(--tool-selector-height, 320px);
   min-height: 0;
