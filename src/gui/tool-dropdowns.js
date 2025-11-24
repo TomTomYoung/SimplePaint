@@ -191,6 +191,7 @@ export function initToolDropdowns() {
     }
 
     panel.hidden = true;
+    dropdownLayer = document.body; // レイヤーそのものを body にする
     dropdownLayer.appendChild(panel);
   });
 
