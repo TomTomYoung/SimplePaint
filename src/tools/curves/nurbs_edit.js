@@ -1,3 +1,4 @@
+// ツール仕様: 概要=曲線を配置・編集するツール。 入力=クリック/ドラッグによる制御点配置、Enter/Escapeなどのキー操作。 出力=新規曲線や編集済みの曲線データ。 操作=クリックで制御点を配置し、ドラッグでハンドル調整、Enterで確定、Escでキャンセル。
 import { nurbs, computeAABB } from '../../utils/geometry/index.js';
 import { createEditableCurveTool } from './editable_curve_base.js';
 
