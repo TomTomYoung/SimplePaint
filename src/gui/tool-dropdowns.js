@@ -1,17 +1,11 @@
 // tool-dropdowns.js - ツールドロップダウンの配置と制御
 
 function ensureDropdownLayer() {
-  const dropdownLayerId = 'toolDropdownLayer';
-  let dropdownLayer = document.getElementById(dropdownLayerId);
-  if (!(dropdownLayer instanceof HTMLElement)) {
-    dropdownLayer = document.createElement('div');
-    dropdownLayer.id = dropdownLayerId;
-  }
-  dropdownLayer.classList.add('tool-dropdown-layer');
-  if (dropdownLayer.parentElement !== document.body) {
-    document.body.appendChild(dropdownLayer);
-  }
-  return dropdownLayer;
+  // オーバーレイ用の専用コンテナを使わず、body 直下に配置する
+  // （reparent 時のイベントハンドラ切断を避けるための方針）。
+  if (!(document.body instanceof HTMLElement)) return null;
+  document.body.classList.add('tool-dropdown-layer');
+  return document.body;
 }
 
 function hidePanel(panel) {
@@ -26,6 +20,9 @@ function hidePanel(panel) {
 }
 
 function alignPanel(dropdown, panels) {
+  if (dropdown.dataset.inline === 'true') {
+    return;
+  }
   const panel = panels.get(dropdown);
   const summary = dropdown.querySelector('summary');
   if (!panel || !summary) return;
@@ -173,12 +170,14 @@ export function initToolDropdowns() {
   if (!dropdowns.length) return;
 
   const dropdownLayer = ensureDropdownLayer();
+  if (!dropdownLayer) return;
   const panels = new Map();
 
   dropdowns.forEach((dropdown, index) => {
     const panel = dropdown.querySelector('.tool-dropdown-panel');
     const summary = dropdown.querySelector('summary');
     if (!(panel instanceof HTMLElement)) return;
+    const inlineMode = dropdown.dataset.inline === 'true';
 
     const panelId = panel.id || `toolDropdownPanel-${index + 1}`;
     panel.id = panelId;
@@ -191,8 +190,10 @@ export function initToolDropdowns() {
     }
 
     panel.hidden = true;
-    dropdownLayer = document.body; // レイヤーそのものを body にする
-    dropdownLayer.appendChild(panel);
+
+    if (!inlineMode) {
+      dropdownLayer.appendChild(panel);
+    }
   });
 
   if (!panels.size) return;
