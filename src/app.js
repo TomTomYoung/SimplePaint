@@ -2,6 +2,7 @@ import { initToolbar, setToolCallbacks } from './gui/toolbar.js';
 import { initToolPropsPanel } from './gui/tool-props.js';
 import { initShortcutOverlay } from './gui/shortcuts-overlay.js';
 import { initToolSearchOverlay } from './gui/tool-search-overlay.js';
+import { initToolDropdowns } from './gui/tool-dropdowns.js';
 import {
   initAdjustPanel,
   initLayerPanel,
@@ -350,6 +351,7 @@ export class PaintApp {
     }
     const ro = new ResizeObserver(() => this.engine.requestRepaint());
     ro.observe(area);
+    initToolDropdowns();
     initToolbar();
     initAdjustPanel();
     initLayerPanel();
