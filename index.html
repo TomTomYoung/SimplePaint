@@ -220,16 +220,25 @@
             </details>
           </div>
         </section>
+        <div
+          id="toolPanelDivider"
+          class="panel-divider"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="ツール選択とプロパティの境界を調整"
+        ></div>
         <section class="panel-section tool-prop-panel">
           <header class="panel-section-header tool-prop-header">
             <div class="panel-section-title">ツールプロパティ</div>
-            <div class="panel-section-subtitle">
-              <span class="tool-name-label">対象ツール:</span>
-              <span id="activeToolLabel" class="tool-name">—</span>
-            </div>
-            <div id="activeToolUsage" class="tool-usage-note">操作方法はツール選択後に表示されます。</div>
           </header>
           <div class="panel-body">
+            <div class="tool-prop-overview" aria-live="polite">
+              <div class="tool-overview-row">
+                <span class="tool-name-label">対象ツール:</span>
+                <span id="activeToolLabel" class="tool-name">—</span>
+              </div>
+              <div id="activeToolUsage" class="tool-usage-note">操作方法はツール選択後に表示されます。</div>
+            </div>
             <div class="tool-accordion">
               <details class="accordion-section" data-section="properties" open>
                 <summary>プロパティ</summary>
