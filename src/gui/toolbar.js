@@ -69,9 +69,6 @@ export function initToolbar() {
   // システムボタンの初期化
   initSystemButtons();
 
-  // ドロップダウンメニュー
-  initToolDropdowns();
-
   // ショートカットキーの設定
   initKeyboardShortcuts();
 
@@ -90,107 +87,6 @@ function restoreLastSelectedTool() {
   const first = document.querySelector('.tool[data-tool]');
   if (first?.dataset.tool) {
     selectTool(first.dataset.tool);
-  }
-}
-
-function initToolDropdowns() {
-  const dropdowns = Array.from(document.querySelectorAll('.tool-dropdown'));
-  if (!dropdowns.length) return;
-
-  const closeOthers = current => {
-    dropdowns.forEach(dd => {
-      if (dd !== current) {
-        dd.open = false;
-      }
-    });
-  };
-
-  const alignPanel = dropdown => {
-    const panel = dropdown.querySelector('.tool-dropdown-panel');
-    const summary = dropdown.querySelector('summary');
-    if (!panel || !summary) return;
-    panel.removeAttribute('data-align');
-
-    const viewportWidth =
-      document.documentElement?.clientWidth ||
-      (typeof window !== 'undefined' ? window.innerWidth : 0);
-    if (!viewportWidth) return;
-
-    // Force layout before measuring width to ensure styles are applied
-    const panelWidth = panel.offsetWidth;
-    const summaryRect = summary.getBoundingClientRect();
-    const margin = 8;
-
-    let alignment = 'left';
-
-    if (panelWidth >= viewportWidth - margin * 2) {
-      alignment = 'center';
-    } else {
-      const overflowRight = summaryRect.left + panelWidth + margin - viewportWidth;
-      if (overflowRight > 0) {
-        const availableLeft = summaryRect.right - margin;
-        alignment = availableLeft >= panelWidth ? 'right' : 'center';
-      }
-    }
-
-    if (alignment === 'center') {
-      panel.dataset.align = 'center';
-    } else if (alignment === 'right') {
-      panel.dataset.align = 'right';
-    }
-  };
-
-  const schedule = typeof requestAnimationFrame === 'function'
-    ? requestAnimationFrame
-    : (cb => setTimeout(cb, 16));
-
-  const repositionOpenDropdowns = () => {
-    dropdowns.forEach(dd => {
-      if (dd.open) alignPanel(dd);
-    });
-  };
-
-  dropdowns.forEach(dropdown => {
-    dropdown.addEventListener('toggle', () => {
-      if (dropdown.open) {
-        closeOthers(dropdown);
-        schedule(() => alignPanel(dropdown));
-      } else {
-        dropdown.querySelector('.tool-dropdown-panel')?.removeAttribute('data-align');
-      }
-    });
-
-    dropdown.querySelectorAll('.tool').forEach(button => {
-      button.addEventListener('click', () => {
-        dropdown.open = false;
-        dropdown.querySelector('summary')?.focus();
-      });
-    });
-  });
-
-  document.addEventListener('click', event => {
-    if (dropdowns.some(dd => dd.contains(event.target))) {
-      return;
-    }
-    dropdowns.forEach(dd => {
-      dd.open = false;
-    });
-  });
-
-  document.addEventListener('keydown', event => {
-    if (event.key !== 'Escape') return;
-    dropdowns.forEach(dd => {
-      if (!dd.open) return;
-      dd.open = false;
-      dd.querySelector('summary')?.focus();
-    });
-  });
-
-  if (typeof window !== 'undefined') {
-    window.addEventListener('resize', () => {
-      if (!dropdowns.some(dd => dd.open)) return;
-      schedule(repositionOpenDropdowns);
-    });
   }
 }
 
