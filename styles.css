@@ -324,10 +324,29 @@ footer {
 
 .tool-selector-panel {
   padding-bottom: 6px;
+  flex: 0 0 var(--tool-selector-height, 320px);
+  min-height: 180px;
+}
+
+.tool-selector-panel .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
 }
 
 .tool-prop-panel {
   flex: 1 1 auto;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tool-prop-panel .panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   min-height: 0;
 }
 
@@ -335,6 +354,7 @@ footer {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
 }
 
 .tool-accordion {
@@ -397,6 +417,24 @@ footer {
   padding: 4px 8px;
   background: rgba(0, 0, 0, 0.04);
   border-top: 1px solid var(--border-color);
+}
+
+.tool-prop-overview {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tool-overview-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted-color);
 }
 
 .layer-properties {
@@ -600,6 +638,7 @@ footer {
 #leftPanel {
   border-right: 1px solid var(--border-color);
   width: 200px;
+  --tool-selector-height: 320px;
 }
 
 #leftPanel .panel-body {
@@ -721,6 +760,39 @@ footer {
   background: rgba(100, 150, 255, 0.55);
 }
 
+.panel-divider {
+  flex: 0 0 10px;
+  cursor: row-resize;
+  position: relative;
+  background: transparent;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  touch-action: none;
+}
+
+.panel-divider::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.12);
+  transform: translate(-50%, -50%);
+  transition: background 0.2s ease;
+}
+
+.panel-divider:hover,
+.panel-divider.active {
+  background: rgba(100, 150, 255, 0.08);
+}
+
+.panel-divider:hover::before,
+.panel-divider.active::before {
+  background: rgba(100, 150, 255, 0.4);
+}
+
 body.panel-resize-active {
   cursor: col-resize;
   user-select: none;
@@ -757,6 +829,15 @@ body.panel-resize-active * {
 .header-resizer:hover,
 .header-resizer.active {
   background: rgba(100, 150, 255, 0.08);
+}
+
+body.tool-panel-resize-active {
+  cursor: row-resize;
+  user-select: none;
+}
+
+body.tool-panel-resize-active * {
+  cursor: row-resize !important;
 }
 
 .header-resizer:hover::before,

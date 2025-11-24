@@ -9,6 +9,7 @@ import {
 import { layers, activeLayer, bmp } from './core/layer.js';
 import { initPanelResize } from './gui/panel-resize.js';
 import { initHeaderResize } from './gui/header-resize.js';
+import { initToolPanelResize } from './gui/tool-panel-resize.js';
 
 function createEngineStub() {
   const context = {
@@ -59,6 +60,7 @@ if (hasDOM()) {
   const ensureResizeInit = () => {
     initPanelResize();
     initHeaderResize();
+    initToolPanelResize();
   };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', ensureResizeInit, { once: true });
