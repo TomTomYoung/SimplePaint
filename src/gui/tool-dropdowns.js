@@ -6,6 +6,9 @@ function ensureDropdownLayer() {
   if (!(dropdownLayer instanceof HTMLElement)) {
     dropdownLayer = document.createElement('div');
     dropdownLayer.id = dropdownLayerId;
+  }
+  dropdownLayer.classList.add('tool-dropdown-layer');
+  if (dropdownLayer.parentElement !== document.body) {
     document.body.appendChild(dropdownLayer);
   }
   return dropdownLayer;

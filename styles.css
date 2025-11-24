@@ -184,6 +184,17 @@ footer {
 }
 
 /* ツール選択ドロップダウン */
+#toolDropdownLayer.tool-dropdown-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 900;
+}
+
+#toolDropdownLayer .tool-dropdown-panel {
+  pointer-events: auto;
+}
+
 .tool-dropdown {
   position: relative;
   display: flex;
