@@ -184,6 +184,17 @@ footer {
 }
 
 /* ツール選択ドロップダウン */
+#toolDropdownLayer.tool-dropdown-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 900;
+}
+
+#toolDropdownLayer .tool-dropdown-panel {
+  pointer-events: auto;
+}
+
 .tool-dropdown {
   position: relative;
   display: flex;
@@ -219,8 +230,8 @@ footer {
 
 /* ドロップダウンのパネル本体 */
 .tool-dropdown-panel {
-  position: absolute;
-  inset: calc(100% + 6px) auto auto 0;
+  position: fixed;
+  inset: auto auto auto auto;
   min-width: clamp(280px, 32vw, 520px);
   max-width: min(520px, calc(100vw - 16px));
   max-height: min(60vh, 420px);
@@ -234,17 +245,6 @@ footer {
   gap: 12px;
   z-index: 1000;
   transform: none;
-}
-
-.tool-dropdown-panel[data-align='right'] {
-  left: auto;
-  right: 0;
-}
-
-.tool-dropdown-panel[data-align='center'] {
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
 }
 
 /* ツール設定の項目グリッド */
