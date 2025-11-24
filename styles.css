@@ -1,3 +1,7 @@
+/*
+ * グローバル変数・カラー設定
+ * 全体の余白や高さ、色などのテーマ値をまとめて管理
+ */
 :root {
   --ui: 34px;
   /* 最小高さ */
@@ -18,6 +22,7 @@
   box-sizing: border-box;
 }
 
+/* ベースリセットと共通タイポグラフィ */
 html,
 body {
   margin: 0;
@@ -27,6 +32,7 @@ body {
   color: var(--text-color);
 }
 
+/* ヘッダー：ツールバー全体のコンテナ */
 /* ← 固定高さをやめて自動高さ。折り返しやオーバーフローに強くする */
 header {
   position: relative;
@@ -40,6 +46,7 @@ header {
   padding-bottom: var(--header-resizer-height);
 }
 
+/* ヘッダー内部のレイアウト */
 .header-content {
   display: flex;
   flex-direction: column;
@@ -50,6 +57,7 @@ header {
   flex: 1 1 auto;
 }
 
+/* フッター：状態表示と操作ボタンのエリア */
 footer {
   min-height: var(--ui);
   display: flex;
@@ -62,6 +70,7 @@ footer {
   border-bottom: none;
 }
 
+/* システム情報バッジ行 */
 #systems {
   max-height: 60px;
   display: flex;
@@ -74,6 +83,7 @@ footer {
   min-width: 0;
 }
 
+/* ツールバーのグループコンテナ */
 .toolbar-group {
   display: flex;
   flex-direction: row;
@@ -98,6 +108,7 @@ footer {
   align-items: center;
 }
 
+/* グループ内のさらに細かいまとまり */
 .toolbar-subgroup {
   display: inline-flex;
   align-items: center;
@@ -113,6 +124,7 @@ footer {
   color: var(--text-muted);
 }
 
+/* 選択範囲切り替えボタン */
 .selection-scope .scope-btn {
   padding: 4px 10px;
   border-radius: 12px;
@@ -126,6 +138,7 @@ footer {
   border-color: rgba(66, 133, 244, 0.48);
 }
 
+/* 汎用操作ボタン */
 .toolbar-command-button {
   display: inline-flex;
   align-items: center;
@@ -170,6 +183,7 @@ footer {
   flex: 1 1 auto;
 }
 
+/* ツール選択ドロップダウン */
 .tool-dropdown {
   position: relative;
   display: flex;
@@ -203,6 +217,7 @@ footer {
   border-color: rgba(66, 133, 244, 0.4);
 }
 
+/* ドロップダウンのパネル本体 */
 .tool-dropdown-panel {
   position: absolute;
   inset: calc(100% + 6px) auto auto 0;
@@ -232,19 +247,21 @@ footer {
   transform: translateX(-50%);
 }
 
+/* ツール設定の項目グリッド */
 .tool-section {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 }
 
-/* ← グリッドの行高も auto に変更（以前は var(--ui) で固定だった） */
+/* アプリ全体の3分割レイアウト */
 #app {
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100dvh;
 }
 
+/* キャンバスとサイドパネルを含むステージ */
 #stage {
   position: relative;
   background: var(--bg-primary);
@@ -260,10 +277,12 @@ footer {
   min-height: 0;
 }
 
+/* サイドパネルが折りたたまれている時 */
 .side-panel.is-collapsed {
   display: none !important;
 }
 
+/* サイドパネル共通スタイル */
 .side-panel {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -277,6 +296,7 @@ footer {
   min-height: 0;
 }
 
+/* パネル内のセクション */
 .panel-section {
   display: flex;
   flex-direction: column;
@@ -322,6 +342,7 @@ footer {
   line-height: 1.4;
 }
 
+/* ツール一覧パネル */
 .tool-selector-panel {
   display: flex;
   flex-direction: column;
@@ -338,6 +359,7 @@ footer {
   overflow: auto;
 }
 
+/* 選択ツールのプロパティ編集領域 */
 .tool-prop-panel {
   flex: 1 1 auto;
   min-height: 200px;
@@ -360,6 +382,7 @@ footer {
   flex: 1;
 }
 
+/* プロパティの折りたたみコンテナ */
 .tool-accordion {
   display: flex;
   flex-direction: column;
@@ -397,6 +420,7 @@ footer {
   border-bottom: 1px solid var(--border-color);
 }
 
+/* ツールプレビュー（サンプル表示） */
 .tool-preview {
   display: flex;
   flex-direction: column;
@@ -440,6 +464,7 @@ footer {
   color: var(--muted-color);
 }
 
+/* レイヤー詳細表示（非表示がデフォルト） */
 .layer-properties {
   display: none;
   padding: 6px 4px 0;
@@ -464,6 +489,7 @@ footer {
   font-size: 12px;
 }
 
+/* ベクターレイヤー特有の追加コントロール */
 .vector-layer-controls {
   display: none;
   gap: 4px;
@@ -490,6 +516,7 @@ footer {
   margin-top: 4px;
 }
 
+/* パネル本体のスクロール領域 */
 .panel-body {
   flex: 1;
   overflow: scroll;
@@ -573,6 +600,7 @@ footer {
   margin-top: 4px;
 }
 
+/* カラーパレット編集セクション */
 .prop-palette-section {
   margin-top: 12px;
 }
@@ -583,6 +611,7 @@ footer {
   margin-bottom: 6px;
 }
 
+/* パレットチップの一覧 */
 .palette-swatches {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
@@ -609,6 +638,7 @@ footer {
   outline-offset: 2px;
 }
 
+/* パレットJSON入力 */
 .palette-json {
   width: 100%;
   min-height: 72px;
@@ -626,6 +656,7 @@ footer {
   background: #ffebee;
 }
 
+/* パレット編集の操作ボタン */
 .palette-actions {
   display: flex;
   justify-content: flex-end;
@@ -638,6 +669,7 @@ footer {
   padding: 4px 10px;
 }
 
+/* 左側ツール一覧パネル */
 #leftPanel {
   border-right: 1px solid var(--border-color);
   width: 200px;
@@ -648,21 +680,25 @@ footer {
   min-height: 0;
 }
 
+/* 右側レイヤーリストパネル */
 #layerPanel {
   border-left: 1px solid var(--border-color);
   width: 250px;
 }
 
+/* レイヤーリストエリア */
 .layer-selection-panel {
   flex: 1 1 auto;
   min-height: 0;
 }
 
+/* レイヤーの設定セクション */
 .layer-props-panel {
   flex: 0 0 auto;
   padding-bottom: 10px;
 }
 
+/* レイヤーの並べ替え・フィルタなど上部操作行 */
 .layer-controls {
   display: flex;
   flex-wrap: wrap;
@@ -672,6 +708,7 @@ footer {
   margin-bottom: 8px;
 }
 
+/* レイヤー表示切り替えフィルターのボタンセット */
 .layer-filter-group {
   display: inline-flex;
   align-items: center;
@@ -699,6 +736,7 @@ footer {
   font-weight: 600;
 }
 
+/* レイヤー検索ボックス */
 .layer-search {
   display: flex;
   align-items: center;
@@ -716,12 +754,14 @@ footer {
   min-width: 160px;
 }
 
+/* レイヤー操作ボタン行 */
 .layer-action-row {
   display: flex;
   gap: 6px;
   margin-bottom: 8px;
 }
 
+/* 左右パネルのドラッグリサイズハンドル */
 .panel-resizer {
   cursor: col-resize;
   flex: 0 0 4px;
@@ -763,6 +803,7 @@ footer {
   background: rgba(100, 150, 255, 0.55);
 }
 
+/* 縦方向の分割線（上下リサイズ） */
 .panel-divider {
   flex: 0 0 10px;
   cursor: row-resize;
@@ -805,6 +846,7 @@ body.panel-resize-active * {
   cursor: col-resize !important;
 }
 
+/* ヘッダー高さのリサイズハンドル */
 .header-resizer {
   cursor: row-resize;
   position: absolute;
@@ -857,6 +899,7 @@ body.header-resize-active * {
   cursor: row-resize !important;
 }
 
+/* キャンバスを含むスクロールエリア */
 #canvasArea {
   position: relative;
   overflow: scroll;
@@ -890,11 +933,13 @@ canvas {
   will-change: transform;
 }
 
+/* マウスオーバーなど補助描画用のオーバーレイ */
 #overlay {
   pointer-events: none;
   z-index: 1;
 }
 
+/* エディタUIを載せるレイヤー */
 #editorLayer {
   position: absolute;
   inset: 0;
@@ -904,6 +949,7 @@ canvas {
   will-change: transform;
 }
 
+/* ボタンの共通寸法 */
 button {
   height: 32px;
   min-width: 60px;
@@ -1153,12 +1199,14 @@ summary:focus-visible {
   border-radius: 8px;
 }
 
+/* フッターのレイアウト調整 */
 .footer {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
+/* フッター右側のバッジやリンク列 */
 .footer-right {
   display: flex;
   gap: 12px;
@@ -1171,6 +1219,7 @@ summary:focus-visible {
   white-space: nowrap;
 }
 
+/* レイアウトプリセットの切り替えUI */
 .layout-control {
   display: inline-flex;
   align-items: center;
@@ -1189,6 +1238,7 @@ summary:focus-visible {
   font-size: 12px;
 }
 
+/* フッター内の主要ボタン */
 .footer-button {
   display: inline-flex;
   align-items: center;
@@ -1221,11 +1271,13 @@ summary:focus-visible {
   outline-offset: 3px;
 }
 
+/* ショートカット表示のサブテキスト */
 .shortcut-hint {
   font-size: 12px;
   color: var(--muted-color);
 }
 
+/* ショートカット一覧オーバーレイ */
 .shortcut-overlay {
   position: fixed;
   inset: 0;
@@ -1242,6 +1294,7 @@ summary:focus-visible {
   display: none;
 }
 
+/* ツール検索の全画面オーバーレイ */
 .tool-search-overlay {
   position: fixed;
   inset: 0;
@@ -1258,6 +1311,7 @@ summary:focus-visible {
   display: none;
 }
 
+/* ツール検索モーダル本体 */
 .tool-search-panel {
   width: min(560px, 94vw);
   max-height: min(88vh, 600px);
@@ -1526,6 +1580,7 @@ box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
   color: var(--muted-color);
 }
 
+/* 1200px以下のレイアウト調整 */
 @media (max-width: 1200px) {
   .tool-dropdown>summary {
     min-width: 96px;
@@ -1548,6 +1603,7 @@ box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
   }
 }
 
+/* タブレット以下のレイアウト調整 */
 @media (max-width: 768px) {
 
   #leftPanel,
@@ -1580,6 +1636,7 @@ box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
   }
 }
 
+/* タブレット以下の追加調整（レイアウトコントロール） */
 @media (max-width: 768px) {
   .layout-control {
     width: 100%;
@@ -1591,6 +1648,7 @@ box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
   }
 }
 
+/* ダークテーマ用トークンと色味 */
 @media (prefers-color-scheme: dark) {
   :root {
     --bg-primary: #1e1e1e;
