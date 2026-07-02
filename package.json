@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "fix:static-layer-ids": "node scripts/fix-static-layer-button-ids.mjs",
     "test": "node --test"
   }
 }
