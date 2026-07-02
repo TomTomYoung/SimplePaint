@@ -46,6 +46,19 @@ test('normalizes duplicated layer button ids at runtime', () => {
   assert.equal(panelAdd.dataset.actionRole, 'panel');
 });
 
+test('does not rewrite a single legacy panel id after static cleanup', () => {
+  const toolbarAdd = makeButton('toolbarAddLayerBtn');
+  const panelAdd = makeButton('addLayerBtn');
+  const root = makeRoot([toolbarAdd, panelAdd]);
+
+  normalizeDuplicateIds(root);
+
+  assert.equal(toolbarAdd.id, 'toolbarAddLayerBtn');
+  assert.equal(panelAdd.id, 'addLayerBtn');
+  assert.equal(toolbarAdd.dataset.actionRole, 'toolbar');
+  assert.equal(panelAdd.dataset.actionRole, 'panel');
+});
+
 test('proxies toolbar layer buttons to panel buttons after normalization', () => {
   const toolbarAdd = makeButton('addLayerBtn');
   const panelAdd = makeButton('addLayerBtn');
