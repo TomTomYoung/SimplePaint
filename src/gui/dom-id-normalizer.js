@@ -26,17 +26,27 @@ export function normalizeDuplicateIds(root = document) {
   if (!root?.querySelectorAll) return;
 
   LAYER_BUTTON_ID_PLAN.forEach(({ legacyId, toolbarId, panelId, action }) => {
-    const matches = Array.from(root.querySelectorAll(`#${legacyId}`));
-    if (matches.length === 0) return;
+    const toolbarButton = root.getElementById?.(toolbarId) ?? null;
+    const panelButton = root.getElementById?.(panelId) ?? null;
 
-    const [toolbarButton, panelButton] = matches;
     if (toolbarButton) {
-      toolbarButton.id = toolbarId;
       tagButton(toolbarButton, action, 'toolbar');
     }
     if (panelButton) {
-      panelButton.id = panelId;
       tagButton(panelButton, action, 'panel');
+    }
+
+    const matches = Array.from(root.querySelectorAll(`#${legacyId}`));
+    if (matches.length < 2) return;
+
+    const [legacyToolbarButton, legacyPanelButton] = matches;
+    if (legacyToolbarButton) {
+      legacyToolbarButton.id = toolbarId;
+      tagButton(legacyToolbarButton, action, 'toolbar');
+    }
+    if (legacyPanelButton) {
+      legacyPanelButton.id = panelId;
+      tagButton(legacyPanelButton, action, 'panel');
     }
   });
 }
