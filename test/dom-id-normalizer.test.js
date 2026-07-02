@@ -1,18 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeDuplicateIds, installLayerToolbarProxies } from '../src/gui/dom-id-normalizer.js';
+import { normalizeDuplicateIds } from '../src/gui/dom-id-normalizer.js';
 
 function makeButton(id) {
-  const listeners = new Map();
   return {
     id,
     dataset: {},
-    addEventListener(type, handler) {
-      listeners.set(type, handler);
-    },
-    click() {
-      listeners.get('click')?.();
-    },
   };
 }
 
@@ -43,6 +36,7 @@ test('normalizes duplicated layer button ids at runtime', () => {
   assert.equal(toolbarVector.id, 'toolbarAddVectorLayerBtn');
   assert.equal(panelVector.id, 'addVectorLayerBtn');
   assert.equal(toolbarAdd.dataset.action, 'add-layer');
+  assert.equal(toolbarAdd.dataset.actionRole, 'toolbar');
   assert.equal(panelAdd.dataset.actionRole, 'panel');
 });
 
@@ -59,17 +53,16 @@ test('does not rewrite a single legacy panel id after static cleanup', () => {
   assert.equal(panelAdd.dataset.actionRole, 'panel');
 });
 
-test('proxies toolbar layer buttons to panel buttons after normalization', () => {
-  const toolbarAdd = makeButton('addLayerBtn');
+test('keeps toolbar and panel layer actions independent', () => {
+  const toolbarAdd = makeButton('toolbarAddLayerBtn');
   const panelAdd = makeButton('addLayerBtn');
   const root = makeRoot([toolbarAdd, panelAdd]);
-  let panelClicks = 0;
 
   normalizeDuplicateIds(root);
-  panelAdd.addEventListener('click', () => { panelClicks += 1; });
-  installLayerToolbarProxies(root);
 
-  toolbarAdd.click();
-
-  assert.equal(panelClicks, 1);
+  assert.equal(toolbarAdd.dataset.action, 'add-layer');
+  assert.equal(toolbarAdd.dataset.actionRole, 'toolbar');
+  assert.equal(panelAdd.dataset.action, 'add-layer');
+  assert.equal(panelAdd.dataset.actionRole, 'panel');
+  assert.notEqual(toolbarAdd, panelAdd);
 });
