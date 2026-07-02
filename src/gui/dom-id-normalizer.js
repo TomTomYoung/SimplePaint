@@ -51,25 +51,8 @@ export function normalizeDuplicateIds(root = document) {
   });
 }
 
-export function installLayerToolbarProxies(root = document) {
-  if (!root?.getElementById) return;
-
-  LAYER_BUTTON_ID_PLAN.forEach(({ toolbarId, panelId }) => {
-    const toolbarButton = root.getElementById(toolbarId);
-    const panelButton = root.getElementById(panelId);
-    if (!toolbarButton || !panelButton) return;
-    if (toolbarButton.dataset.proxyInstalled === 'true') return;
-
-    toolbarButton.dataset.proxyInstalled = 'true';
-    toolbarButton.addEventListener('click', () => {
-      panelButton.click();
-    });
-  });
-}
-
 export function normaliseRuntimeDom(root = document) {
   normalizeDuplicateIds(root);
-  installLayerToolbarProxies(root);
 }
 
 if (typeof document !== 'undefined') {
