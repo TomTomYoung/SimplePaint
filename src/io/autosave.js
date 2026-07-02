@@ -1,3 +1,9 @@
+function hasRestorableSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return false;
+  if (snapshot.dataURL) return true;
+  return snapshot.version === 2 && Array.isArray(snapshot.layers);
+}
+
 export function createAutosaveController({
   sessionManager,
   snapshotDocument,
@@ -189,7 +195,7 @@ export function createAutosaveController({
   async function restore() {
     try {
       const snapshot = await sessionManager.load();
-      if (snapshot?.dataURL) {
+      if (hasRestorableSnapshot(snapshot)) {
         await applySnapshot(snapshot);
         notify('restored', { snapshot });
       }
@@ -201,7 +207,7 @@ export function createAutosaveController({
   async function check() {
     try {
       const snapshot = await sessionManager.load();
-      notify(snapshot?.dataURL ? 'available' : 'missing', { snapshot });
+      notify(hasRestorableSnapshot(snapshot) ? 'available' : 'missing', { snapshot });
     } catch (error) {
       notify('check-error', { error });
     }
