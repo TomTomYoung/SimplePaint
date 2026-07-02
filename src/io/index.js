@@ -7,12 +7,11 @@ import {
   applySnapshotToDocument,
 } from './document.js';
 import { copySelection, cutSelection, readClipboardItems } from './clipboard-actions.js';
-import { saveDocumentAs, renderDocumentCanvas } from './export-actions.js';
+import { saveDocumentAs } from './export-actions.js';
 import { createAutosaveController } from './autosave.js';
 import { createSessionManager } from './session.js';
 import { loadImageFile } from './file-io.js';
-import { bmp } from '../core/layer.js';
-import { cloneVectorLayer } from '../core/vector-layer-state.js';
+import { createLayeredSnapshot } from './layered-snapshot.js';
 
 let engine = null;
 let fitToScreen = () => {};
@@ -64,17 +63,7 @@ function ensureAutosaveController() {
   autosaveController = createAutosaveController({
     sessionManager,
     autosaveInterval: AUTOSAVE_INTERVAL,
-    snapshotDocument: async () => {
-      const canvas = renderDocumentCanvas();
-      const vectorLayer = cloneVectorLayer(engine?.store?.getState()?.vectorLayer ?? null);
-      return {
-        dataURL: canvas.toDataURL('image/png'),
-        width: bmp.width,
-        height: bmp.height,
-        ts: Date.now(),
-        vectorLayer,
-      };
-    },
+    snapshotDocument: async () => createLayeredSnapshot(engine),
     applySnapshot: (snapshot) =>
       applySnapshotToDocument({ engine, fitToScreen, snapshot }),
     onStatus: handleAutosaveStatus,
