@@ -9,6 +9,7 @@ import {
   markLayerPreviewDirty,
 } from '../core/layer.js';
 import { createEmptyVectorLayer, cloneVectorLayer } from '../core/vector-layer-state.js';
+import { applyLayeredSnapshot, isLayeredSnapshot } from './layered-snapshot.js';
 
 function configureLayerDimensions(width, height) {
   layers.forEach((layer) => {
@@ -73,7 +74,7 @@ export function positionFloatingSelection(engine, canvas, width, height) {
   engine.requestRepaint();
 }
 
-export function applySnapshotToDocument({ engine, fitToScreen, snapshot }) {
+function applyLegacySnapshotToDocument({ engine, fitToScreen, snapshot }) {
   const { width, height, dataURL, vectorLayer } = snapshot;
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -93,4 +94,11 @@ export function applySnapshotToDocument({ engine, fitToScreen, snapshot }) {
     img.onerror = () => reject(new Error('Failed to restore snapshot image'));
     img.src = dataURL;
   });
+}
+
+export function applySnapshotToDocument({ engine, fitToScreen, snapshot }) {
+  if (isLayeredSnapshot(snapshot)) {
+    return applyLayeredSnapshot({ engine, fitToScreen, snapshot });
+  }
+  return applyLegacySnapshotToDocument({ engine, fitToScreen, snapshot });
 }

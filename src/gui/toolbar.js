@@ -90,6 +90,12 @@ function restoreLastSelectedTool() {
   }
 }
 
+function getToolbarActionButton(action, fallbackId = null) {
+  const actionButton = document.querySelector(`[data-action="${action}"][data-action-role="toolbar"]`);
+  if (actionButton) return actionButton;
+  return fallbackId ? document.getElementById(fallbackId) : null;
+}
+
 function initSystemButtons() {
   // ファイル操作
   document.getElementById('open')?.addEventListener('click', () => {
@@ -155,10 +161,11 @@ function initSystemButtons() {
   document.getElementById('flipCanvasV')?.addEventListener('click', () =>
     toolCallbacks.onFlipCanvas?.('v'));
 
-  // レイヤー操作
-  document.getElementById('addLayerBtn')?.addEventListener('click', () =>
+  // レイヤー操作。右パネル側 addLayerBtn/addVectorLayerBtn には panels.js が登録するため、
+  // toolbar.js はツールバー側の正規化済みボタンだけを扱う。
+  getToolbarActionButton('add-layer', 'toolbarAddLayerBtn')?.addEventListener('click', () =>
     toolCallbacks.onAddLayer?.());
-  document.getElementById('addVectorLayerBtn')?.addEventListener('click', () =>
+  getToolbarActionButton('add-vector-layer', 'toolbarAddVectorLayerBtn')?.addEventListener('click', () =>
     toolCallbacks.onAddVectorLayer?.());
   document.getElementById('deleteLayerBtn')?.addEventListener('click', () =>
     toolCallbacks.onDeleteLayer?.());
