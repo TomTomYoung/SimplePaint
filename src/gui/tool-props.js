@@ -1,3 +1,4 @@
+import { drawBrushSample } from './brush-preview.js';
 import { getActiveEditor } from '../managers/text-editor.js';
 import { describeShortcutsForTool } from './tool-shortcuts.js';
 import { readJSON, writeJSON } from '../utils/safe-storage.js';
@@ -216,7 +217,7 @@ const nurbsProp = [
 export const toolPropDefs = {
   pencil: [...strokeProps, opacityProp],
   'pencil-click': [...strokeProps, opacityProp],
-  brush: [...strokeProps, opacityProp, ...smoothProps],
+  brush: [...strokeProps, opacityProp],
   smooth: [...strokeProps, ...smoothProps],
   'texture-brush': [
     ...strokeProps,
@@ -1093,20 +1094,27 @@ const collectKeyUsageDescriptions = (tool, toolId) => {
     descriptions.push(`ツール切替: ${shortcuts.join(' / ')}`);
   }
   if (tool && typeof tool.onEnter === 'function') {
-    descriptions.push('Enterキー: 操作を確定（onEnter）');
+    descriptions.push('Enter: 確定');
   }
   if (tool && typeof tool.cancel === 'function') {
-    descriptions.push('Escapeキー: 操作をキャンセル（cancel）');
+    descriptions.push('Esc: キャンセル');
   }
   return descriptions;
 };
 
 const collectOperationDescriptions = (tool, toolId) => {
-  const pointerDescriptions = detectPointerEventNames(tool).map(
-    (eventName) => POINTER_EVENT_BEHAVIORS[eventName] ?? `${formatPointerEvent(eventName)}: 状態を更新`,
-  );
-  const keyDescriptions = collectKeyUsageDescriptions(tool, toolId);
-  return [...pointerDescriptions, ...keyDescriptions];
+  const guides = {
+    pencil: 'ドラッグして描きます。', brush: 'ドラッグして描きます。',
+    eraser: 'ドラッグした部分を透明にします。',
+    bucket: '塗りたい場所をクリックします。',
+    eyedropper: '画像をクリックして色を取り、元の道具に戻ります。',
+    'select-rect': 'ドラッグして選択。範囲の内側をドラッグして移動します。',
+    text: 'クリックして文字を入力。Enterで確定、Escで取り消します。',
+    line: '始点から終点へドラッグします。',
+    rect: '対角へドラッグして四角を描きます。',
+    ellipse: '対角へドラッグして楕円を描きます。',
+  };
+  return [guides[toolId] || 'キャンバス上で操作します。', ...collectKeyUsageDescriptions(tool, toolId)];
 };
 
 const updateActiveToolUsage = (messages) => {
@@ -1144,7 +1152,7 @@ const createToolMetaSection = (tool, toolId) => {
   title.textContent = '操作ガイド';
   section.appendChild(title);
   if (pointerEvents.length > 0) {
-    section.appendChild(createToolMetaRow('受け付けイベント', pointerEvents.join(' / ')));
+    section.appendChild(createToolMetaRow('使い方', collectOperationDescriptions(tool, toolId)[0]));
   }
   if (keyDescriptions.length > 0) {
     section.appendChild(createToolMetaRow('使用するキー', keyDescriptions.join(' / ')));
@@ -1211,7 +1219,11 @@ const appendPaletteSection = (container, store, id, state) => {
     textarea.classList.remove('error');
     textarea.title = '';
   });
-  paletteSection.appendChild(textarea);
+  const paletteDetails = document.createElement('details');
+  const paletteSummary = document.createElement('summary');
+  paletteSummary.textContent = 'パレットの読み込み・書き出し';
+  paletteDetails.appendChild(paletteSummary);
+  paletteDetails.appendChild(textarea);
 
   const actionRow = document.createElement('div');
   actionRow.className = 'palette-actions';
@@ -1259,7 +1271,8 @@ const appendPaletteSection = (container, store, id, state) => {
   });
   actionRow.appendChild(copyBtn);
 
-  paletteSection.appendChild(actionRow);
+  paletteDetails.appendChild(actionRow);
+  paletteSection.appendChild(paletteDetails);
 
   container.appendChild(paletteSection);
 };
@@ -1299,6 +1312,8 @@ export function initToolPropsPanel(store, engine) {
     });
   }
 
+  let updatingControl = false;
+  let sample = null;
   const render = (id) => {
     activeToolId = id;
     const defs = toolPropDefs[id] || [];
@@ -1335,11 +1350,25 @@ export function initToolPropsPanel(store, engine) {
       properties.appendChild(note);
     }
 
+    sample = document.createElement('canvas');
+    sample.width = 212; sample.height = 82;
+    sample.className = 'brush-sample';
+    sample.setAttribute('aria-label', '現在の色と太さの描画見本');
+    properties.appendChild(sample);
+    drawBrushSample(sample, store, id);
+    const advanced = document.createElement('details');
+    advanced.className = 'advanced-properties';
+    const advancedSummary = document.createElement('summary');
+    advancedSummary.textContent = '詳しい設定';
+    advanced.appendChild(advancedSummary);
+    const basicNames = new Set(['brushSize', 'primaryColor', 'secondaryColor', 'opacity', 'fillOn', 'fontSize', 'fontFamily']);
+
     defs.forEach((d) => {
       const wrap = document.createElement('div');
       wrap.className = 'prop-item';
       const label = document.createElement('label');
       label.textContent = d.label;
+      label.htmlFor = `tool-prop-${id}-${d.name}`;
       label.style.display = 'block';
       let input;
       if (d.type === 'button') {
@@ -1365,7 +1394,7 @@ export function initToolPropsPanel(store, engine) {
             wrap.appendChild(hint);
             btn.title = d.hint;
           }
-          properties.appendChild(wrap);
+          advanced.appendChild(wrap);
           return;
         }
       if (d.type === 'select') {
@@ -1383,6 +1412,7 @@ export function initToolPropsPanel(store, engine) {
         if (d.max !== undefined) input.max = d.max;
         if (d.step !== undefined) input.step = d.step;
       }
+      input.id = `tool-prop-${id}-${d.name}`;
       const val = state[d.name] ?? d.default;
       if (d.type === 'checkbox') {
         input.checked = !!val;
@@ -1398,6 +1428,12 @@ export function initToolPropsPanel(store, engine) {
       if (id === 'vector-tool' && d.name === 'gridSize' && input instanceof HTMLInputElement) {
         input.disabled = !state.snapToGrid;
       }
+      const output = d.type === 'range' ? document.createElement('output') : null;
+      if (output) {
+        output.htmlFor = input.id;
+        output.textContent = d.name === 'opacity' ? Math.round(Number(val) * 100) + '%' : String(val);
+        label.appendChild(output);
+      }
       const evt = d.type === 'checkbox' || d.type === 'select' ? 'change' : 'input';
       input.addEventListener(evt, () => {
         let v;
@@ -1409,7 +1445,12 @@ export function initToolPropsPanel(store, engine) {
         } else {
           v = input.value;
         }
-        store.setToolState(id, { [d.name]: v });
+        updatingControl = true;
+        try { store.setToolState(id, { [d.name]: v }); }
+        finally { updatingControl = false; }
+        if (sample) drawBrushSample(sample, store, id);
+        if (output) output.textContent = d.name === 'opacity' ? Math.round(v * 100) + '%' : String(v);
+        engine?.requestRepaint?.();
         if (d.name === 'antialias') engine?.requestRepaint?.();
         if (id === 'vector-tool') {
           if (d.name === 'snapToGrid') {
@@ -1445,8 +1486,9 @@ export function initToolPropsPanel(store, engine) {
           input.title = d.hint;
         }
       }
-      properties.appendChild(wrap);
+      (basicNames.has(d.name) ? properties : advanced).appendChild(wrap);
     });
+    if (advanced.children.length > 1) properties.appendChild(advanced);
 
     appendPaletteSection(palette || properties, store, id, state);
 
@@ -1455,7 +1497,9 @@ export function initToolPropsPanel(store, engine) {
   };
 
   render(store.getState().toolId);
+  engine?.eventBus?.on('session:restored', () => render(store.getState().toolId));
   store.subscribe((s, old) => {
+    if (updatingControl) return;
     if (s.toolId !== old.toolId) {
       render(s.toolId);
     } else {
@@ -1468,4 +1512,4 @@ export function initToolPropsPanel(store, engine) {
 }
 
 // expose definitions for other scripts if needed
-window.initToolPropsPanel = initToolPropsPanel;
+if (typeof window !== 'undefined') window.initToolPropsPanel = initToolPropsPanel;

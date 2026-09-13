@@ -1,3 +1,5 @@
+const hasSnapshot = snapshot => !!snapshot?.dataURL || (snapshot?.version === 2 && Array.isArray(snapshot.layers) && snapshot.layers.length > 0);
+
 export function createAutosaveController({
   sessionManager,
   snapshotDocument,
@@ -189,9 +191,10 @@ export function createAutosaveController({
   async function restore() {
     try {
       const snapshot = await sessionManager.load();
-      if (snapshot?.dataURL) {
+      if (hasSnapshot(snapshot)) {
         await applySnapshot(snapshot);
         notify('restored', { snapshot });
+        return true;
       }
     } catch (error) {
       notify('restore-error', { error });
@@ -201,9 +204,11 @@ export function createAutosaveController({
   async function check() {
     try {
       const snapshot = await sessionManager.load();
-      notify(snapshot?.dataURL ? 'available' : 'missing', { snapshot });
+      notify(hasSnapshot(snapshot) ? 'available' : 'missing', { snapshot });
+      return hasSnapshot(snapshot);
     } catch (error) {
       notify('check-error', { error });
+      return null;
     }
   }
 

@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { computeToolDefaults } from '../../src/gui/tool-props.js';
+const toolDefaults = computeToolDefaults('pencil');
+
 import { EventBus } from '../../src/core/event-bus.js';
-import { Store, createStore, defaultState, toolDefaults } from '../../src/core/store.js';
+import { Store, createStore, defaultState } from '../../src/core/store.js';
 
 test('Store.set merges updates and notifies subscribers with previous state snapshots', () => {
   const bus = new EventBus({ logger: () => {} });

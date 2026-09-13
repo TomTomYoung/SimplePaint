@@ -149,9 +149,6 @@ const renderResults = () => {
     if (entry.group) {
       metaParts.push(entry.group);
     }
-    if (entry.id) {
-      metaParts.push(`#${entry.id}`);
-    }
     if (entry.shortcuts.length) {
       metaParts.push(entry.shortcuts.join(' / '));
     }
@@ -373,4 +370,4 @@ export function initToolSearchOverlay() {
   isInitialised = true;
 }
 
-window.initToolSearchOverlay = initToolSearchOverlay;
+if (typeof window !== 'undefined') window.initToolSearchOverlay = initToolSearchOverlay;

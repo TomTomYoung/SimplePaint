@@ -1,10 +1,10 @@
+import { captureDocumentState, restoreDocumentState } from './document-state.js';
 import { layers, activeLayer, bmp, renderLayers, markLayerPreviewDirty } from './layer.js';
 import { getDevicePixelRatio, resizeCanvasToDisplaySize } from '../utils/canvas/index.js';
-import { cancelTextEditing, getActiveEditor } from '../managers/text-editor.js';
+import { getActiveEditor } from '../managers/text-editor.js';
 import { openImageFile } from '../io/index.js';
 import { updateStatus, updateZoom } from '../gui/statusbar.js';
 
-import { selectTool } from '../main.js';
 import { HistoryManager } from '../managers/history-manager.js';
 
 /* ===== engine ===== */
@@ -14,6 +14,17 @@ export class Engine {
     this.vp = vp;
     this.eventBus = eventBus;
     this.history = new HistoryManager();
+    this.history.onChange(event => {
+      const patch = event.changed?.patch;
+      if (event.type === 'push' && patch && Number.isInteger(patch.layer)) {
+        patch.layerId ??= layers[patch.layer]?._id;
+      }
+      for (const [id, enabled] of [['undo', event.canUndo], ['redo', event.canRedo]]) {
+        const button = document.getElementById(id);
+        if (button) button.disabled = !enabled;
+      }
+      this.eventBus?.emit('document:changed', event);
+    }, { immediate: true });
     this.tools = new Map();
     this.current = null;
     this.selection = null;
@@ -60,7 +71,20 @@ export class Engine {
   pointInRect(p, r) {
     return p.x >= r.x && p.y >= r.y && p.x < r.x + r.w && p.y < r.y + r.h;
   }
+  updateBrushCursor(pos) {
+    const cursor = document.getElementById('brushCursor');
+    if (!cursor) return;
+    const state = this.store.getState();
+    const size = this.store.getToolState(state.toolId).brushSize;
+    const visible = pos && !this.isPanning && ['pencil', 'brush', 'eraser'].includes(state.toolId);
+    cursor.hidden = !visible;
+    if (!visible) return;
+    const diameter = Math.max(1, size * this.vp.zoom);
+    Object.assign(cursor.style, { width: `${diameter}px`, height: `${diameter}px`, left: `${pos.sx}px`, top: `${pos.sy}px` });
+  }
   updateCursorInfo(pos) {
+    this._cursorPosition = pos;
+    this.updateBrushCursor(pos);
     const tid = this.store.getState().toolId;
     const ts = this.store.getToolState(tid);
     updateStatus(`x:${Math.floor(pos.img.x)}, y:${Math.floor(pos.img.y)}  線:${ts.primaryColor} 塗:${ts.secondaryColor}  幅:${ts.brushSize}`);
@@ -84,7 +108,24 @@ export class Engine {
   }
 
 
+  performDocumentEdit(label, edit) {
+    if (this._documentEdit) return edit();
+    const before = captureDocumentState();
+    this._documentEdit = true;
+    try {
+      const result = edit();
+      this.history.pushPatch({ type: 'document', before, after: captureDocumentState() }, { label });
+      return result;
+    } catch (error) {
+      restoreDocumentState(before, this);
+      throw error;
+    } finally {
+      this._documentEdit = false;
+    }
+  }
+
   beginStrokeSnapshot() {
+    if (this._preStrokeCanvas) return;
     this._preStrokeCanvas = document.createElement("canvas");
     const layer = layers[activeLayer];
     this._preStrokeCanvas.width = layer.width;
@@ -94,10 +135,11 @@ export class Engine {
     this._pendingRect = null;
   }
   expandPendingRectByRect(x, y, w, h) {
-    const minX = Math.max(0, Math.floor(x)),
-      minY = Math.max(0, Math.floor(y)),
-      maxX = Math.min(bmp.width, Math.ceil(x + w)),
-      maxY = Math.min(bmp.height, Math.ceil(y + h));
+    const minX = Math.min(bmp.width, Math.max(0, Math.floor(x))),
+      minY = Math.min(bmp.height, Math.max(0, Math.floor(y))),
+      maxX = Math.max(0, Math.min(bmp.width, Math.ceil(x + w))),
+      maxY = Math.max(0, Math.min(bmp.height, Math.ceil(y + h)));
+    if (maxX <= minX || maxY <= minY) return;
     if (!this._pendingRect)
       this._pendingRect = { minX, minY, maxX, maxY };
     else {
@@ -131,6 +173,7 @@ export class Engine {
       .getImageData(rect.x, rect.y, rect.w, rect.h);
     this.history.pushPatch({
       layer: this._strokeLayer,
+      layerId: layer._id,
       rect,
       before: pre,
       after: aft,
@@ -203,6 +246,7 @@ export class Engine {
     }
     // エディタDOMの変換
     editorLayer.style.transform = `translate(${this.vp.panX}px, ${this.vp.panY}px) scale(${this.vp.zoom})`;
+    this.updateBrushCursor(this._cursorPosition);
     updateZoom(Math.round(this.vp.zoom * 100));
   }
   drawAnts(octx, r) {
@@ -218,36 +262,27 @@ export class Engine {
     octx.restore();
   }
 
-  undo() {
-    const p = this.history.undo();
-    if (!p) return;
-    const layerIndex = Number.isInteger(p.layer) ? p.layer : activeLayer;
-    const targetLayer = layers[layerIndex];
-    if (!targetLayer) {
-      return;
+  applyHistoryPatch(patch, direction) {
+    if (!patch) return;
+    this.current?.cancel?.();
+    this.clearSelection();
+    this._preStrokeCanvas = null;
+    this._pendingRect = null;
+    if (patch.type === 'document') {
+      restoreDocumentState(patch[direction], this);
+    } else {
+      const target = patch.layerId
+        ? layers.find(layer => layer._id === patch.layerId)
+        : layers[patch.layer ?? activeLayer];
+      if (!target) return;
+      target.getContext('2d').putImageData(patch[direction], patch.rect.x, patch.rect.y);
+      markLayerPreviewDirty(target);
     }
-    targetLayer
-      .getContext("2d")
-      .putImageData(p.before, p.rect.x, p.rect.y);
-    renderLayers();
-    markLayerPreviewDirty(layerIndex);
     this.requestRepaint();
+    this.eventBus?.emit('document:changed');
   }
-  redo() {
-    const p = this.history.redo();
-    if (!p) return;
-    const layerIndex = Number.isInteger(p.layer) ? p.layer : activeLayer;
-    const targetLayer = layers[layerIndex];
-    if (!targetLayer) {
-      return;
-    }
-    targetLayer
-      .getContext("2d")
-      .putImageData(p.after, p.rect.x, p.rect.y);
-    renderLayers();
-    markLayerPreviewDirty(layerIndex);
-    this.requestRepaint();
-  }
+  undo() { this.applyHistoryPatch(this.history.undo(), 'before'); }
+  redo() { this.applyHistoryPatch(this.history.redo(), 'after'); }
 
   _bindEvents() {
     let lastClickTS = 0,
@@ -311,6 +346,9 @@ export class Engine {
         base.style.cursor = "grabbing";
         return;
       }
+      if (e.button !== 0) return;
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      this.beginStrokeSnapshot();
       this.current?.onPointerDown(this.ctx, p, this);
       this.requestRepaint();
       this.updateCursorInfo(p);
@@ -355,7 +393,7 @@ export class Engine {
       const p = pointer(e);
       this.updateModifierState(p);
       this.current?.onPointerUp(this.ctx, p, this);
-      this.finishStrokeToHistory();
+      if (!getActiveEditor()) this.finishStrokeToHistory();
       this.requestRepaint();
     });
     area.addEventListener(
@@ -379,41 +417,13 @@ export class Engine {
         shift: e.shiftKey,
         alt: e.altKey,
       });
-      // ★ テキスト編集中はショートカットを殺す（Escだけ通す）
-      if (getActiveEditor()) {
-        if (e.code === "Escape") {
-          e.preventDefault();
-          cancelTextEditing(false, layers, activeLayer, this);
-          this.requestRepaint();
-        }
-        return; // ← P/T/Space/Undo など全部無効
-      }
-
-      if (e.code === "Escape") {
-        e.preventDefault();
-        this.current?.cancel?.();
-        this.requestRepaint();
-        return;
-      }
+      if (getActiveEditor()) return;
+      if (e.defaultPrevented || e.isComposing ||
+          e.target?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"], dialog')) return;
       if (e.code === "Space") {
         e.preventDefault();
         spaceDown = true;
         base.style.cursor = "grab";
-      }
-      if ((e.ctrlKey || e.metaKey) && e.code === "KeyZ") {
-        e.preventDefault();
-        this.undo();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.code === "KeyY") {
-        e.preventDefault();
-        this.redo();
-      }
-      if (e.code === "KeyP") selectTool("pencil");
-      if (e.code === "KeyB") selectTool("brush");
-      if (e.code === "KeyT") selectTool("text");
-      if (e.key === "Enter") {
-        e.preventDefault();
-        this.current?.onEnter?.(this.ctx, this);
       }
     });
 
@@ -427,6 +437,24 @@ export class Engine {
         spaceDown = false;
         base.style.cursor = this.current?.cursor || "default";
       }
+    });
+
+    area.addEventListener('pointerleave', () => {
+      this._cursorPosition = null;
+      this.updateBrushCursor(null);
+    });
+    area.addEventListener('pointercancel', e => {
+      this.current?.onPointerUp?.(this.ctx, pointer(e), this);
+      if (this._preStrokeCanvas && layers[this._strokeLayer]) {
+        const ctx = layers[this._strokeLayer].getContext('2d');
+        ctx.clearRect(0, 0, bmp.width, bmp.height);
+        ctx.drawImage(this._preStrokeCanvas, 0, 0);
+      }
+      this._preStrokeCanvas = null;
+      this._pendingRect = null;
+      this.isPanning = false;
+      this.clearSelection();
+      this.requestRepaint();
     });
 
     // DnD open

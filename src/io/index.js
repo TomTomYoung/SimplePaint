@@ -1,3 +1,5 @@
+import { createLayeredSnapshot } from './layered-snapshot.js';
+import { showRecoveryDialog, showSaveDialog } from '../gui/document-dialogs.js';
 import { updateStatus } from '../gui/statusbar.js';
 import { showRestoreButton, updateAutosaveBadge } from '../gui/toolbar.js';
 import {
@@ -7,12 +9,10 @@ import {
   applySnapshotToDocument,
 } from './document.js';
 import { copySelection, cutSelection, readClipboardItems } from './clipboard-actions.js';
-import { saveDocumentAs, renderDocumentCanvas } from './export-actions.js';
+import { saveDocumentAs } from './export-actions.js';
 import { createAutosaveController } from './autosave.js';
 import { createSessionManager } from './session.js';
 import { loadImageFile } from './file-io.js';
-import { bmp } from '../core/layer.js';
-import { cloneVectorLayer } from '../core/vector-layer-state.js';
 
 let engine = null;
 let fitToScreen = () => {};
@@ -64,24 +64,14 @@ function ensureAutosaveController() {
   autosaveController = createAutosaveController({
     sessionManager,
     autosaveInterval: AUTOSAVE_INTERVAL,
-    snapshotDocument: async () => {
-      const canvas = renderDocumentCanvas();
-      const vectorLayer = cloneVectorLayer(engine?.store?.getState()?.vectorLayer ?? null);
-      return {
-        dataURL: canvas.toDataURL('image/png'),
-        width: bmp.width,
-        height: bmp.height,
-        ts: Date.now(),
-        vectorLayer,
-      };
-    },
+    snapshotDocument: async () => createLayeredSnapshot(engine),
     applySnapshot: (snapshot) =>
       applySnapshotToDocument({ engine, fitToScreen, snapshot }),
     onStatus: handleAutosaveStatus,
     eventBus: engine?.eventBus,
-    eventNames: ['store:updated'],
+    eventNames: ['store:updated', 'document:changed'],
   });
-  autosaveController.start();
+  autosaveController.pause();
   return autosaveController;
 }
 
@@ -90,11 +80,8 @@ export function initIO(eng, fitFunc) {
   fitToScreen = typeof fitFunc === 'function' ? fitFunc : () => {};
   ensureAutosaveController();
 
-  document.getElementById('savePNG').addEventListener('click', () => triggerSave('png'));
-  document.getElementById('saveJPG').addEventListener('click', () => triggerSave('jpg'));
-  document.getElementById('saveWEBP').addEventListener('click', () => triggerSave('webp'));
-
   window.addEventListener('paste', async (e) => {
+    if (e.target?.closest?.('input, textarea, [contenteditable="true"], dialog')) return;
     if (e.clipboardData) {
       const items = [...e.clipboardData.items].filter((item) => item.type.startsWith('image/'));
       if (items.length) {
@@ -121,7 +108,8 @@ export function initIO(eng, fitFunc) {
   });
 
   window.addEventListener('beforeunload', () => {
-    ensureAutosaveController().flush();
+    const controller = ensureAutosaveController();
+    if (!controller.isPaused) controller.flush();
   });
 }
 
@@ -133,7 +121,7 @@ export function initDocument(width = 1280, height = 720, backgroundColor = '#fff
 export async function openImageFile(file) {
   try {
     const { canvas, width, height } = await loadImageFile(file);
-    createDocument({ engine, fitToScreen, width, height, backgroundColor: '#ffffff' });
+    createDocument({ engine, fitToScreen, width, height, backgroundColor: null });
     applyCanvasToActiveLayer(canvas);
     engine.requestRepaint();
     saveSessionDebounced();
@@ -142,8 +130,13 @@ export async function openImageFile(file) {
   }
 }
 
-export function triggerSave(format) {
-  saveDocumentAs(format).catch(() => {
+export async function triggerSave(format) {
+  if (!format) {
+    const options = await showSaveDialog();
+    if (!options) return;
+    format = options.format;
+  }
+  return saveDocumentAs(format).catch(() => {
     updateStatus('保存に失敗しました');
   });
 }
@@ -191,10 +184,33 @@ export function saveSessionDebounced() {
   ensureAutosaveController().scheduleSave();
 }
 
-export function restoreSession() {
-  return ensureAutosaveController().restore();
+export async function restoreSession() {
+  const controller = ensureAutosaveController();
+  await controller.pause();
+  const restored = await controller.restore();
+  if (restored) {
+    const id = engine.store.getState().toolId;
+    engine.store.set({ toolId: id === 'select-free' ? 'select-rect' : id });
+    await controller.resume({ immediate: true });
+  }
+  return restored;
 }
 
-export function checkSession() {
-  return ensureAutosaveController().check();
+export async function checkSession() {
+  const controller = ensureAutosaveController();
+  const available = await controller.check();
+  if (available === false) return controller.resume({ immediate: true });
+  if (available === null) {
+    updateAutosaveBadge('前回の絵を確認できません。画像を保存してください');
+    return;
+  }
+  while (true) {
+    const choice = await showRecoveryDialog();
+    if (choice === 'new') {
+      showRestoreButton(false);
+      return controller.resume({ immediate: true });
+    }
+    if (await restoreSession()) return;
+    updateAutosaveBadge('復元できませんでした。前回の保存は保持しています');
+  }
 }

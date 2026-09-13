@@ -1723,3 +1723,43 @@ box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
     background: rgba(66, 133, 244, 0.24);
   }
 }
+/* SimplePaint: basic tools stay within reach; optional controls expand on demand. */
+.app-title { font-weight: 650; margin-right: 8px; white-space: nowrap; }
+#systems { max-height: none; width: 100%; align-content: center; }
+.app-header { flex: 0 0 auto; }
+#app { display: flex; flex-direction: column; height: 100dvh; }
+#stage { flex: 1 1 auto; height: auto; }
+.basic-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.basic-tools .tool { min-width: 0; width: 100%; min-height: 36px; padding: 5px; }
+.tool-select-body { display: flex; flex-direction: column; gap: 7px; }
+.tool-selector-panel { flex: 0 0 var(--tool-selector-height, 310px); max-height: 60%; overflow: auto; }
+.tool-prop-panel { flex: 1 1 auto; min-height: 0; }
+.command-menu { display: flex; flex-direction: column; gap: 8px; }
+.tool-dropdown-panel[hidden], [hidden] { display: none !important; }
+.tool-dropdown-panel { position: fixed; z-index: 1000; }
+#brushCursor { position: absolute; pointer-events: none; z-index: 3; border: 1px solid #fff; box-shadow: 0 0 0 1px #222; border-radius: 50%; transform: translate(-50%, -50%); }
+#canvasArea { touch-action: none; }
+.brush-sample { display: block; width: 100%; height: auto; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 5px; background: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 0 0 / 12px 12px; }
+.advanced-properties { margin-top: 10px; }
+.advanced-properties summary, .prop-palette-section summary { cursor: pointer; padding: 8px 0; color: var(--muted-color); }
+.prop-item output { float: right; font-variant-numeric: tabular-nums; color: var(--muted-color); }
+.prop-hint { display: none; }
+.prop-item:focus-within > .prop-hint { display: block; }
+button:disabled { opacity: .45; cursor: default; }
+dialog { width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-color); background: var(--bg-elevated); box-shadow: 0 12px 48px #0003; }
+dialog::backdrop { background: #0005; }
+dialog h2 { font-size: 19px; margin: 0 0 18px; }
+dialog label { display: block; margin: 12px 0 6px; }
+dialog select, dialog input[type=number] { width: 100%; padding: 8px; min-height: 38px; font: inherit; }
+dialog p { color: var(--muted-color); line-height: 1.6; font-size: 13px; }
+.size-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.checkbox-label { display: flex; align-items: center; gap: 6px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.dialog-actions button { min-height: 36px; padding: 6px 12px; }
+.dialog-actions button:last-child { background: #315ac9; border-color: #315ac9; color: white; }
+@media (max-width: 768px) {
+  .app-title { display: none; }
+  #layerPanel { width: 180px; }
+  #leftPanel { width: 170px; }
+  footer { flex-wrap: wrap; }
+}

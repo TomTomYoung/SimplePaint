@@ -146,10 +146,10 @@ export function makeBrush(store) {
       ctx.globalAlpha = opacity;
       ctx.strokeStyle = s.primaryColor;
       ctx.lineWidth = s.brushSize;
+      ctx.fillStyle = s.primaryColor;
       ctx.beginPath();
-      ctx.moveTo(last.x + 0.5, last.y + 0.5);
-      ctx.lineTo(last.x + 0.5, last.y + 0.5);
-      ctx.stroke();
+      ctx.arc(last.x + 0.5, last.y + 0.5, s.brushSize / 2, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
 
       eng.expandPendingRectByRect(

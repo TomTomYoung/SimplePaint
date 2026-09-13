@@ -5,5 +5,9 @@
   "type": "module",
   "scripts": {
     "test": "node --test"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "0.1.100",
+    "jsdom": "24.1.3"
   }
 }

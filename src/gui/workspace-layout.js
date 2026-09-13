@@ -185,4 +185,4 @@ export function initWorkspaceLayoutControls() {
   });
 }
 
-window.initWorkspaceLayoutControls = initWorkspaceLayoutControls;
+if (typeof window !== 'undefined') window.initWorkspaceLayoutControls = initWorkspaceLayoutControls;
