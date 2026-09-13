@@ -14,49 +14,6 @@ let selectionScope = 'layer';
 
 const LAST_TOOL_STORAGE_KEY = 'ui:lastTool';
 
-const TOOL_SHORTCUT_DESCRIPTIONS = buildToolShortcutDescriptions(
-  PRIMARY_TOOL_SHORTCUTS,
-  SHIFT_TOOL_SHORTCUTS,
-);
-
-function buildToolShortcutDescriptions(primary, shift) {
-  const descriptionMap = new Map();
-  const register = (toolId, text) => {
-    if (!toolId || !text) return;
-    if (!descriptionMap.has(toolId)) {
-      descriptionMap.set(toolId, []);
-    }
-    descriptionMap.get(toolId).push(text);
-  };
-
-  Object.entries(primary).forEach(([code, toolId]) => {
-    register(toolId, codeToDisplayLabel(code));
-  });
-
-  Object.entries(shift).forEach(([code, toolId]) => {
-    register(toolId, `Shift+${codeToDisplayLabel(code)}`);
-  });
-
-  return descriptionMap;
-}
-
-function codeToDisplayLabel(code) {
-  if (code.startsWith('Key')) {
-    return code.slice(3);
-  }
-  if (code.startsWith('Digit')) {
-    return code.slice(5);
-  }
-  switch (code) {
-    case 'Minus':
-      return '-';
-    case 'Equal':
-      return '=';
-    default:
-      return code;
-  }
-}
-
 export function initToolbar() {
   // ツールボタンの初期化
   document.querySelectorAll('.tool').forEach(b => {
@@ -84,7 +41,7 @@ function restoreLastSelectedTool() {
 
   if (currentTool) return;
 
-  const first = document.querySelector('.tool[data-tool]');
+  const first = document.querySelector('.tool[data-tool="pencil"]');
   if (first?.dataset.tool) {
     selectTool(first.dataset.tool);
   }
@@ -106,12 +63,7 @@ function initSystemButtons() {
     e.target.value = '';
   });
 
-  document.getElementById('savePNG')?.addEventListener('click', () => 
-    toolCallbacks.onSave?.('png'));
-  document.getElementById('saveJPG')?.addEventListener('click', () =>
-    toolCallbacks.onSave?.('jpg'));
-  document.getElementById('saveWEBP')?.addEventListener('click', () =>
-    toolCallbacks.onSave?.('webp'));
+  document.getElementById('saveImage')?.addEventListener('click', () => toolCallbacks.onSave?.());
 
   // 編集操作
   document.getElementById('undo')?.addEventListener('click', () => 
@@ -155,14 +107,6 @@ function initSystemButtons() {
   document.getElementById('flipCanvasV')?.addEventListener('click', () =>
     toolCallbacks.onFlipCanvas?.('v'));
 
-  // レイヤー操作
-  document.getElementById('addLayerBtn')?.addEventListener('click', () =>
-    toolCallbacks.onAddLayer?.());
-  document.getElementById('addVectorLayerBtn')?.addEventListener('click', () =>
-    toolCallbacks.onAddVectorLayer?.());
-  document.getElementById('deleteLayerBtn')?.addEventListener('click', () =>
-    toolCallbacks.onDeleteLayer?.());
-
   // ビュー操作
   document.getElementById('fit')?.addEventListener('click', () =>
     toolCallbacks.onFitToScreen?.());
@@ -176,6 +120,7 @@ function initSystemButtons() {
 
 function initKeyboardShortcuts() {
   window.addEventListener('keydown', e => {
+    if (e.defaultPrevented || e.isComposing || e.repeat || e.target?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"], dialog')) return;
     // テキスト編集中はショートカット無効
     if (toolCallbacks.isTextEditing?.()) {
       if (e.code === 'Escape') {
@@ -196,7 +141,7 @@ function initKeyboardShortcuts() {
     }
 
     // 通常のツールショートカット
-    if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+    if (!e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
       const primaryTool = getPrimaryShortcutTool(e.code);
       if (primaryTool) {
         e.preventDefault();
@@ -210,7 +155,8 @@ function initKeyboardShortcuts() {
       switch(e.code) {
         case 'KeyZ':
           e.preventDefault();
-          toolCallbacks.onUndo?.();
+          if (e.shiftKey) toolCallbacks.onRedo?.();
+          else toolCallbacks.onUndo?.();
           break;
         case 'KeyY':
           e.preventDefault();
@@ -230,7 +176,7 @@ function initKeyboardShortcuts() {
           break;
         case 'KeyS':
           e.preventDefault();
-          toolCallbacks.onSave?.('png');
+          toolCallbacks.onSave?.();
           break;
         case 'KeyO':
           e.preventDefault();
@@ -263,8 +209,7 @@ function initKeyboardShortcuts() {
   });
 }
 
-export function selectTool(toolId) {
-  if (currentTool === toolId) return;
+export function reflectToolSelection(toolId) {
 
   // UIの更新
   document.querySelectorAll('.tool').forEach(b =>
@@ -285,7 +230,11 @@ export function selectTool(toolId) {
     writeString(LAST_TOOL_STORAGE_KEY, toolId);
   }
 
-  // コールバック呼び出し
+}
+
+export function selectTool(toolId) {
+  if (currentTool === toolId) return;
+  reflectToolSelection(toolId);
   toolCallbacks.onToolChange?.(toolId);
 }
 

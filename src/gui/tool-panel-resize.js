@@ -110,4 +110,4 @@ export function initToolPanelResize() {
   });
 }
 
-window.initToolPanelResize = initToolPanelResize;
+if (typeof window !== 'undefined') window.initToolPanelResize = initToolPanelResize;

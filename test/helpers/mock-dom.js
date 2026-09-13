@@ -335,7 +335,8 @@ function installMockDomEnvironment(options = {}) {
 
   globalThis.document = document;
   globalThis.window = window;
-  globalThis.navigator = navigator;
+  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, writable: true, value: navigator });
   globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window);
   globalThis.cancelAnimationFrame = window.cancelAnimationFrame.bind(window);
   globalThis.performance = previous.performance ?? { now: () => Date.now() };
@@ -346,8 +347,8 @@ function installMockDomEnvironment(options = {}) {
     else globalThis.document = previous.document;
     if (previous.window === undefined) delete globalThis.window;
     else globalThis.window = previous.window;
-    if (previous.navigator === undefined) delete globalThis.navigator;
-    else globalThis.navigator = previous.navigator;
+    if (navigatorDescriptor) Object.defineProperty(globalThis, 'navigator', navigatorDescriptor);
+    else delete globalThis.navigator;
     if (previous.requestAnimationFrame === undefined) delete globalThis.requestAnimationFrame;
     else globalThis.requestAnimationFrame = previous.requestAnimationFrame;
     if (previous.cancelAnimationFrame === undefined) delete globalThis.cancelAnimationFrame;

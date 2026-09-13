@@ -19,7 +19,16 @@ export function renderDocumentCanvas({ format } = {}) {
     width: bmp.width,
     height: bmp.height,
     backgroundColor,
-    render: (ctx) => flattenLayers(ctx),
+    render: (ctx) => {
+      flattenLayers(ctx);
+      if (backgroundColor) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, bmp.width, bmp.height);
+        ctx.restore();
+      }
+    },
   });
 }
 

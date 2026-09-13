@@ -102,6 +102,11 @@ export function cancelTextEditing(commit = false, layers, activeLayer, engine) {
     engine.finishStrokeToHistory();
   }
 
+  if (!commit && engine) {
+    engine._preStrokeCanvas = null;
+    engine._pendingRect = null;
+  }
+
   if (activeEditor._onKey) {
     activeEditor.removeEventListener("keydown", activeEditor._onKey);
     delete activeEditor._onKey;

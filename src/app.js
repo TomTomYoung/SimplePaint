@@ -1,4 +1,5 @@
-import { initToolbar, setToolCallbacks } from './gui/toolbar.js';
+import { showSizeDialog } from './gui/document-dialogs.js';
+import { initToolbar, setToolCallbacks, reflectToolSelection } from './gui/toolbar.js';
 import { initToolPropsPanel } from './gui/tool-props.js';
 import { initShortcutOverlay } from './gui/shortcuts-overlay.js';
 import { initToolSearchOverlay } from './gui/tool-search-overlay.js';
@@ -46,6 +47,7 @@ export class PaintApp {
     this.engine = new Engine(this.store, this.viewport, this.eventBus);
     this.adjustmentManager = null;
     this.selectionScope = 'layer';
+    this.lastDrawingTool = 'pencil';
     this.init();
   }
 
@@ -56,6 +58,11 @@ export class PaintApp {
     this.initUI();
     this.adjustmentManager = new AdjustmentManager(this.engine, layers);
     this.setupVectorLayerSync();
+    this.eventBus.on('session:restored', () => this.selectTool(this.store.getState().toolId));
+    this.eventBus.on('color:picked', ({ color }) => {
+      this.store.setToolState(this.lastDrawingTool, { primaryColor: color });
+      this.selectTool(this.lastDrawingTool);
+    });
   }
 
   registerTools() {
@@ -147,11 +154,16 @@ export class PaintApp {
 
   selectTool(id) {
     cancelTextEditing(false, layers, activeLayer, this.engine);
+    if (['pencil', 'brush', 'bucket', 'line', 'rect', 'ellipse', 'text'].includes(id)) this.lastDrawingTool = id;
+    if (id === 'select-free') id = 'select-rect';
     this.store.set({ toolId: id });
     document
       .querySelectorAll('.tool')
       .forEach(b => b.classList.toggle('active', b.dataset.tool === id));
     this.engine.setTool(id);
+    reflectToolSelection(id);
+    const label = document.getElementById('activeToolLabel');
+    if (label) label.textContent = document.querySelector(`.tool[data-tool="${id}"]`)?.textContent?.trim() || id;
   }
 
   fitToScreen() {
@@ -184,6 +196,7 @@ export class PaintApp {
   }
 
   clearAllLayers() {
+    if (!this.engine._documentEdit) return this.engine.performDocumentEdit('全レイヤークリア', () => this.clearAllLayers());
     cancelTextEditing(false, layers, activeLayer, this.engine);
     layers.forEach((layer, idx) => {
       const ctx = layer.getContext('2d');
@@ -199,14 +212,14 @@ export class PaintApp {
     this.engine.requestRepaint();
   }
 
-  resizeCanvasPrompt() {
-    const width = parseInt(prompt('キャンバス幅(px)', bmp.width) || '', 10);
-    const height = parseInt(prompt('キャンバス高さ(px)', bmp.height) || '', 10);
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
-    this.resizeCanvas(width, height);
+  async resizeCanvasPrompt() {
+    const size = await showSizeDialog(bmp.width, bmp.height);
+    if (size) this.resizeCanvas(size.width, size.height, size.mode);
   }
 
-  resizeCanvas(width, height) {
+  resizeCanvas(width, height, mode = 'image') {
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || (width === bmp.width && height === bmp.height)) return;
+    if (!this.engine._documentEdit) return this.engine.performDocumentEdit('サイズ変更', () => this.resizeCanvas(width, height, mode));
     if (width === bmp.width && height === bmp.height) return;
     layers.forEach(layer => {
       const snapshot = document.createElement('canvas');
@@ -218,7 +231,8 @@ export class PaintApp {
       layer.height = height;
       const ctx = layer.getContext('2d');
       ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(snapshot, 0, 0, snapshot.width, snapshot.height, 0, 0, width, height);
+      if (mode === 'canvas') ctx.drawImage(snapshot, 0, 0);
+      else ctx.drawImage(snapshot, 0, 0, snapshot.width, snapshot.height, 0, 0, width, height);
     });
 
     bmp.width = width;
@@ -233,6 +247,8 @@ export class PaintApp {
   }
 
   cropSelection(scope = 'layer') {
+    if (!this.engine.selection) return;
+    if (!this.engine._documentEdit) return this.engine.performDocumentEdit('切り抜き', () => this.cropSelection(scope));
     const sel = this.engine.selection;
     if (!sel) return;
     const { x, y, w, h } = sel.rect;
@@ -266,6 +282,8 @@ export class PaintApp {
   }
 
   affineSelection(scope = 'layer', mode = 'hflip') {
+    if (!this.engine.selection) return;
+    if (!this.engine._documentEdit) return this.engine.performDocumentEdit('選択範囲の反転', () => this.affineSelection(scope, mode));
     const sel = this.engine.selection;
     if (!sel) return;
     const { x, y, w, h } = sel.rect;
@@ -311,6 +329,7 @@ export class PaintApp {
   }
 
   flipCanvas(direction = 'h') {
+    if (!this.engine._documentEdit) return this.engine.performDocumentEdit('画像の反転', () => this.flipCanvas(direction));
     const { width, height } = bmp;
     layers.forEach(layer => {
       if (!layer) return;

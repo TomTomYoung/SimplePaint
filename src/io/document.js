@@ -1,3 +1,4 @@
+import { applyLayeredSnapshot, isLayeredSnapshot } from './layered-snapshot.js';
 import {
   bmp,
   clipCanvas,
@@ -31,13 +32,17 @@ export function createDocument({
   clipCanvas.width = width;
   clipCanvas.height = height;
 
+  engine?.history?.clear();
+  if (engine) { engine._preStrokeCanvas = null; engine._pendingRect = null; }
   layers.length = 0;
   addLayer(engine);
   configureLayerDimensions(width, height);
 
   const ctx = layers[0].getContext('2d');
-  ctx.fillStyle = backgroundColor;
-  ctx.fillRect(0, 0, width, height);
+  if (backgroundColor) {
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height);
+  }
 
   if (engine?.store?.set) {
     const nextLayer = vectorLayer ? cloneVectorLayer(vectorLayer) : createEmptyVectorLayer();
@@ -74,6 +79,7 @@ export function positionFloatingSelection(engine, canvas, width, height) {
 }
 
 export function applySnapshotToDocument({ engine, fitToScreen, snapshot }) {
+  if (isLayeredSnapshot(snapshot)) return applyLayeredSnapshot({ engine, fitToScreen, snapshot });
   const { width, height, dataURL, vectorLayer } = snapshot;
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -83,7 +89,7 @@ export function applySnapshotToDocument({ engine, fitToScreen, snapshot }) {
         fitToScreen,
         width,
         height,
-        backgroundColor: '#ffffff',
+        backgroundColor: null,
         vectorLayer,
       });
       applyCanvasToActiveLayer(img);

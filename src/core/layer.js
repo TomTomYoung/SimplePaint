@@ -118,6 +118,7 @@ export function flattenLayers(ctx) {
     ctx.globalCompositeOperation = l.mode || 'source-over';
     if (l.clip && i > 0) {
       clipCtx.clearRect(0, 0, bmp.width, bmp.height);
+      clipCtx.globalCompositeOperation = 'source-over';
       clipCtx.drawImage(layers[i - 1], 0, 0);
       clipCtx.globalCompositeOperation = 'source-in';
       clipCtx.drawImage(l, 0, 0);
@@ -131,6 +132,18 @@ export function flattenLayers(ctx) {
 
 export function renderLayers() {
   flattenLayers(bctx);
+}
+
+export function replaceDocumentLayers(nextLayers, width, height, index, engine) {
+  bmp.width = clipCanvas.width = width;
+  bmp.height = clipCanvas.height = height;
+  layers.splice(0, layers.length, ...nextLayers);
+  engine?.clearSelection?.();
+  setActiveLayer(Math.min(Math.max(index, 0), layers.length - 1), engine);
+  if (engine?.vp) {
+    engine.vp.imageWidth = width;
+    engine.vp.imageHeight = height;
+  }
 }
 
 export function updateLayerList(engine) {
@@ -180,6 +193,9 @@ export function setActiveLayer(i, engine) {
 }
 
 export function moveLayer(from, to, engine) {
+  if (from !== to && from >= 0 && to >= 0 && from < layers.length && to < layers.length && engine?.performDocumentEdit && !engine._documentEdit) {
+    return engine.performDocumentEdit('レイヤーの並べ替え', () => moveLayer(from, to, engine));
+  }
   if (
     from === to ||
     from < 0 ||
@@ -189,17 +205,15 @@ export function moveLayer(from, to, engine) {
   ) return;
   const [l] = layers.splice(from, 1);
   layers.splice(to, 0, l);
-  engine.history.stack.forEach(p => {
-    if (p.layer === from) p.layer = to;
-    else if (from < to && p.layer > from && p.layer <= to) p.layer--;
-    else if (to < from && p.layer >= to && p.layer < from) p.layer++;
-  });
   setActiveLayer(to, engine);
   renderLayers();
   updateLayerList(engine);
 }
 
 export function addLayer(engine) {
+  if (layers.length > 0 && engine?.performDocumentEdit && !engine._documentEdit) {
+    return engine.performDocumentEdit('レイヤー追加', () => addLayer(engine));
+  }
   const c = document.createElement('canvas');
   c.width = bmp.width;
   c.height = bmp.height;
@@ -221,6 +235,9 @@ export function addLayer(engine) {
 }
 
 export function addVectorLayer(engine) {
+  if (layers.length > 0 && engine?.performDocumentEdit && !engine._documentEdit) {
+    return engine.performDocumentEdit('ベクターレイヤー追加', () => addVectorLayer(engine));
+  }
   const c = document.createElement('canvas');
   c.width = bmp.width;
   c.height = bmp.height;
@@ -242,24 +259,10 @@ export function addVectorLayer(engine) {
 }
 
 export function deleteLayer(engine) {
+  if (layers.length > 1 && engine?.performDocumentEdit && !engine._documentEdit) {
+    return engine.performDocumentEdit('レイヤー削除', () => deleteLayer(engine));
+  }
   if (layers.length <= 1) return;
-
-  const orig = engine.history.stack;
-  let removedBefore = 0;
-  const filtered = [];
-  orig.forEach((p, i) => {
-    if (p.layer === activeLayer) {
-      if (i <= engine.history.index) removedBefore++;
-      return;
-    }
-    if (p.layer > activeLayer) p.layer--;
-    filtered.push(p);
-  });
-  engine.history.stack = filtered;
-  engine.history.index = Math.max(
-    -1,
-    Math.min(filtered.length - 1, engine.history.index - removedBefore)
-  );
 
   layers.splice(activeLayer, 1);
   if (activeLayer >= layers.length) activeLayer = layers.length - 1;
