@@ -290,7 +290,7 @@ footer {
   flex-direction: column;
   flex: 0 0 auto;
   min-width: 150px;
-  max-width: 500px;
+  max-width: min(500px, 30%);
   position: relative;
   z-index: 2;
   min-height: 0;
@@ -923,8 +923,8 @@ body.header-resize-active * {
 }
 
 
-/* canvas要素の配置調整 */
-canvas {
+/* 描画領域だけを重ねる。設定内の描画見本には適用しない。 */
+#canvasArea > canvas {
   position: absolute;
   inset: 0;
   image-rendering: pixelated;
@@ -1415,10 +1415,6 @@ summary:focus-visible {
   overflow: auto;
 }
 
-background: rgba(66, 133, 244, 0.15);
-box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
-}
-
 .tool-search-name {
   font-weight: 700;
   font-size: 14px;
@@ -1726,9 +1722,10 @@ box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
 /* SimplePaint: basic tools stay within reach; optional controls expand on demand. */
 .app-title { font-weight: 650; margin-right: 8px; white-space: nowrap; }
 #systems { max-height: none; width: 100%; align-content: center; }
-.app-header { flex: 0 0 auto; }
+.app-header { flex: 0 0 auto; max-height: 30dvh; }
 #app { display: flex; flex-direction: column; height: 100dvh; }
-#stage { flex: 1 1 auto; height: auto; }
+#app > footer { flex: 0 0 auto; max-height: 20dvh; }
+#stage { flex: 1 1 0; height: auto; }
 .basic-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
 .basic-tools .tool { min-width: 0; width: 100%; min-height: 36px; padding: 5px; }
 .tool-select-body { display: flex; flex-direction: column; gap: 7px; }
@@ -1759,7 +1756,28 @@ dialog p { color: var(--muted-color); line-height: 1.6; font-size: 13px; }
 .dialog-actions button:last-child { background: #315ac9; border-color: #315ac9; color: white; }
 @media (max-width: 768px) {
   .app-title { display: none; }
-  #layerPanel { width: 180px; }
-  #leftPanel { width: 170px; }
-  footer { flex-wrap: wrap; }
+  #stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+  }
+  #canvasArea { grid-column: 1 / -1; grid-row: 1; }
+  #leftPanel, #layerPanel {
+    grid-row: 2;
+    width: auto !important;
+    min-width: 0;
+    max-width: none;
+    overflow: auto;
+  }
+  #leftPanel { grid-column: 1; }
+  #layerPanel { grid-column: 2; }
+  #leftResizer, #rightResizer, #toolPanelDivider { display: none; }
+  #leftPanel .panel-section, #layerPanel .panel-section { flex: 0 0 auto; max-height: none; }
+  #leftPanel .panel-body, #layerPanel .panel-body { overflow: visible; }
+  .tool-selector-panel { overflow: visible; }
+  #app > footer { flex-wrap: nowrap; }
+  .footer-right { min-width: 0; overflow: auto; flex-wrap: nowrap; }
+  .footer-right > * { flex-shrink: 0; }
+  .layout-control { width: auto; }
+  .shortcut-hint { display: none; }
 }
