@@ -1,5 +1,7 @@
 # Vector Tool Implementation Progress
 
+> Historical progress for the standalone `vector-tool`. As of 2026-09-13, it is registered but has no button in the normal tool palette. Vector-layer rendering, export, and edit history are not fully connected. See the current [tool implementation audit (Japanese)](../doc/TOOL_CATALOG.md).
+
 ## Completed
 - Implemented `makeVectorTool` that owns vector paths, draft strokes, selection, and exposes pointer handlers for draw interactions without relying on a separate layer abstraction.\
   _(See `src/tools/vector/vector-tool.js` for full implementation.)_
